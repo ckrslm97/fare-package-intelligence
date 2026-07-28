@@ -82,11 +82,11 @@ CLASS_PARAM: dict[Cabin, Optional[str]] = {
 }
 
 
-@register
+# NOT registered (user decision 2026-07-28: "kaynak olarak enuygunu kullanma").
+# The adapter is kept importable for tests / potential future reinstatement;
+# re-adding @register would put it back in the chain.
 class Enuygun(SourceAdapter):
     name = "Enuygun"
-    # Priority 3 (user decision 2026-07-28): weak package content -> last resort;
-    # its fee tooltips still flow into the data via cross-source enrichment.
     priority = 3
     needs_browser = True
 

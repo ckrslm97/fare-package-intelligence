@@ -18,11 +18,10 @@ dashboard. Turkish notes below; code and comments are in English.
   (Economy / Premium Economy / Business) markalı ücret paketlerini çeker — bir
   rastgele **Yaz** + bir rastgele **Kış** tarihi (dönüş = gidiş + 3 gün, 7 günlük
   fallback penceresi, her taze koşuda yeni rastgele tarihler).
-- Kaynak zinciri: **taşıyıcının kendi sitesi → Enuygun → Ubfly**. Tüm zincir
-  çalıştırılır; kabin başına **en kaliteli merdiven** seçilir (en çok paket, en
-  az mantıksız >3× fiyat sıçraması, en ucuz baz) ve kaybeden kaynaklar seçilen
-  markaların **eksik haklarını zenginleştirir** (ör. TK: Enuygun fiyat merdiveni
-  + Ubfly'ın mil/aynı-gün/fast-track satırları).
+- Kaynak zinciri: **taşıyıcının kendi sitesi → Ubfly** (Enuygun, zayıf paket
+  içeriği nedeniyle devre dışı bırakıldı). Kabin başına **en kaliteli merdiven**
+  seçilir (en çok paket, en az mantıksız >3× fiyat sıçraması, en ucuz baz);
+  birden çok kaynak varsa kaybedenler eksik hakları zenginleştirir.
 - Paketler **fiyata göre** sıralanır (sitedeki gibi); her paketin kendi mutlak
   fiyatı hesaplanır (baz + delta çözümü). Kod paylaşımlı (codeshare) uçuşlar
   filtrelenir; kabini adıyla çelişen çöp satırlar elenir; Premium Economy
@@ -73,7 +72,7 @@ branded_fare_scraper/
   runner.py        async orkestrasyon: plan/resume → paralel tarama →
                    kabin-bazlı kalite seçimi + çapraz-kaynak zenginleştirme →
                    doğrulama → yazım
-  sources/         kaynak adaptörleri (enuygun, ubfly, turkish_airlines);
+  sources/         kaynak adaptörleri (ubfly, turkish_airlines; enuygun devre dışı);
                    uçuş seçimi PE-farkındalıklı ve merdiven kalite puanlı
   normalization.py marka adı → kanonik alt-tier; fiyat-öncelikli sıralama;
                    kabin tespiti (PE ücret-ailesi kodları dahil); çapraz-kaynak

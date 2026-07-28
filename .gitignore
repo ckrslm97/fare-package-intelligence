@@ -28,3 +28,6 @@ test_input.csv
 
 # replaced by output_v5 (kept in git history)
 output_v4/
+
+# replaced by output_v6 (kept in git history)
+output_v5/
