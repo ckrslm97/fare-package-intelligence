@@ -1,0 +1,8 @@
+# Core engine has NO hard third-party dependency (stdlib + CSV fallback).
+# These enable the full feature set:
+
+playwright>=1.44        # real browser automation for official-site adapters
+openpyxl>=3.1           # .xlsx input/output (CSV works without it)
+
+# Dev / tests
+pytest>=8.0

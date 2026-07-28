@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Run internals (checkpoints, logs) — data outputs stay tracked
+output_*/state/
+output_*/logs/
+
+# OS
+.DS_Store
