@@ -226,6 +226,38 @@ def test_enrich_fills_only_missing():
     assert prim[0].miles.mileage_available is True and prim[0].miles.miles_earned == 500
 
 
+def test_ubfly_full_rule_lines_map_correctly():
+    # The lines revealed by Ubfly's "Show more" (already present, hidden, in the
+    # search-page DOM) must classify correctly — esp. the negatives.
+    assert map_label_to_canonical("Non-refundable.") == "refund"
+    assert classify_status_from_text("Non-refundable.") == AmenityStatus.NOT_INCLUDED
+    assert map_label_to_canonical("Non-exchangeable.") == "change"
+    assert classify_status_from_text("Non-exchangeable.") == AmenityStatus.NOT_INCLUDED
+    assert map_label_to_canonical("Internet Package") == "wifi"
+    assert map_label_to_canonical("Lounge Access (Subject to availability)") == "lounge_access"
+    assert map_label_to_canonical(
+        "Paid change to previous flights on the same day (Kiosk & Counter)"
+    ) == "same_day_earlier_flight"
+
+
+def test_ubfly_miles_lines_turkish_and_percent():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    amen, miles, _ = Ubfly()._parse_rules(["%25 Ekstra Mil"])
+    assert miles.mileage_available is True and miles.bonus_percent == 25
+    amen, miles, _ = Ubfly()._parse_rules(["30 PERCENT EXTRA MILES"])
+    assert miles.bonus_percent == 30 and miles.miles_earned is None
+    amen, miles, _ = Ubfly()._parse_rules(["Earn 500 miles"])
+    assert miles.miles_earned == 500 and miles.bonus_percent is None
+
+
+def test_ubfly_free_line_negative_not_upgraded_to_included():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    amen, _, _ = Ubfly()._parse_rules(["Non-refundable.", "Meal Service"])
+    by_key = {a.canonical_key: a.status for a in amen}
+    assert by_key["refund"] == AmenityStatus.NOT_INCLUDED   # NOT the Included upgrade
+    assert by_key["meal"] == AmenityStatus.INCLUDED         # plain listed line -> Included
+
+
 def test_ubfly_drops_self_contradictory_box():
     from branded_fare_scraper.sources.ubfly import Ubfly
     flight = {"carrier": "AC", "baseText": "974.81 USD", "brands": [

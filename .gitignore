@@ -25,3 +25,6 @@ test_input.csv
 
 # OS
 .DS_Store
+
+# replaced by output_v5 (kept in git history)
+output_v4/

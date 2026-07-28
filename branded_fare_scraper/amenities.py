@@ -64,14 +64,15 @@ SYNONYMS: dict[str, list[str]] = {
                "cancellation before"],
     "change": ["change after", "reissue", "rebook", "date change", "biletdeğişik",
                "tarih değişik", "change_afterdeparture", "change after departure",
-               "değişiklik"],
+               "değişiklik", "exchange"],
     "no_show_refund": ["no-show refund", "no show refund", "cancel_noshow", "noshow refund",
                        "gelmeme iade"],
     "no_show_change": ["no-show change", "no show change", "change_noshow", "noshow change",
                        "gelmeme değişik"],
     "same_day_earlier_flight": ["same day", "same-day", "earlier flight", "aynı gün",
                                 "standby earlier", "earlier same day"],
-    "wifi": ["wifi", "wi-fi", "wireless internet", "kablosuz internet"],
+    "wifi": ["wifi", "wi-fi", "wireless internet", "kablosuz internet",
+             "internet package", "internet paketi"],
     "extra_baggage": ["extra bag", "additional bag", "excess bag", "ek bagaj", "fazla bagaj",
                       "extrabaggage"],
     "sports_equipment": ["sports equipment", "sport equip", "spor ekipman", "sportsequipment"],
@@ -88,7 +89,11 @@ _PAID_HINTS = ["fee", "paid", "chargeable", "for a fee", "with charge", "deducti
 _PLUS_MONEY = re.compile(r"\+\s*\d")
 _EXCLUDED_HINTS = ["not included", "not allowed", "not permitted", "unavailable",
                    "not available", "✗", "✕", "—", "dahil değil", "hariç", "yok",
-                   "0 x 0"]
+                   "0 x 0",
+                   # Ubfly rule phrasings ("Non-refundable.", "Non-exchangeable.")
+                   "non-refundable", "non refundable", "nonrefundable", "not refundable",
+                   "non-exchangeable", "non exchangeable", "not exchangeable",
+                   "non-changeable", "iade edilemez", "iadesiz", "değiştirilemez"]
 _INCLUDED_HINTS = ["included", "free of charge", "free", "allowed", "permitted",
                    "complimentary", "accrual", "✓", "✔", "dahil", "ücretsiz", "var"]
 _EXCLUDED_WORDS = re.compile(r"\b(no|none)\b", re.IGNORECASE)

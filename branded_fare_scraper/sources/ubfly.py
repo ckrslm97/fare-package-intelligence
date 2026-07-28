@@ -1,4 +1,4 @@
-"""Ubfly (OTA aggregator) — fallback source. Priority 3.
+"""Ubfly (OTA aggregator) — primary OTA fallback. Priority 2.
 
 Ubfly resells GDS/NDC content for ~all carriers and renders the full branded
 fare comparison in the DOM, pre-populated for every flight in a single search
@@ -118,13 +118,18 @@ _EXTRACT_JS = r"""
 
 _BAG_RE = re.compile(r"(cabin baggage|personal item|baggage)\s*:?\s*(\d+)\s*x\s*(\d+)\s*kg", re.I)
 _RULE_RE = re.compile(r"^([A-Z][A-Z_]{2,})\s*-\s*(.+)$")
-_MILES_RE = re.compile(r"\bmile", re.I)
+# English "mile(s)" or Turkish "mil" ("%25 Ekstra Mil", "30 PERCENT EXTRA MILES").
+_MILES_RE = re.compile(r"\bmil(?:e|es)?\b", re.I)
+_PERCENT_RE = re.compile(r"%|percent|yüzde", re.I)
 
 
 @register
 class Ubfly(SourceAdapter):
     name = "Ubfly"
-    priority = 3
+    # Priority 2 (user decision 2026-07-28): Ubfly's per-package rule list is far
+    # richer than Enuygun's compact items, so it outranks Enuygun; Enuygun is the
+    # last resort and still enriches via the cross-source merge.
+    priority = 2
     needs_browser = True
 
     # Shared across all worker pages: one search per (from,to,date,cabin) serves
@@ -291,13 +296,18 @@ class Ubfly(SourceAdapter):
         miles = RawMiles()
         desc: list[str] = []
         for li in lis:
-            # Miles accrual line.
+            # Miles accrual line. "%25 Ekstra Mil" / "50% Extra Miles" are BONUS
+            # percentages, not earned-mile counts — route the number accordingly.
             if _MILES_RE.search(li) and "baggage" not in li.lower():
                 miles.mileage_available = True
                 m = re.search(r"(\d[\d.,]*)", li)
                 if m and any(ch.isdigit() for ch in m.group(1)):
                     try:
-                        miles.miles_earned = float(m.group(1).replace(",", ""))
+                        val = float(m.group(1).replace(",", ""))
+                        if _PERCENT_RE.search(li):
+                            miles.bonus_percent = val
+                        else:
+                            miles.miles_earned = val
                     except ValueError:
                         pass
                 continue

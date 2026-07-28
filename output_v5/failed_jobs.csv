@@ -1,0 +1,11 @@
+Carrier,Origin,Destination,Season,Status,Retry Count,Sources Tried,Error,Validation Issues,Elapsed (s)
+OZ,JFK,HKG,Summer,no_availability,0,,Enuygun: no branded packages for OZ JFK-HKG,,32.646
+OZ,JFK,HKG,Winter,no_availability,0,,Enuygun: no branded packages for OZ JFK-HKG,,44.697
+TR,SIN,ATH,Summer,no_availability,0,,Enuygun: no branded packages for TR SIN-ATH,,20.288
+TR,SIN,ATH,Winter,no_availability,0,,Enuygun: no branded packages for TR SIN-ATH,,25.535
+TR,ATH,SIN,Summer,no_availability,0,,Enuygun: no branded packages for TR ATH-SIN,,24.32
+TR,ATH,SIN,Winter,no_availability,0,,Enuygun: no branded packages for TR ATH-SIN,,27.484
+QR,SJJ,KUL,Summer,no_availability,0,,Enuygun: no branded packages for QR SJJ-KUL,,40.87
+QR,SJJ,KUL,Winter,no_availability,0,,Enuygun: no branded packages for QR SJJ-KUL,,43.07
+MH,SJJ,KUL,Summer,no_availability,0,,Enuygun: no branded packages for MH SJJ-KUL,,40.878
+MH,SJJ,KUL,Winter,no_availability,0,,Enuygun: no branded packages for MH SJJ-KUL,,43.065

@@ -1,4 +1,4 @@
-"""Enuygun (OTA aggregator) — fallback source, priority 2.
+"""Enuygun (OTA aggregator) — last-resort fallback, priority 3.
 
 Enuygun exposes branded fares as **structured JSON** (richer than Ubfly's DOM):
 each flight carries ``provider_packages[]`` — a branded-fare ladder where every
@@ -85,7 +85,9 @@ CLASS_PARAM: dict[Cabin, Optional[str]] = {
 @register
 class Enuygun(SourceAdapter):
     name = "Enuygun"
-    priority = 2
+    # Priority 3 (user decision 2026-07-28): weak package content -> last resort;
+    # its fee tooltips still flow into the data via cross-source enrichment.
+    priority = 3
     needs_browser = True
 
     _slug_cache: dict[str, Optional[str]] = {}
