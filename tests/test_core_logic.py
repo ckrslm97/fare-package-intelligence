@@ -323,6 +323,36 @@ def test_ubfly_drops_self_contradictory_box():
     assert pe[0].price_value == pytest.approx(1827.59, abs=0.01)
 
 
+def test_pretty_brand_name_and_suspicious_scan():
+    from branded_fare_scraper.normalization import is_suspicious_brand_name, pretty_brand_name
+    # carrier spelling tables
+    assert pretty_brand_name("ECOFLY", "TK") == "EcoFly"
+    assert pretty_brand_name("BUSINESS PRIME", "TK") == "Business Prime"
+    assert pretty_brand_name("BCLASSIC", "QR") == "Business Classic"
+    # generic: multi-word ALL-CAPS -> Title Case; mixed case untouched
+    assert pretty_brand_name("ECONOMY CLASSIC", "QR") == "Economy Classic"
+    assert pretty_brand_name("Premium Economy Lowest", "AC") == "Premium Economy Lowest"
+    # single-token caps + bare codes are NOT guessed at
+    assert pretty_brand_name("PREMECON", "BA") == "PREMECON"
+    assert pretty_brand_name("BX", "TK") == "BX"
+    assert is_suspicious_brand_name("BX", "BX-BX") is True
+    assert is_suspicious_brand_name("PREMECON", "PREMECON-PREMECON") is True
+    assert is_suspicious_brand_name("Economy Classic", "ECLASSIC-ECLASSIC") is False
+
+
+def test_best_buckets_prefers_most_packages():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    f_many = {"carrier": "TK", "fare_iata": "TK", "baseText": "700.00 USD", "brands": [
+        {"name": n, "ffcode": n, "cabin": "ECONOMY", "lis": [], "priceText": p}
+        for n, p in (("ECOFLY", "0.00 USD"), ("EXTRAFLY", "+40 USD"),
+                     ("FLEXFLY", "+108 USD"), ("Flexible", "+214 USD"))]}
+    f_few = {"carrier": "TK", "fare_iata": "TK", "baseText": "650.00 USD", "brands": [
+        {"name": "ECOFLY", "ffcode": "E1", "cabin": "ECONOMY", "lis": [], "priceText": "0.00 USD"},
+        {"name": "EXTRAFLY", "ffcode": "E2", "cabin": "ECONOMY", "lis": [], "priceText": "+40 USD"}]}
+    best = Ubfly().best_buckets([f_few, f_many], Cabin.ECONOMY, "TK")
+    assert len(best[Cabin.ECONOMY]) == 4    # most-packages flight wins despite pricier base
+
+
 def test_ac_ff_brand_table():
     from branded_fare_scraper.normalization import ff_override
     assert ff_override("AC", "PF-PF") == ("Premium Economy Flexible", Cabin.PREMIUM_ECONOMY)

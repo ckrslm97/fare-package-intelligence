@@ -40,3 +40,8 @@ output_v7/
 
 # replaced by output_v9 (kept in git history)
 output_v8/
+
+# replaced by output_v10 (kept in git history)
+output_v9/
+# collection-moment search shots (36MB) stay local
+output_v10/evidence/searches/

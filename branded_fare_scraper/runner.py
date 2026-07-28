@@ -47,6 +47,11 @@ class Runner:
     async def run(self) -> RunSummary:
         t0 = time.monotonic()
         reset_source_caches()               # fresh caches per run (no stale/dead-loop state)
+        # Collection-moment evidence: every actual OTA search saves one page shot.
+        from .sources.ubfly import Ubfly
+        ev_dir = self.cfg.out / "evidence" / "searches"
+        ev_dir.mkdir(parents=True, exist_ok=True)
+        Ubfly.evidence_dir = ev_dir
         units = self._build_or_resume_units()
         self.summary.total_units = len(units)
         self.summary.total_jobs = len({u.job.key() for u in units})

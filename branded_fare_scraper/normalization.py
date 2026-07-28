@@ -126,6 +126,115 @@ def ff_override(carrier: Optional[str], ffcode: Optional[str]) -> Optional[tuple
     return None
 
 
+# Carrier display names for brands the OTA renders in the wrong case or as a
+# raw token ("ECOFLY", "BUSINESS PRIME", "BCLASSIC"). Keyed by the collapsed
+# name (brand_match_key). Only spelling/casing — never invents a brand.
+CARRIER_BRAND_SPELLING: dict[str, dict[str, str]] = {
+    "TK": {
+        "ecofly": "EcoFly", "extrafly": "ExtraFly", "flexfly": "FlexFly",
+        "primefly": "PrimeFly", "businessfly": "Business Fly",
+        "businessprime": "Business Prime", "businessflex": "Business Flex",
+    },
+    "QR": {
+        "blite": "Business Lite", "bclassic": "Business Classic",
+        "bcomfort": "Business Comfort", "belite": "Business Elite",
+    },
+    # Compressed OTA family tokens expanded to the airline's own brand wording.
+    "EK": {"ecosaver": "Economy Saver", "ecoflex": "Economy Flex",
+           "ecoflxplus": "Economy Flex Plus", "bssaver": "Business Saver",
+           "bsflex": "Business Flex", "bsflxplus": "Business Flex Plus",
+           "pyflxplus": "Premium Economy Flex Plus"},
+    "EY": {"ybasic": "Economy Basic", "yvalue": "Economy Value",
+           "ycomfort": "Economy Comfort", "ydeluxe": "Economy Deluxe",
+           "jvalue": "Business Value", "jcomfort": "Business Comfort",
+           "jdeluxe": "Business Deluxe"},
+    "AI": {"ecovalu": "Economy Value", "ecoclas": "Economy Classic",
+           "ecoflx": "Economy Flex", "busvalu": "Business Value",
+           "busflx": "Business Flex", "peyvalu": "Premium Economy Value",
+           "peyflx": "Premium Economy Flex"},
+    "DL": {"mainbasic": "Main Basic", "mainclasc": "Main Classic",
+           "mainextra": "Main Extra", "comftclasc": "Comfort Classic",
+           "comftextra": "Comfort Extra", "dpsclasc": "Premium Select Classic",
+           "dpsextra": "Premium Select Extra", "doneclasc": "Delta One Classic",
+           "doneextra": "Delta One Extra"},
+    "LH": {"ecobasepl": "Economy Basic Plus", "ecocmft": "Economy Comfort",
+           "ecocmftpls": "Economy Comfort Plus", "ecoflex": "Economy Flex",
+           "prelight": "Premium Economy Light", "precmft": "Premium Economy Comfort",
+           "precmftpls": "Premium Economy Comfort Plus", "preflex": "Premium Economy Flex",
+           "pregreic": "Premium Economy Green", "buslight": "Business Light",
+           "buscmft": "Business Comfort", "buscmftpls": "Business Comfort Plus",
+           "busgreic": "Business Green"},
+    "AF": {"lightbag": "Light", "standard3": "Standard", "flex1": "Flex",
+           "premstand": "Premium Standard", "premflex": "Premium Flex"},
+    "KL": {"bizlight": "Business Light", "premlight": "Premium Light",
+           "premstand": "Premium Standard", "premflex": "Premium Flex"},
+    "GF": {"ecolite": "Economy Lite", "ecosmart": "Economy Smart",
+           "ecoflex": "Economy Flex", "bizsmart": "Business Smart"},
+    "UA": {"premeco": "Premium Economy", "premecoref": "Premium Economy Refundable",
+           "premecoprf": "Premium Economy Part Refundable",
+           "busref": "Business Refundable", "buspartref": "Business Part Refundable"},
+    "BA": {"econsel": "Economy Select", "econpro": "Economy Pro",
+           "econflex": "Economy Flex", "bizpromo": "Business Promo",
+           "bizsel": "Business Select", "bizpro": "Business Pro",
+           "bizflex": "Business Flex"},
+}
+
+_BARE_CODE_RE = re.compile(r"^[A-Z]{2,3}\d?$")
+
+# Ordinary fare words: a single ALL-CAPS token matching one of these is safe to
+# capitalize ("FLEXIBLE" -> "Flexible") — unlike opaque family tokens (PREMECON).
+_FARE_WORDS = {"flexible", "standard", "comfort", "latitude", "basic", "economy",
+               "business", "flex", "classic", "saver", "value", "ultimate",
+               "premium", "lite", "light", "smart", "prime", "restricted",
+               "promo", "plus", "elite", "convenience"}
+
+
+def pretty_brand_name(name: str, carrier: Optional[str] = None) -> str:
+    """Human display form of a brand name — casing/spelling only.
+
+    Carrier spelling table first; then ALL-CAPS names become Title Case
+    ("ECONOMY CLASSIC" -> "Economy Classic"). Bare code-like names (e.g. "BX")
+    are returned unchanged — they are surfaced by the suspicious-name scan
+    instead of being guessed at.
+    """
+    s = (name or "").strip()
+    if not s:
+        return s
+    tab = CARRIER_BRAND_SPELLING.get((carrier or "").upper(), {})
+    hit = tab.get(brand_match_key(s))
+    if hit:
+        return hit
+    if _BARE_CODE_RE.match(s):
+        return s
+    # Generic fix for MULTI-word ALL-CAPS ("ECONOMY CLASSIC") and for single
+    # ALL-CAPS tokens that are ordinary fare words ("FLEXIBLE"). Unknown
+    # single-token caps (PREMECON) stay as-is: guessing "Premecon" would be
+    # worse; they surface in the suspicious-name report to be tabled.
+    if s.isupper() and " " in s:
+        return " ".join(w.capitalize() for w in s.split())
+    if s.isupper() and s.lower() in _FARE_WORDS:
+        return s.capitalize()
+    return s
+
+
+def is_suspicious_brand_name(name: str, ffcode: Optional[str] = None) -> bool:
+    """True for names that look like raw codes rather than real brand names.
+
+    A name equal to its fare-family token is only suspicious when it LOOKS like
+    a compressed token (single ALL-CAPS word outside the ordinary fare
+    vocabulary) — "Basic"/"Flex" matching their own codes are fine.
+    """
+    s = (name or "").strip()
+    if not s:
+        return True
+    if _BARE_CODE_RE.match(s):
+        return True
+    if not (s.isupper() and " " not in s and s.lower() not in _FARE_WORDS):
+        return False
+    toks = _ff_tokens(ffcode or "")
+    return bool(toks) and brand_match_key(s) == brand_match_key(toks[0])
+
+
 def _looks_pe_code(token: str) -> bool:
     return bool(_PE_CODE_RE.match((token or "").strip().upper()))
 
@@ -280,6 +389,13 @@ def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
     """
     from .pricing import compute_absolute_prices  # local import avoids an import cycle
     for eff_cabin, bs in regroup_brands_by_cabin(brands, group_cabin, carrier=carrier).items():
+        for b in bs:                       # display casing/spelling (UI'da düzgün yazım)
+            b.raw_brand_name = pretty_brand_name(b.raw_brand_name, carrier)
+        # Rows whose display name is still a bare GDS code (TK "BX"/"BB" on thin
+        # routes) never reach the published outputs; raw JSONL keeps them.
+        bs = [b for b in bs if not _BARE_CODE_RE.match(b.raw_brand_name)]
+        if not bs:
+            continue
         ranked = assign_brand_order(bs)
         abs_prices = compute_absolute_prices([raw for raw, _, _ in ranked])
         for (raw, nb, order), absp in zip(ranked, abs_prices):

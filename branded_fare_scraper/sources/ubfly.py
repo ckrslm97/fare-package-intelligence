@@ -151,6 +151,9 @@ class Ubfly(SourceAdapter):
     # every carrier on that route.
     _cache: dict[str, list[dict]] = {}
     _locks: dict[str, asyncio.Lock] = {}
+    #: When set (by the runner) every ACTUAL page search saves a full-page PNG
+    #: here — collection-moment evidence; cache hits reuse the existing shot.
+    evidence_dir = None
 
     def supports(self, carrier: str) -> bool:
         return True  # aggregator — covers any carrier that Ubfly resells
@@ -180,12 +183,12 @@ class Ubfly(SourceAdapter):
                      target: str) -> dict[Cabin, list[RawBrand]]:
         """Pick the best flight's re-bucketed ladder for one searched cabin.
 
-        Most cabins covered (PE presence wins), most fares, fewest implausible
-        (>3x) price jumps, smallest worst step, cheapest base — the airline's
-        own site sorts cheapest-first. PE side-pick: if the winner lacks PE but
-        another carrier flight offers it, that flight contributes the PE bucket.
-        Shared by ``fetch_search`` and the screenshot-verification harness so
-        both apply the IDENTICAL selection.
+        Every carrier flight on the page is scored; the winner is the flight
+        with the MOST packages (user rule), then most cabins covered, fewest
+        implausible (>3x) price jumps, smallest worst step, cheapest base. PE
+        side-pick: if the winner lacks PE but another carrier flight offers it,
+        that flight contributes the PE bucket. Shared by ``fetch_search`` and
+        the screenshot-verification harness so both apply IDENTICAL selection.
         """
         keep_pe = search_cabin == Cabin.ECONOMY
         scored: list[tuple[tuple, dict[Cabin, list[RawBrand]]]] = []
@@ -198,7 +201,7 @@ class Ubfly(SourceAdapter):
             allb = [b for bs in buckets.values() for b in bs]
             bad, worst = ladder_metrics(allb)
             base_val, _, _ = parse_price(_clean_price(f.get("baseText", "")))
-            scored.append(((len(buckets), len(allb), -bad, -worst,
+            scored.append(((len(allb), len(buckets), -bad, -worst,
                             -(base_val if base_val is not None else float("inf"))), buckets))
         scored.sort(key=lambda t: t[0], reverse=True)
         best = scored[0][1] if scored else {}
@@ -282,6 +285,13 @@ class Ubfly(SourceAdapter):
         except Exception as e:  # noqa: BLE001
             _LOG.debug("Ubfly extract failed: %s", e)
             return []
+        if flights and Ubfly.evidence_dir is not None:
+            try:
+                shot = Ubfly.evidence_dir / f"{origin}-{destination}_{ddate.replace('.', '')}_ct{param}.png"
+                if not shot.exists():
+                    await page.screenshot(path=str(shot), full_page=False)
+            except Exception as e:  # noqa: BLE001 - evidence must never break the scrape
+                _LOG.debug("Ubfly evidence shot failed: %s", e)
         return flights or []
 
     # ------------------------------------------------------------------ #
