@@ -216,6 +216,20 @@ function renderAll(){
 }"""),
         ('$("#fSearch").addEventListener("input",applyFilters);',
          'let _fsT=null; $("#fSearch").addEventListener("input",()=>{clearTimeout(_fsT);_fsT=setTimeout(applyFilters,250);});'),
+        # --- Fix 5: transition gains only counted rights that became "Included",
+        # so a right newly offered as PAID (e.g. TK Business Fly -> Business Prime
+        # adds Aynı Gün Erken Uçuş as a paid option) never appeared. Count any
+        # rank upgrade (absent < Paid < Included); label paid gains "(Ücretli)".
+        ("""      const gains = prev ? Object.keys(FEATURE_META).filter(fk=>{
+        const sa=((prev.rep.features||{})[fk]||{}).state, sb=((n.rep.features||{})[fk]||{}).state;
+        return sb==="Included" && sa!=="Included";
+      }).map(fk=>FEATURE_META[fk][0]) : [];""",
+         """      const gains = prev ? Object.keys(FEATURE_META).flatMap(fk=>{
+        const rk=s=>s==="Included"?2:(s==="Paid"?1:0);
+        const sa=((prev.rep.features||{})[fk]||{}).state, sb=((n.rep.features||{})[fk]||{}).state;
+        if(rk(sb)<=rk(sa)) return [];
+        return [sb==="Paid" ? FEATURE_META[fk][0]+" (Ücretli)" : FEATURE_META[fk][0]];
+      }) : [];"""),
     ]
     for old, new in perf_patches:
         if old not in html:
