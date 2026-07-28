@@ -76,11 +76,13 @@ def _features(raw):
         if det:
             feat["detail"] = det
         out[pk] = feat
-    # miles feature from mileage flag
+    # miles feature from mileage flag (earned count, else the bonus percentage)
     if raw.miles.mileage_available is not None:
         out["miles"] = {"state": "Included" if raw.miles.mileage_available else "Not Included"}
         if raw.miles.miles_earned:
             out["miles"]["detail"] = f"{int(raw.miles.miles_earned)} mil"
+        elif raw.miles.bonus_percent:
+            out["miles"]["detail"] = f"%{int(raw.miles.bonus_percent)} bonus"
     return out
 
 

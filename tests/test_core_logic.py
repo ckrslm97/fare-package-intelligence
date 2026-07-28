@@ -270,6 +270,15 @@ def test_canonical_rule_detail_standardizes_vocabulary():
     assert canonical_rule_detail("cabin_baggage", AmenityStatus.INCLUDED) is None  # numeric keys untouched
 
 
+def test_noshow_and_cancellation_free_text_mapping():
+    # SV-style free-text rule lines must land on the right no-show keys.
+    assert map_label_to_canonical("Partial refund with penalty for no-show") == "no_show_refund"
+    assert map_label_to_canonical("Change with no-show fee") == "no_show_change"
+    assert map_label_to_canonical("Cancellation with fee") == "refund"
+    assert classify_status_from_text("Change with no-show fee") == AmenityStatus.PAID
+    assert classify_status_from_text("Partial refund with penalty for no-show") == AmenityStatus.PAID
+
+
 def test_clean_fare_code_drops_internal_ids():
     from branded_fare_scraper.normalization import clean_fare_code
     assert clean_fare_code("CL-f48780cd96ac4e338339d6bb919f4a09") == "CL"
