@@ -18,7 +18,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from branded_fare_scraper.airports import meta as airport_meta
-from branded_fare_scraper.amenities import AMENITY_KEYS, AMENITY_TR
+from branded_fare_scraper.amenities import AMENITY_KEYS, AMENITY_TR, canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus, Cabin
 from branded_fare_scraper.normalization import iter_ranked_by_cabin, tier_code
 from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
@@ -88,6 +88,9 @@ def main():
                     ]
                     for k in AMENITY_KEYS:
                         state, det = amap[k]
+                        canon = canonical_rule_detail(k, AmenityStatus(state))
+                        if canon is not None:
+                            det = canon          # one standard vocabulary for rule rights
                         row.append(f"{state} — {det}" if (state != "Unknown" and det) else state)
                     row += [
                         ("Evet" if raw.miles.mileage_available else "Hayır") if raw.miles.mileage_available is not None else "",

@@ -258,6 +258,18 @@ def test_ubfly_free_line_negative_not_upgraded_to_included():
     assert by_key["meal"] == AmenityStatus.INCLUDED         # plain listed line -> Included
 
 
+def test_canonical_rule_detail_standardizes_vocabulary():
+    from branded_fare_scraper.amenities import canonical_rule_detail
+    # Paid/Ücretli/at charge etc. all collapse to one Turkish term per right.
+    assert canonical_rule_detail("refund", AmenityStatus.PAID) == "Kesintili"
+    assert canonical_rule_detail("refund", AmenityStatus.INCLUDED) == "Kesintisiz"
+    assert canonical_rule_detail("change", AmenityStatus.PAID) == "Ücretli"
+    assert canonical_rule_detail("change", AmenityStatus.INCLUDED) == "Cezasız"
+    assert canonical_rule_detail("same_day_earlier_flight", AmenityStatus.PAID) == "Ücretli"
+    assert canonical_rule_detail("refund", AmenityStatus.NOT_INCLUDED) == ""   # — suffices
+    assert canonical_rule_detail("cabin_baggage", AmenityStatus.INCLUDED) is None  # numeric keys untouched
+
+
 def test_ubfly_drops_self_contradictory_box():
     from branded_fare_scraper.sources.ubfly import Ubfly
     flight = {"carrier": "AC", "baseText": "974.81 USD", "brands": [

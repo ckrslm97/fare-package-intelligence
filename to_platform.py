@@ -17,6 +17,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from branded_fare_scraper.airports import meta as airport_meta
+from branded_fare_scraper.amenities import canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus, Cabin
 from branded_fare_scraper.normalization import iter_ranked_by_cabin, tier_code
 from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
@@ -36,8 +37,15 @@ FEATURE_KEY = {
 LCC = {"PC", "VF", "TR", "U2", "FR", "W6", "W4", "W9", "G9", "J9", "6E", "XY", "ZF", "NO", "TU", "FZ", "4S"}
 
 
-def _short_detail(key: str, raw: str) -> str:
-    """Concise one-line detail so cells don't overflow the row."""
+def _short_detail(key: str, raw: str, status: AmenityStatus) -> str:
+    """Concise one-line detail so cells don't overflow the row.
+
+    Rule rights use ONE standardized Turkish vocabulary (Kesintili/Kesintisiz,
+    Ücretli/Cezasız…) instead of each source's phrasing; baggage stays numeric.
+    """
+    canon = canonical_rule_detail(key, status)
+    if canon is not None:
+        return canon
     raw = (raw or "").strip()
     if not raw:
         return ""
@@ -49,9 +57,6 @@ def _short_detail(key: str, raw: str) -> str:
         if m1:
             return f"{m1.group(1)}kg"
         return ""                                            # e.g. "1 piece" -> just ✓
-    if key in ("change", "refund", "no_show_refund", "no_show_change", "same_day_earlier_flight"):
-        w = re.sub(r"\(.*", "", raw).strip().split()
-        return (w[0] if w else "")[:12]
     return ""  # other rights: the ✓/€/— state colour already carries the meaning
 
 
@@ -67,7 +72,7 @@ def _features(raw):
             continue
         seen_rank[pk] = rank[a.status]
         feat = {"state": a.status.value}
-        det = _short_detail(a.canonical_key or "", a.raw_value)
+        det = _short_detail(a.canonical_key or "", a.raw_value, a.status)
         if det:
             feat["detail"] = det
         out[pk] = feat

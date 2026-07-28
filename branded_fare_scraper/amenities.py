@@ -141,3 +141,24 @@ def classify_status_from_text(value_text: str, has_money: Optional[bool] = None)
 def empty_amenity_map() -> dict[str, str]:
     """A full amenity map defaulted to UNKNOWN (so every column is always present)."""
     return {k: AmenityStatus.UNKNOWN.value for k in AMENITY_KEYS}
+
+
+# Canonical Turkish display terms for the rule-type rights. Sources phrase the
+# same fact many ways ("Paid", "Ücretli", "at charge", "Cezasız", "Free",
+# "Refundable", "Non-exchangeable" …) — exports standardize on one vocabulary,
+# keyed by (right, status). Not Included needs no word: the — state carries it.
+_RULE_DETAIL_TR: dict[str, dict[AmenityStatus, str]] = {
+    "refund": {AmenityStatus.PAID: "Kesintili", AmenityStatus.INCLUDED: "Kesintisiz"},
+    "change": {AmenityStatus.PAID: "Ücretli", AmenityStatus.INCLUDED: "Cezasız"},
+    "no_show_refund": {AmenityStatus.PAID: "Kesintili", AmenityStatus.INCLUDED: "Kesintisiz"},
+    "no_show_change": {AmenityStatus.PAID: "Ücretli", AmenityStatus.INCLUDED: "Cezasız"},
+    "same_day_earlier_flight": {AmenityStatus.PAID: "Ücretli", AmenityStatus.INCLUDED: "Ücretsiz"},
+}
+
+
+def canonical_rule_detail(key: str, status: AmenityStatus) -> Optional[str]:
+    """Standard display detail for a rule right, or None if ``key`` isn't one."""
+    m = _RULE_DETAIL_TR.get(key)
+    if m is None:
+        return None
+    return m.get(status, "")
