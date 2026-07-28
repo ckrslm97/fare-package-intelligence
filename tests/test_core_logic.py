@@ -313,10 +313,29 @@ def test_ubfly_drops_self_contradictory_box():
     ]}
     brands = Ubfly()._to_raw_brands(flight, Cabin.ECONOMY)
     names = [b.raw_brand_name for b in brands]
-    assert "Economy Light" not in names             # eco-named + BUSINESS tag = junk
+    # AC EL is a TABLED business code: Ubfly's junk label "Economy Light" is
+    # replaced by the authoritative name instead of dropping the fare.
+    assert "Economy Light" not in names
+    assert "Business Lowest" in names
+    assert [b.cabin for b in brands if b.raw_brand_name == "Business Lowest"] == [Cabin.BUSINESS]
     pe = [b for b in brands if b.cabin == Cabin.PREMIUM_ECONOMY]
-    assert [b.raw_brand_name for b in pe] == ["PL"]  # AC PE via ff map
+    assert [b.raw_brand_name for b in pe] == ["Premium Economy Lowest"]   # AC PL renamed
     assert pe[0].price_value == pytest.approx(1827.59, abs=0.01)
+
+
+def test_ac_ff_brand_table():
+    from branded_fare_scraper.normalization import ff_override
+    assert ff_override("AC", "PF-PF") == ("Premium Economy Flexible", Cabin.PREMIUM_ECONOMY)
+    assert ff_override("AC", "EL-EL") == ("Business Lowest", Cabin.BUSINESS)
+    assert ff_override("AC", "PB") == ("Premium Economy Basic", Cabin.PREMIUM_ECONOMY)
+    assert ff_override("TK", "EF-EF") is None        # table is per-carrier
+    assert ff_override("AC", "LT-LT") is None        # untabled codes untouched
+    # regroup applies the rename on the rebuild path (fixes existing raw data)
+    b = RawBrand("PRIME FLY", Cabin.PREMIUM_ECONOMY, 0, 2262.94, PriceType.ABSOLUTE,
+                 fare_family_code="PF-PF")
+    from branded_fare_scraper.normalization import regroup_brands_by_cabin
+    out = regroup_brands_by_cabin([b], Cabin.ECONOMY, keep_pe=True, carrier="AC")
+    assert [x.raw_brand_name for x in out[Cabin.PREMIUM_ECONOMY]] == ["Premium Economy Flexible"]
 
 
 # --------------------------- amenities ------------------------------------ #

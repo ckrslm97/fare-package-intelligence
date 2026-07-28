@@ -94,8 +94,36 @@ _PE_CODE_RE = re.compile(r"^PE[A-Z]{2,}$")
 # ff "PL-PL" = Premium Economy Lowest and "PF-PF" = Premium Economy Flexible,
 # the latter mislabeled "PRIME FLY" by the OTA).
 PE_FF_BY_CARRIER: dict[str, set[str]] = {
-    "AC": {"PL", "PF"},
+    "AC": {"PL", "PF", "PB"},
 }
+
+# Authoritative per-carrier fare-family table: code -> (display name, cabin).
+# Ubfly's code->name dictionary mislabels these AC codes (PF rendered as TK's
+# "PRIME FLY", EL as "Economy Light", EF as "ECO FLY", PL/PB/EB as the bare
+# code), while the CODE itself is reliable — verified live via search cabin,
+# onclick cabin arg and price-ladder position. For these codes the table
+# decides both display name and cabin.
+CARRIER_FF_BRANDS: dict[str, dict[str, tuple[str, Cabin]]] = {
+    "AC": {
+        "PB": ("Premium Economy Basic", Cabin.PREMIUM_ECONOMY),
+        "PL": ("Premium Economy Lowest", Cabin.PREMIUM_ECONOMY),
+        "PF": ("Premium Economy Flexible", Cabin.PREMIUM_ECONOMY),
+        "EB": ("Business Basic", Cabin.BUSINESS),
+        "EL": ("Business Lowest", Cabin.BUSINESS),
+        "EF": ("Business Flexible", Cabin.BUSINESS),
+    },
+}
+
+
+def ff_override(carrier: Optional[str], ffcode: Optional[str]) -> Optional[tuple[str, Cabin]]:
+    """(display name, cabin) for a carrier's fare-family code, if tabled."""
+    tab = CARRIER_FF_BRANDS.get((carrier or "").upper())
+    if not tab:
+        return None
+    for t in _ff_tokens(ffcode or ""):
+        if t in tab:
+            return tab[t]
+    return None
 
 
 def _looks_pe_code(token: str) -> bool:
@@ -116,6 +144,9 @@ def effective_cabin(name: str, ffcode: Optional[str], hint: Optional[Cabin],
     (the cabin we searched). This lets us re-bucket fares that a source
     mislabels (an "Economy Light" upsell served inside a Business search).
     """
+    ov = ff_override(carrier, ffcode) or ff_override(carrier, name)
+    if ov:
+        return ov[1]
     per_carrier = PE_FF_BY_CARRIER.get((carrier or "").upper(), set())
     if per_carrier and any(t in per_carrier for t in _ff_tokens(ffcode or "") + _ff_tokens(name)):
         return Cabin.PREMIUM_ECONOMY
@@ -227,6 +258,9 @@ def regroup_brands_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
     """
     out: dict[Cabin, list[RawBrand]] = {}
     for b in brands:
+        ov = ff_override(carrier, b.fare_family_code) or ff_override(carrier, b.raw_brand_name)
+        if ov:
+            b.raw_brand_name = ov[0]     # the OTA's display name for this code is junk
         eff = effective_cabin(b.raw_brand_name, b.fare_family_code, b.cabin,
                               group_cabin, carrier=carrier)
         if eff == group_cabin or (keep_pe and eff == Cabin.PREMIUM_ECONOMY):

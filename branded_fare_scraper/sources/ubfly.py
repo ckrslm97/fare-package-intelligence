@@ -28,8 +28,8 @@ from typing import Any, Optional
 from ..amenities import classify_status_from_text, map_label_to_canonical
 from ..models import (AmenityStatus, Cabin, CabinResult, Job, PriceType, RawAmenity,
                       RawBrand, RawMiles)
-from ..normalization import (detect_cabin, effective_cabin, ladder_metrics,
-                             regroup_brands_by_cabin)
+from ..normalization import (detect_cabin, effective_cabin, ff_override,
+                             ladder_metrics, regroup_brands_by_cabin)
 from ..pricing import parse_price
 from ..retry import CarrierAbsent, Forbidden, NoAvailabilityError
 from .base import SourceAdapter, register
@@ -296,15 +296,21 @@ class Ubfly(SourceAdapter):
             box_cabin = CABIN_FROM_STR.get((b.get("cabin") or "").replace(" ", ""))
             name = b.get("name") or ""
             ff = b.get("ffcode") or None
-            # A box whose own two labels contradict each other (economy-named but
-            # structurally tagged Business, e.g. AC "Economy Light"/EL-EL) is
-            # untrustworthy junk either way — drop it. PE is exempt: an "economy"
-            # tag on a PE fare family is the normal leak pattern, not a conflict.
-            name_cab = detect_cabin(name)
-            if (name_cab and box_cabin and name_cab != box_cabin
-                    and Cabin.PREMIUM_ECONOMY not in (name_cab, box_cabin)):
-                continue
-            cabin = effective_cabin(name, ff, box_cabin, requested_cabin, carrier=carrier)
+            ov = ff_override(carrier, ff)
+            if ov:
+                # Tabled carrier code: the code decides name + cabin (Ubfly's
+                # display name for these is junk, e.g. AC EL -> "Economy Light").
+                name, cabin = ov[0], ov[1]
+            else:
+                # A box whose own two labels contradict each other (economy-named
+                # but structurally tagged Business) is untrustworthy junk either
+                # way — drop it. PE is exempt: an "economy" tag on a PE fare
+                # family is the normal leak pattern, not a conflict.
+                name_cab = detect_cabin(name)
+                if (name_cab and box_cabin and name_cab != box_cabin
+                        and Cabin.PREMIUM_ECONOMY not in (name_cab, box_cabin)):
+                    continue
+                cabin = effective_cabin(name, ff, box_cabin, requested_cabin, carrier=carrier)
             delta_val, _dt, delta_cur = parse_price(_clean_price(b.get("priceText", "")))
             currency = delta_cur or base_cur
             if base_val is not None and delta_val is not None:
