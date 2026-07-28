@@ -163,20 +163,22 @@ def main():
     # detail view alone builds ~600 cards, so the page froze constantly. Render
     # only the active tab, mark the rest dirty, render them on first activation,
     # and debounce the search box.
-    perf_patches = [
-        ("""function renderAll(){
+    # renderAll differs between template revisions (v9 added the score chart);
+    # patch whichever variant this template carries.
+    ra_v9_old = """function renderAll(){
   renderKokpit();
   renderPanel();
   fillCmpControls();
+  fillScoFlow();
   fillEvoCarrier();
-  renderKPIs(); renderHeatmap(); renderCompare(); renderEvolution();
+  renderKPIs(); renderHeatmap(); renderScoreChart(); renderCompare(); renderEvolution();
   renderArchive();
   renderKnowHow();
-}""",
-         """const TAB_RENDER={
+}"""
+    ra_v9_new = """const TAB_RENDER={
   kokpit:()=>renderKokpit(),
   panel:()=>renderPanel(),
-  analytics:()=>{fillCmpControls();fillEvoCarrier();renderKPIs();renderHeatmap();renderCompare();renderEvolution();},
+  analytics:()=>{fillCmpControls();fillScoFlow();fillEvoCarrier();renderKPIs();renderHeatmap();renderScoreChart();renderCompare();renderEvolution();},
   archive:()=>renderArchive(),
   knowhow:()=>renderKnowHow()
 };
@@ -186,7 +188,23 @@ function renderAll(){
   Object.keys(TAB_RENDER).forEach(k=>TAB_DIRTY[k]=true);
   const a=document.querySelector(".tab-btn.active");
   renderTab(a?a.dataset.tab:"kokpit");
-}"""),
+}"""
+    ra_v4_old = """function renderAll(){
+  renderKokpit();
+  renderPanel();
+  fillCmpControls();
+  fillEvoCarrier();
+  renderKPIs(); renderHeatmap(); renderCompare(); renderEvolution();
+  renderArchive();
+  renderKnowHow();
+}"""
+    ra_v4_new = ra_v9_new.replace(
+        "fillCmpControls();fillScoFlow();fillEvoCarrier();renderKPIs();renderHeatmap();renderScoreChart();",
+        "fillCmpControls();fillEvoCarrier();renderKPIs();renderHeatmap();")
+    ra_pair = (ra_v9_old, ra_v9_new) if ra_v9_old in html else (ra_v4_old, ra_v4_new)
+
+    perf_patches = [
+        ra_pair,
         ("""function switchTab(name){
   $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
   $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
