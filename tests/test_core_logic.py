@@ -270,6 +270,16 @@ def test_canonical_rule_detail_standardizes_vocabulary():
     assert canonical_rule_detail("cabin_baggage", AmenityStatus.INCLUDED) is None  # numeric keys untouched
 
 
+def test_clean_fare_code_drops_internal_ids():
+    from branded_fare_scraper.normalization import clean_fare_code
+    assert clean_fare_code("CL-f48780cd96ac4e338339d6bb919f4a09") == "CL"
+    assert clean_fare_code("EF-EF") == "EF"          # duplicated token collapses
+    assert clean_fare_code("PL-PL") == "PL"
+    assert clean_fare_code("BSFLEX-BSFLXPLUS") == "BSFLEX-BSFLXPLUS"  # real pair kept
+    assert clean_fare_code("f48780cd96ac4e338339d6bb919f4a09") == ""  # bare hash -> blank
+    assert clean_fare_code(None) == "" and clean_fare_code("") == ""
+
+
 def test_ubfly_drops_self_contradictory_box():
     from branded_fare_scraper.sources.ubfly import Ubfly
     flight = {"carrier": "AC", "baseText": "974.81 USD", "brands": [

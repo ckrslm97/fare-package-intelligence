@@ -26,6 +26,7 @@ from typing import Any, Iterable
 from .airports import meta as airport_meta
 from .amenities import AMENITY_DISPLAY, AMENITY_KEYS
 from .models import BrandedFare, Job, RunSummary, UnitResult
+from .normalization import clean_fare_code
 
 # --------------------------------------------------------------------------- #
 # Input
@@ -161,7 +162,7 @@ def flatten_branded_fare(bf: BrandedFare) -> dict[str, Any]:
         "Calculated Absolute Price": bf.calculated_absolute_price,
         "Currency": bf.currency or "",
         "Source": bf.source,
-        "Fare Family Code": bf.fare_family_code or "",
+        "Fare Family Code": clean_fare_code(bf.fare_family_code),
         "Brand Description": bf.brand_description,
         "Mileage Available": ("Yes" if bf.mileage_available else "No") if bf.mileage_available is not None else "",
         "Miles Earned": bf.miles_earned if bf.miles_earned is not None else "",

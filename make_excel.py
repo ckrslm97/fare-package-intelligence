@@ -20,7 +20,7 @@ from openpyxl.utils import get_column_letter
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import AMENITY_KEYS, AMENITY_TR, canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus, Cabin
-from branded_fare_scraper.normalization import iter_ranked_by_cabin, tier_code
+from branded_fare_scraper.normalization import clean_fare_code, iter_ranked_by_cabin, tier_code
 from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
 from branded_fare_scraper.report import CARRIER_NAMES
 
@@ -82,7 +82,7 @@ def main():
                         f'{rec["origin"]}-{rec["destination"]}', rec["origin"], rec["destination"],
                         mo["city_code"], mo["country_code"], md["city_code"], md["country_code"],
                         rec["season"], dep, ret, eff_cab.value, tier_code(eff_cab, order), order + 1,
-                        raw.raw_brand_name, nb.normalized_name, raw.fare_family_code or "",
+                        raw.raw_brand_name, nb.normalized_name, clean_fare_code(raw.fare_family_code),
                         raw.display_price_text or "", (absp if absp is not None else raw.price_value),
                         raw.currency or "USD", src,
                     ]

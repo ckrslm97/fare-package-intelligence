@@ -19,7 +19,7 @@ from pathlib import Path
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus, Cabin
-from branded_fare_scraper.normalization import iter_ranked_by_cabin, tier_code
+from branded_fare_scraper.normalization import clean_fare_code, iter_ranked_by_cabin, tier_code
 from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
 from branded_fare_scraper.report import CARRIER_NAMES
 
@@ -119,7 +119,7 @@ def build_fares(out_dir: Path):
                     "dest_city_code": md["city_code"], "dest_country_code": md["country_code"],
                     "ond_type": ondtype, "season": season, "carrier_type": ctype,
                     "cabin": eff_cab.value, "fare_brand": raw.raw_brand_name,
-                    "brand_code": raw.fare_family_code or nb.subtier or "",
+                    "brand_code": clean_fare_code(raw.fare_family_code) or nb.subtier or "",
                     "std_tier": tier_code(eff_cab, order), "package_order": order + 1,
                     "price": price, "price_usd": price_usd,
                     "currency": cur, "travel_date": dep,

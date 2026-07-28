@@ -252,6 +252,23 @@ def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
             yield eff_cabin, raw, nb, order, absp
 
 
+_HEX_ID_RE = re.compile(r"^[0-9a-f]{16,}$", re.IGNORECASE)
+
+
+def clean_fare_code(code: Optional[str]) -> str:
+    """Human-friendly fare-family code for display/export.
+
+    OTAs sometimes smuggle internal IDs into the code slot (Ubfly:
+    ``CL-f48780cd96ac4e33…``) or duplicate the token (``EF-EF``). Drop long hex
+    ID tokens and collapse duplicated tokens; raw data keeps the original.
+    """
+    toks = [t for t in re.split(r"[-_/ ]", (code or "").strip()) if t]
+    toks = [t for t in toks if not _HEX_ID_RE.match(t)]
+    if toks and all(t == toks[0] for t in toks):
+        toks = toks[:1]
+    return "-".join(toks)
+
+
 # --------------------------------------------------------------------------- #
 # Cross-source helpers: brand-name matching, ladder quality, enrichment
 # --------------------------------------------------------------------------- #
