@@ -148,11 +148,61 @@ def main():
         html = html.replace(old, new)
 
     # --- Fix 2: state cells had a fixed height, so long details overflowed into
-    # the next row. Let them grow, and keep details on one line.
+    # the next row. Let them grow, and keep details on one line. Also let the
+    # browser skip layout/paint of off-screen detail cards (content-visibility)
+    # — with ~600 cards this is the difference between a frozen and a fluid page.
     css_fix = ("<style>/*fpi-fix*/.st{height:auto!important;min-height:25px;"
                "padding:2px 7px}.st .dt{white-space:nowrap}"
-               "table.cond td,table.cond th{vertical-align:middle}</style>")
+               "table.cond td,table.cond th{vertical-align:middle}"
+               ".card{content-visibility:auto;contain-intrinsic-size:auto 560px}"
+               "</style>")
     html = html.replace("</head>", css_fix + "</head>", 1)
+
+    # --- Fix 4 (performance): the template re-rendered EVERY tab on load and on
+    # every filter keystroke (renderAll on #fSearch input). With 1,792 fares the
+    # detail view alone builds ~600 cards, so the page froze constantly. Render
+    # only the active tab, mark the rest dirty, render them on first activation,
+    # and debounce the search box.
+    perf_patches = [
+        ("""function renderAll(){
+  renderKokpit();
+  renderPanel();
+  fillCmpControls();
+  fillEvoCarrier();
+  renderKPIs(); renderHeatmap(); renderCompare(); renderEvolution();
+  renderArchive();
+  renderKnowHow();
+}""",
+         """const TAB_RENDER={
+  kokpit:()=>renderKokpit(),
+  panel:()=>renderPanel(),
+  analytics:()=>{fillCmpControls();fillEvoCarrier();renderKPIs();renderHeatmap();renderCompare();renderEvolution();},
+  archive:()=>renderArchive(),
+  knowhow:()=>renderKnowHow()
+};
+const TAB_DIRTY={};
+function renderTab(name){ if(TAB_RENDER[name]){ TAB_RENDER[name](); TAB_DIRTY[name]=false; } }
+function renderAll(){
+  Object.keys(TAB_RENDER).forEach(k=>TAB_DIRTY[k]=true);
+  const a=document.querySelector(".tab-btn.active");
+  renderTab(a?a.dataset.tab:"kokpit");
+}"""),
+        ("""function switchTab(name){
+  $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
+}""",
+         """function switchTab(name){
+  $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
+  if(TAB_DIRTY[name]) renderTab(name);
+}"""),
+        ('$("#fSearch").addEventListener("input",applyFilters);',
+         'let _fsT=null; $("#fSearch").addEventListener("input",()=>{clearTimeout(_fsT);_fsT=setTimeout(applyFilters,250);});'),
+    ]
+    for old, new in perf_patches:
+        if old not in html:
+            raise SystemExit(f"perf patch anchor not found: {old[:60]!r}")
+        html = html.replace(old, new, 1)
 
     # --- Fix 3: the Karşılaştırma tab has fixed Economy/Business panels only.
     # Add a Premium Economy panel *only* when the dataset actually has PE fares
