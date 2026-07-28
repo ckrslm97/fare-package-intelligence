@@ -176,6 +176,40 @@ class Ubfly(SourceAdapter):
     def cabins_for(self, job: Job) -> list[Cabin]:
         return [Cabin.ECONOMY, Cabin.BUSINESS]
 
+    def best_buckets(self, carrier_flights: list[dict], search_cabin: Cabin,
+                     target: str) -> dict[Cabin, list[RawBrand]]:
+        """Pick the best flight's re-bucketed ladder for one searched cabin.
+
+        Most cabins covered (PE presence wins), most fares, fewest implausible
+        (>3x) price jumps, smallest worst step, cheapest base — the airline's
+        own site sorts cheapest-first. PE side-pick: if the winner lacks PE but
+        another carrier flight offers it, that flight contributes the PE bucket.
+        Shared by ``fetch_search`` and the screenshot-verification harness so
+        both apply the IDENTICAL selection.
+        """
+        keep_pe = search_cabin == Cabin.ECONOMY
+        scored: list[tuple[tuple, dict[Cabin, list[RawBrand]]]] = []
+        for f in carrier_flights:
+            buckets = regroup_brands_by_cabin(
+                self._to_raw_brands(f, search_cabin), search_cabin,
+                keep_pe=keep_pe, carrier=target)
+            if not buckets:
+                continue
+            allb = [b for bs in buckets.values() for b in bs]
+            bad, worst = ladder_metrics(allb)
+            base_val, _, _ = parse_price(_clean_price(f.get("baseText", "")))
+            scored.append(((len(buckets), len(allb), -bad, -worst,
+                            -(base_val if base_val is not None else float("inf"))), buckets))
+        scored.sort(key=lambda t: t[0], reverse=True)
+        best = scored[0][1] if scored else {}
+        if keep_pe and Cabin.PREMIUM_ECONOMY not in best:
+            for _, buckets in scored[1:]:
+                pe = buckets.get(Cabin.PREMIUM_ECONOMY)
+                if pe:
+                    best[Cabin.PREMIUM_ECONOMY] = pe
+                    break
+        return best
+
     # ------------------------------------------------------------------ #
     async def fetch_search(self, page, job: Job, departure: date, return_date: date) -> list[CabinResult]:
         results: dict[Cabin, CabinResult] = {}
@@ -191,33 +225,7 @@ class Ubfly(SourceAdapter):
             # Premium-Economy families (e.g. BA World Traveller Plus, AC PL/PF)
             # leak into the Economy ladder, so recover PE from the Economy search
             # only (avoids double-counting it in the Business search).
-            keep_pe = search_cabin == Cabin.ECONOMY
-            # Build + re-bucket per flight, then keep the flight with the best
-            # ladder AFTER cabin filtering: most cabins covered (PE presence
-            # wins), most fares, fewest implausible (>3x) price jumps, cheapest
-            # base — the airline's own site sorts cheapest-first.
-            scored: list[tuple[tuple, dict[Cabin, list[RawBrand]]]] = []
-            for f in carrier_flights:
-                buckets = regroup_brands_by_cabin(
-                    self._to_raw_brands(f, search_cabin), search_cabin,
-                    keep_pe=keep_pe, carrier=target)
-                if not buckets:
-                    continue
-                allb = [b for bs in buckets.values() for b in bs]
-                bad, worst = ladder_metrics(allb)
-                base_val, _, _ = parse_price(_clean_price(f.get("baseText", "")))
-                scored.append(((len(buckets), len(allb), -bad, -worst,
-                                -(base_val if base_val is not None else float("inf"))), buckets))
-            scored.sort(key=lambda t: t[0], reverse=True)
-            best = scored[0][1] if scored else {}
-            # PE side-pick: if the winning flight lacks PE but another carrier
-            # flight on the page offers it, take the PE bucket from that flight.
-            if keep_pe and Cabin.PREMIUM_ECONOMY not in best:
-                for _, buckets in scored[1:]:
-                    pe = buckets.get(Cabin.PREMIUM_ECONOMY)
-                    if pe:
-                        best[Cabin.PREMIUM_ECONOMY] = pe
-                        break
+            best = self.best_buckets(carrier_flights, search_cabin, target)
             for cab, bs in best.items():
                 if bs and cab not in results:
                     results[cab] = CabinResult(cabin=cab, departure=departure,
