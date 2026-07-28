@@ -162,6 +162,7 @@ def main():
                "padding:2px 7px}.st .dt{white-space:nowrap}"
                "table.cond td,table.cond th{vertical-align:middle}"
                ".card{content-visibility:auto;contain-intrinsic-size:auto 560px}"
+               ".tab-page{contain:layout style}"
                "</style>")
     html = html.replace("</head>", css_fix + "</head>", 1)
 
@@ -190,6 +191,18 @@ def main():
   knowhow:()=>renderKnowHow()
 };
 const TAB_DIRTY={};
+const TAB_CONTENT={
+  kokpit:["kokpitKpi","makroMatrix","pkgIndex","scenarioBody"],
+  panel:["panelCards"],
+  analytics:["kpiGrid","heatmap","cmpEco","cmpPeco","cmpBus","evolution","scoreChart"],
+  archive:["archBody"]
+};
+function evictTab(name){
+  (TAB_CONTENT[name]||[]).forEach(id=>{const el=document.getElementById(id); if(el) el.innerHTML="";});
+  TAB_DIRTY[name]=true;
+}
+let _afT=null;
+function scheduleFilters(){ clearTimeout(_afT); _afT=setTimeout(applyFilters,120); }
 function renderTab(name){ if(TAB_RENDER[name]){ TAB_RENDER[name](); TAB_DIRTY[name]=false; } }
 function renderAll(){
   Object.keys(TAB_RENDER).forEach(k=>TAB_DIRTY[k]=true);
@@ -217,12 +230,41 @@ function renderAll(){
   $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
 }""",
          """function switchTab(name){
+  const prev=(document.querySelector(".tab-btn.active")||{}).dataset ? document.querySelector(".tab-btn.active").dataset.tab : null;
   $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
   $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
+  if(prev && prev!==name) evictTab(prev);   // DOM diet: a left tab carries no nodes
   if(TAB_DIRTY[name]) renderTab(name);
 }"""),
         ('$("#fSearch").addEventListener("input",applyFilters);',
          'let _fsT=null; $("#fSearch").addEventListener("input",()=>{clearTimeout(_fsT);_fsT=setTimeout(applyFilters,250);});'),
+        # every multi-select click used to re-render synchronously; coalesce them
+        ('refreshMs(id); applyFilters();',
+         'refreshMs(id); scheduleFilters();'),
+        # --- Fix 6: Detay Analiz built ~600 cards (~100k DOM nodes) in one go;
+        # paginate to 40-card chunks with a "Daha fazla göster" button.
+        ("  Object.keys(groups).sort().forEach(k=>{",
+         """  const _keys=Object.keys(groups).sort();
+  let _shown=0;
+  const _renderChunk=(n)=>{ _keys.slice(_shown,_shown+n).forEach(k=>{"""),
+        ("""    host.appendChild(card);
+  });
+  $$(".alert-ico").forEach(el=>el.addEventListener("click",()=>openKnowHow(el.dataset.kh, el.dataset.khtext)));""",
+         """    host.appendChild(card);
+  });
+  _shown=Math.min(_shown+n,_keys.length);
+  const _old=document.getElementById("pdMore"); if(_old) _old.remove();
+  if(_shown<_keys.length){
+    const btn=document.createElement("button");
+    btn.id="pdMore";
+    btn.style.cssText="display:block;margin:14px auto;padding:10px 22px;border:1px solid #ccd5e0;border-radius:10px;background:#fff;cursor:pointer;font-weight:700;font-size:13px";
+    btn.textContent="Daha fazla göster ("+(_keys.length-_shown)+" kart kaldı)";
+    btn.addEventListener("click",()=>_renderChunk(40));
+    host.appendChild(btn);
+  }
+  $$(".alert-ico").forEach(el=>el.addEventListener("click",()=>openKnowHow(el.dataset.kh, el.dataset.khtext)));
+  };
+  _renderChunk(40);"""),
         # --- Fix 5: transition gains only counted rights that became "Included",
         # so a right newly offered as PAID (e.g. TK Business Fly -> Business Prime
         # adds Aynı Gün Erken Uçuş as a paid option) never appeared. Count any
@@ -241,7 +283,7 @@ function renderAll(){
     for old, new in perf_patches:
         if old not in html:
             raise SystemExit(f"perf patch anchor not found: {old[:60]!r}")
-        html = html.replace(old, new, 1)
+        html = html.replace(old, new)      # all occurrences (anchors are exact code)
 
     # --- Fix 3: the Karşılaştırma tab has fixed Economy/Business panels only.
     # Add a Premium Economy panel *only* when the dataset actually has PE fares
