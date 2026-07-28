@@ -8,5 +8,20 @@ __pycache__/
 output_*/state/
 output_*/logs/
 
+# Superseded runs + local dev scratch (latest full run stays tracked)
+output/
+output_final/
+output_v2/
+output_v3/
+fix_out/
+merge_out/
+subset_out/
+test_output/
+fix_subset.csv
+merge_test.csv
+subset_input.csv
+test_input.csv
+*.log
+
 # OS
 .DS_Store
