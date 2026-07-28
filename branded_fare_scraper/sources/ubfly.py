@@ -82,6 +82,19 @@ _EXTRACT_JS = r"""
   for (const main of mains) {
     const headM = (main.innerText || '').match(priceRe);
     const baseText = headM ? headM[0] : '';
+    // The row's OWN airline identity: logo filename ("25px-QR.png") first, then
+    // a flight-number prefix ("QR 120"). The fare boxes' IATA can belong to a
+    // codeshare seller (QR-plated fares on BA metal), so it must not drive
+    // carrier attribution on its own.
+    let rowCarrier = '';
+    const img = main.querySelector('img');
+    const srcM = ((img && (img.getAttribute('src') || '')) || '')
+        .match(/(?:\d+px-)?([A-Z0-9]{2})\.(?:png|svg|jpe?g|webp)/i);
+    if (srcM) rowCarrier = srcM[1].toUpperCase();
+    if (!rowCarrier) {
+      const fm = (main.innerText || '').match(/\b([A-Z][A-Z0-9])\s?-?\s?\d{2,4}\b/);
+      if (fm) rowCarrier = fm[1].toUpperCase();
+    }
     // Walk following sibling rows to this flight's branded panel.
     let panel = null;
     let el = main.nextElementSibling;
@@ -110,7 +123,9 @@ _EXTRACT_JS = r"""
         priceText: dm ? dm[0] : ''
       };
     });
-    out.push({ carrier: (brands[0] && brands[0].iata) || '', baseText: baseText, brands: brands });
+    out.push({ carrier: rowCarrier || (brands[0] && brands[0].iata) || '',
+               fare_iata: (brands[0] && brands[0].iata) || '',
+               baseText: baseText, brands: brands });
   }
   return out;
 }
@@ -140,6 +155,24 @@ class Ubfly(SourceAdapter):
     def supports(self, carrier: str) -> bool:
         return True  # aggregator — covers any carrier that Ubfly resells
 
+    @staticmethod
+    def _matches_carrier(flight: dict, target: str) -> bool:
+        """A flight belongs to ``target`` only if no identity signal contradicts.
+
+        ``carrier`` = the row's own identity (logo / flight number);
+        ``fare_iata`` = the fare boxes' seller. A QR-plated fare on a BA-operated
+        row (row=BA, fare=QR) is a codeshare carrying the PARTNER's fare ladder —
+        it must not be attributed to QR (that produced BIZPROMO/ECONSEL-style
+        foreign families under QR on ex-UK routes).
+        """
+        rowc = (flight.get("carrier") or "").upper()
+        fic = (flight.get("fare_iata") or "").upper()
+        if rowc and rowc != target:
+            return False
+        if fic and fic != target:
+            return False
+        return rowc == target or fic == target
+
     def cabins_for(self, job: Job) -> list[Cabin]:
         return [Cabin.ECONOMY, Cabin.BUSINESS]
 
@@ -152,7 +185,7 @@ class Ubfly(SourceAdapter):
             flights = await self._search(page, job.origin, job.destination, departure, search_cabin)
             if flights:
                 any_flights = True
-            carrier_flights = [f for f in flights if (f.get("carrier") or "").upper() == target]
+            carrier_flights = [f for f in flights if self._matches_carrier(f, target)]
             if not carrier_flights:
                 continue
             # Premium-Economy families (e.g. BA World Traveller Plus, AC PL/PF)

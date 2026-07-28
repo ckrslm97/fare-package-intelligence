@@ -289,6 +289,21 @@ def test_clean_fare_code_drops_internal_ids():
     assert clean_fare_code(None) == "" and clean_fare_code("") == ""
 
 
+def test_ubfly_carrier_attribution_rejects_codeshare_rows():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    m = Ubfly._matches_carrier
+    # pure QR row (logo QR + QR-filed fares) -> yes
+    assert m({"carrier": "QR", "fare_iata": "QR"}, "QR") is True
+    # BA-operated row selling QR-plated fares (the LHR-SIN BIZPROMO case) -> NO
+    assert m({"carrier": "BA", "fare_iata": "QR"}, "QR") is False
+    # QR-marketed row whose fares are filed by BA -> NO (partner ladder)
+    assert m({"carrier": "QR", "fare_iata": "BA"}, "QR") is False
+    # single-signal rows still work
+    assert m({"carrier": "QR", "fare_iata": ""}, "QR") is True
+    assert m({"carrier": "", "fare_iata": "QR"}, "QR") is True
+    assert m({"carrier": "", "fare_iata": ""}, "QR") is False
+
+
 def test_ubfly_drops_self_contradictory_box():
     from branded_fare_scraper.sources.ubfly import Ubfly
     flight = {"carrier": "AC", "baseText": "974.81 USD", "brands": [
