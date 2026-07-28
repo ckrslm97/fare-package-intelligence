@@ -10,20 +10,20 @@
  },
  {
   "carrier": "AC",
-  "ond": "YYZ-DEL",
+  "ond": "DEL-YVR",
   "search": "Economy",
-  "dep": "2026-09-03",
-  "result": "OK_PRICE_DRIFT",
-  "detail": "Economy/Standard: 1438.95 -> 1391.99 | Economy/Flexible: 1584.09 -> 1537.13 | Economy/Comfort: 1669.25 -> 1622.29 | Economy/Latitude: 2912.93 -> 2865.97 | Premium Economy/Premium Economy Basic: 2004.45 -> 1953.24 | Premium Economy/Premium Economy Lowest: 2096.57 -> 2045.36 | Premium Economy/Premium ",
-  "shot": "AC_YYZDEL_eco.png"
+  "dep": "2027-05-23",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Premium Economy: stored ['Premium Economy Lowest', 'Premium Economy Flexible'] vs live-now []",
+  "shot": "AC_DELYVR_eco.png"
  },
  {
   "carrier": "AC",
-  "ond": "YYZ-DEL",
+  "ond": "DEL-YVR",
   "search": "Business",
-  "dep": "2026-09-03",
-  "result": "OK_PRICE_DRIFT",
-  "detail": "Business/Business Lowest: 6039.72 -> 3115.9 | Business/Business Flexible: 6252.31 -> 5166.75",
+  "dep": "2027-05-23",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  },
  {
@@ -33,7 +33,7 @@
   "dep": "2026-09-03",
   "result": "OK",
   "detail": "",
-  "shot": "AF_YYZDEL_eco.png"
+  "shot": ""
  },
  {
   "carrier": "AF",
@@ -46,63 +46,63 @@
  },
  {
   "carrier": "AI",
-  "ond": "YYZ-DEL",
-  "search": "Economy",
-  "dep": "2026-09-03",
-  "result": "OK",
-  "detail": "",
-  "shot": "AI_YYZDEL_eco.png"
- },
- {
-  "carrier": "AI",
-  "ond": "YYZ-DEL",
+  "ond": "DEL-YYZ",
   "search": "Business",
-  "dep": "2026-09-03",
-  "result": "OK",
-  "detail": "",
-  "shot": "AI_YYZDEL_bus.png"
- },
- {
-  "carrier": "BA",
-  "ond": "LHR-SIN",
-  "search": "Economy",
-  "dep": "2027-05-14",
+  "dep": "2027-04-26",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
+  "carrier": "AI",
+  "ond": "DEL-YYZ",
+  "search": "Economy",
+  "dep": "2027-04-27",
+  "result": "NO_CARRIER_TODAY",
+  "detail": "",
+  "shot": ""
+ },
+ {
   "carrier": "BA",
-  "ond": "LHR-SIN",
+  "ond": "ISB-LGW",
+  "search": "Economy",
+  "dep": "2026-09-12",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Premium Economy: stored ['PREMECON', 'PESEL', 'PEPRO', 'PEFLEX'] vs live-now []",
+  "shot": ""
+ },
+ {
+  "carrier": "BA",
+  "ond": "ISB-LGW",
   "search": "Business",
-  "dep": "2027-05-14",
+  "dep": "2026-09-12",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "BR",
-  "ond": "BKK-AMS",
+  "ond": "TPE-JFK",
   "search": "Economy",
-  "dep": "2027-05-04",
-  "result": "OK",
+  "dep": "2026-09-01",
+  "result": "NO_CARRIER_TODAY",
   "detail": "",
-  "shot": "BR_BKKAMS_eco.png"
+  "shot": ""
  },
  {
   "carrier": "CA",
   "ond": "WAW-BKK",
   "search": "Economy",
   "dep": "2027-05-01",
-  "result": "OK",
+  "result": "NO_CARRIER_TODAY",
   "detail": "",
-  "shot": "CA_WAWBKK_eco.png"
+  "shot": ""
  },
  {
   "carrier": "CI",
   "ond": "HKG-JFK",
   "search": "Economy",
-  "dep": "2026-09-20",
+  "dep": "2026-09-21",
   "result": "OK",
   "detail": "",
   "shot": "CI_HKGJFK_eco.png"
@@ -111,7 +111,7 @@
   "carrier": "CX",
   "ond": "YVR-DEL",
   "search": "Economy",
-  "dep": "2027-04-24",
+  "dep": "2027-04-25",
   "result": "OK",
   "detail": "",
   "shot": "CX_YVRDEL_eco.png"
@@ -123,25 +123,25 @@
   "dep": "2026-09-01",
   "result": "OK",
   "detail": "",
-  "shot": "DL_TPEJFK_eco.png"
+  "shot": ""
  },
  {
   "carrier": "EK",
-  "ond": "LHR-KUL",
+  "ond": "PRG-BKK",
   "search": "Economy",
-  "dep": "2027-04-05",
+  "dep": "2026-11-05",
   "result": "OK",
   "detail": "",
-  "shot": "EK_LHRKUL_eco.png"
+  "shot": "EK_PRGBKK_eco.png"
  },
  {
   "carrier": "EK",
-  "ond": "LHR-KUL",
+  "ond": "PRG-BKK",
   "search": "Business",
-  "dep": "2027-04-05",
+  "dep": "2026-11-05",
   "result": "OK",
   "detail": "",
-  "shot": "EK_LHRKUL_bus.png"
+  "shot": ""
  },
  {
   "carrier": "EY",
@@ -150,7 +150,7 @@
   "dep": "2027-04-05",
   "result": "OK",
   "detail": "",
-  "shot": "EY_LHRKUL_eco.png"
+  "shot": ""
  },
  {
   "carrier": "EY",
@@ -158,8 +158,8 @@
   "search": "Business",
   "dep": "2027-04-05",
   "result": "OK_PRICE_DRIFT",
-  "detail": "Business/JVALUE: 4273.99 -> 4324.2 | Business/JCOMFORT: 4550.81 -> 4601.05 | Business/JDELUXE: 5037.95 -> 5088.18",
-  "shot": "EY_LHRKUL_bus.png"
+  "detail": "Business/Business Value: 4273.99 -> 4324.2 | Business/Business Comfort: 4550.81 -> 4601.05 | Business/Business Deluxe: 5037.95 -> 5088.18",
+  "shot": ""
  },
  {
   "carrier": "GF",
@@ -168,7 +168,7 @@
   "dep": "2026-09-12",
   "result": "OK",
   "detail": "",
-  "shot": "GF_ISBLGW_eco.png"
+  "shot": ""
  },
  {
   "carrier": "GF",
@@ -195,7 +195,7 @@
   "dep": "2026-10-01",
   "result": "OK",
   "detail": "",
-  "shot": "KL_AMSBKK_eco.png"
+  "shot": ""
  },
  {
   "carrier": "KL",
@@ -220,8 +220,8 @@
   "ond": "DEL-YVR",
   "search": "Business",
   "dep": "2027-05-23",
-  "result": "OK_PRICE_DRIFT",
-  "detail": "Business/Business Light: 4093.72 -> 5806.55 | Business/Business Comfort: 4302.55 -> 6015.41 | Business/Business Green: 4458.91 -> 6190.74 | Business/Business Comfort Plus: 4493.8 -> 6206.63 | Business/Business Flexible: 4724.33 -> 6437.16",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  },
  {
@@ -253,27 +253,18 @@
  },
  {
   "carrier": "QR",
-  "ond": "LHR-SIN",
+  "ond": "KUL-SJJ",
   "search": "Economy",
-  "dep": "2027-05-14",
+  "dep": "2027-05-10",
   "result": "OK",
   "detail": "",
-  "shot": ""
- },
- {
-  "carrier": "QR",
-  "ond": "LHR-SIN",
-  "search": "Business",
-  "dep": "2027-05-14",
-  "result": "OK",
-  "detail": "",
-  "shot": ""
+  "shot": "QR_KULSJJ_eco.png"
  },
  {
   "carrier": "SQ",
   "ond": "LHR-SIN",
   "search": "Economy",
-  "dep": "2027-05-14",
+  "dep": "2027-05-15",
   "result": "OK",
   "detail": "",
   "shot": "SQ_LHRSIN_eco.png"
@@ -288,39 +279,39 @@
   "shot": "SV_LHELHR_eco.png"
  },
  {
-  "carrier": "TK",
-  "ond": "DEL-SFO",
-  "search": "Economy",
-  "dep": "2027-05-09",
+  "carrier": "SV",
+  "ond": "LHE-LHR",
+  "search": "Business",
+  "dep": "2026-08-26",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "TK",
-  "ond": "DEL-SFO",
+  "ond": "ISB-LGW",
   "search": "Business",
-  "dep": "2027-05-09",
+  "dep": "2026-09-12",
   "result": "OK",
   "detail": "",
-  "shot": "TK_DELSFO_bus.png"
+  "shot": ""
  },
  {
-  "carrier": "UA",
-  "ond": "HKG-YYZ",
+  "carrier": "TK",
+  "ond": "ISB-LGW",
   "search": "Economy",
-  "dep": "2027-05-19",
-  "result": "OK_INVENTORY_CHANGED",
-  "detail": "Economy: stored ['Economy', 'Economy Partially Refundable', 'Premium Economy', 'Premium Economy Part Refundable', 'Economy Fully Refundable', 'Premium Economy Refundable'] vs live-now ['Economy', 'Economy Fully Refundable']",
+  "dep": "2026-09-15",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  },
  {
   "carrier": "UA",
-  "ond": "HKG-YYZ",
-  "search": "Business",
-  "dep": "2027-05-19",
-  "result": "OK_PRICE_DRIFT",
-  "detail": "Business/Business Part Refundable: 7506.46 -> 3404.03 | Business/Business Refundable: 7582.85 -> 7502.42",
+  "ond": "YYZ-HKG",
+  "search": "Economy",
+  "dep": "2027-05-10",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  }
 ]

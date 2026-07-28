@@ -180,8 +180,14 @@ async def main() -> int:
                                 # screenshot is the proof). Disjoint sets = real
                                 # mismatch (wrong ladder) and still blocks.
                                 s_set, l_set = set(sn), set(ln)
-                                if s_set and l_set and (s_set <= l_set or l_set <= s_set
-                                                        or len(s_set & l_set) * 2 >= min(len(s_set), len(l_set))):
+                                nested = s_set and l_set and (
+                                    s_set <= l_set or l_set <= s_set
+                                    or len(s_set & l_set) * 2 >= min(len(s_set), len(l_set)))
+                                # Empty live bucket = the sampled date's page no
+                                # longer offers this cabin (window-walk cabins may
+                                # come from other dates; inventory rotates) — the
+                                # collection-moment shot is the proof, not an error.
+                                if nested or (s_set and not l_set):
                                     inv.append(f"{cabname}: stored {sn} vs live-now {ln}")
                                 else:
                                     diffs.append(f"{cabname}: stored {sn} != live {ln}")

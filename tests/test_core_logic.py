@@ -425,7 +425,10 @@ def test_carrier_absent_terminal_after_n_dates():
 
     a = FoundOnThird()
     res = asyncio.run(a.run_unit(None, unit))
-    assert res.total_brands() == 1 and a.calls == 3   # window survived 2 CarrierAbsent
+    # Window survived 2 CarrierAbsent days and found economy on day 3; it then
+    # keeps walking the remaining days looking for the still-missing cabins
+    # (searches are cached in real adapters, so this is nearly free).
+    assert res.total_brands() == 1 and a.calls == 8
 
     class AlwaysAbsent(SourceAdapter):
         name = "t2"
@@ -438,6 +441,44 @@ def test_carrier_absent_terminal_after_n_dates():
     b = AlwaysAbsent()
     res2 = asyncio.run(b.run_unit(None, unit))
     assert res2.total_brands() == 0 and b.calls == 3   # terminal after 3 absences
+
+
+def test_window_keeps_walking_for_missing_cabins():
+    # Business found on day 1 must NOT stop the economy search (AC DEL-YVR case):
+    # the window keeps walking and cabins merge with their own dates.
+    import asyncio
+    from datetime import timedelta
+    from branded_fare_scraper.sources.base import SourceAdapter
+    from branded_fare_scraper.models import CabinResult, DatePlan, Job, ScrapeUnit
+
+    d0 = date(2027, 5, 23)
+    window = [(d0 + timedelta(days=i), d0 + timedelta(days=i + 3)) for i in range(8)]
+    unit = ScrapeUnit(Job("AC", "DEL", "YVR"),
+                      DatePlan(Season.SUMMER, d0, d0 + timedelta(days=3), window))
+
+    class BusThenEco(SourceAdapter):
+        name = "t3"
+        def __init__(self): self.calls = 0
+        def supports(self, c): return True
+        def cabins_for(self, job): return [Cabin.ECONOMY, Cabin.BUSINESS]
+        async def fetch_search(self, page, job, dep, ret):
+            self.calls += 1
+            out = [CabinResult(cabin=Cabin.BUSINESS, departure=dep, return_date=ret,
+                               brands=[RawBrand("Business Lowest", Cabin.BUSINESS, 0, 6000.0,
+                                                PriceType.ABSOLUTE)])]
+            if self.calls >= 3:            # economy appears only on the 3rd date
+                out.append(CabinResult(cabin=Cabin.ECONOMY, departure=dep, return_date=ret,
+                                       brands=[RawBrand("Standard", Cabin.ECONOMY, 0, 900.0,
+                                                        PriceType.ABSOLUTE)]))
+            return out
+
+    a = BusThenEco()
+    res = asyncio.run(a.run_unit(None, unit))
+    cabs = {c.cabin: c for c in res.cabin_results}
+    assert set(cabs) == {Cabin.ECONOMY, Cabin.BUSINESS}
+    assert a.calls == 3
+    assert cabs[Cabin.BUSINESS].departure == d0            # kept from day 1
+    assert cabs[Cabin.ECONOMY].departure == d0 + timedelta(days=2)
 
 
 def test_rebuild_roundtrip():

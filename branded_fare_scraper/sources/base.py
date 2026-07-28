@@ -49,7 +49,13 @@ class SourceAdapter(abc.ABC):
         raise NotImplementedError
 
     async def run_unit(self, page, unit: ScrapeUnit) -> UnitResult:
-        """Try each (departure, return) in the fallback window; first with data wins."""
+        """Walk the (departure, return) window until EVERY wanted cabin has data.
+
+        A date where only one cabin sells (business found, economy sold out /
+        carrier not listed in that day's economy results) must not end the
+        search for the other cabins — each ``CabinResult`` carries its own
+        departure date, so cabins found on different window days merge cleanly.
+        """
         result = UnitResult(unit=unit, source=self.name, started_at=now_ts())
         last_error = ""
         # Opportunistic carriers (PC/VF) only try the primary date — no point
@@ -60,26 +66,33 @@ class SourceAdapter(abc.ABC):
         # treated as terminal after it repeats — that's what the window is for.
         absent = 0
         absent_limit = 1 if unit.opportunistic else 3
+        want = set(self.cabins_for(unit.job))
+        found: dict = {}
         for dep, ret in window:
             try:
                 cabins = await self.fetch_search(page, unit.job, dep, ret)
             except CarrierAbsent as e:
                 last_error = str(e)
                 absent += 1
-                if absent >= absent_limit:
-                    break
+                if absent >= absent_limit and not found:
+                    break                 # carrier really isn't on this route
                 continue
             except NoAvailabilityError as e:
                 last_error = str(e)
                 _LOG.debug("%s %s %s: no availability on %s", self.name,
                            unit.job.route, unit.date_plan.season.value, dep)
                 continue
-            if cabins and any(c.brands for c in cabins):
-                result.cabin_results = cabins
-                result.status = UnitStatus.SUCCESS
-                result.finished_at = now_ts()
-                return result
-            last_error = "empty result"
+            for c in cabins or []:
+                if c.brands and c.cabin not in found:
+                    found[c.cabin] = c
+            # PE piggybacks on the economy search; completion = wanted cabins.
+            if want <= set(found):
+                break
+        if found:
+            result.cabin_results = list(found.values())
+            result.status = UnitStatus.SUCCESS
+            result.finished_at = now_ts()
+            return result
         # Nothing in the whole window.
         result.status = UnitStatus.NO_AVAILABILITY
         result.error = last_error or "no availability in date window"
