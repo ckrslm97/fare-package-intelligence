@@ -18,9 +18,11 @@ from pathlib import Path
 
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import canonical_rule_detail
-from branded_fare_scraper.models import AmenityStatus, Cabin
-from branded_fare_scraper.normalization import clean_fare_code, iter_ranked_by_cabin, tier_code
-from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
+from branded_fare_scraper.models import AmenityStatus
+from branded_fare_scraper.normalization import (clean_fare_code, iter_unit_ranked_by_cabin,
+                                                tier_code)
+from branded_fare_scraper.rebuild import (cabin_result_from_dict, iter_raw_records,
+                                          pair_prefs_for, season_pair_prefs)
 from branded_fare_scraper.report import CARRIER_NAMES
 
 # my canonical amenity key -> platform FEATURE_META key
@@ -90,44 +92,44 @@ def build_fares(out_dir: Path):
     now = datetime.now().replace(microsecond=0).isoformat()
     coll_month = datetime.now().strftime("%Y-%m")
     fares = []
-    for rec in iter_raw_records(out_dir / "raw_data.jsonl"):
+    raw_path = out_dir / "raw_data.jsonl"
+    prefs = season_pair_prefs(raw_path)      # cross-season ladder-order consensus
+    for rec in iter_raw_records(raw_path):
         carrier = rec["carrier"]; o = rec["origin"]; d = rec["destination"]
         season = rec["season"]
+        ppc = pair_prefs_for(prefs, carrier, o, d)
         mo = airport_meta(o); md = airport_meta(d)
         oc, oreg = mo["country_name"], mo["region"]
         dc, dreg = md["country_name"], md["region"]
         ctype = "Low Cost" if carrier.upper() in LCC else "Legacy"
         # Local if either endpoint's country is Turkey, else Beyond.
         ondtype = "Local" if "TR" in (mo["country_code"], md["country_code"]) else "Beyond"
-        for c in rec.get("cabins", []):
-            brands = [raw_brand_from_dict(b) for b in c.get("brands", [])]
-            if not brands:
-                continue
-            dep = c.get("departure")
-            src = c.get("source") or rec.get("source", "")   # per-cabin source from raw
-            group_cabin = Cabin(c["cabin"])
-            for eff_cab, raw, nb, order, absp in iter_ranked_by_cabin(brands, group_cabin,
-                                                                      carrier=carrier):
-                cur = (raw.currency or "USD").upper()
-                price = absp if absp is not None else raw.price_value
-                price_usd = price if cur == "USD" else None
-                fares.append({
-                    "coll_date": coll_month, "coll_season": season, "query_date": dep,
-                    "collection_time": now, "airline": carrier,
-                    "airline_name": CARRIER_NAMES.get(carrier.upper(), carrier),
-                    "origin": o, "destination": d, "origin_country": oc, "dest_country": dc,
-                    "origin_region": oreg, "dest_region": dreg, "region": oreg,
-                    "origin_city_code": mo["city_code"], "origin_country_code": mo["country_code"],
-                    "dest_city_code": md["city_code"], "dest_country_code": md["country_code"],
-                    "ond_type": ondtype, "season": season, "carrier_type": ctype,
-                    "cabin": eff_cab.value, "fare_brand": raw.raw_brand_name,
-                    "brand_code": clean_fare_code(raw.fare_family_code) or nb.subtier or "",
-                    "std_tier": tier_code(eff_cab, order), "package_order": order + 1,
-                    "price": price, "price_usd": price_usd,
-                    "currency": cur, "travel_date": dep,
-                    "features": _features(raw),
-                    "source": src, "flight_no": None,
-                })
+        cabins = [cabin_result_from_dict(c) for c in rec.get("cabins", [])]
+        # One ladder per effective cabin for the unit (no duplicate PE rows).
+        for eff_cab, raw, nb, order, absp, c in iter_unit_ranked_by_cabin(
+                cabins, carrier=carrier, pair_prefs_by_cabin=ppc):
+            dep = c.departure.isoformat() if c.departure else None
+            src = c.source or rec.get("source", "")   # per-cabin source from raw
+            cur = (raw.currency or "USD").upper()
+            price = absp if absp is not None else raw.price_value
+            price_usd = price if cur == "USD" else None
+            fares.append({
+                "coll_date": coll_month, "coll_season": season, "query_date": dep,
+                "collection_time": now, "airline": carrier,
+                "airline_name": CARRIER_NAMES.get(carrier.upper(), carrier),
+                "origin": o, "destination": d, "origin_country": oc, "dest_country": dc,
+                "origin_region": oreg, "dest_region": dreg, "region": oreg,
+                "origin_city_code": mo["city_code"], "origin_country_code": mo["country_code"],
+                "dest_city_code": md["city_code"], "dest_country_code": md["country_code"],
+                "ond_type": ondtype, "season": season, "carrier_type": ctype,
+                "cabin": eff_cab.value, "fare_brand": raw.raw_brand_name,
+                "brand_code": clean_fare_code(raw.fare_family_code) or nb.subtier or "",
+                "std_tier": tier_code(eff_cab, order), "package_order": order + 1,
+                "price": price, "price_usd": price_usd,
+                "currency": cur, "travel_date": dep,
+                "features": _features(raw),
+                "source": src, "flight_no": None,
+            })
     return fares
 
 
@@ -148,12 +150,18 @@ def main():
          'rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim)+"|"+(f.season||"");'),
         ('const f0=g[0], flowLabel=flowKey(f0,pdDim);',
          'const f0=g[0], flowLabel=flowKey(f0,pdDim)+(f0.season?(" · "+f0.season):"");'),
-        # KPI "En Düşük Geçiş" = cheapest UPGRADE. chainsFor averages tiers
-        # across ONDs, so mixed ladder lengths can make a tier-mean step
-        # negative ("+$-378", same from/to name). Pick among positive steps.
-        ('const lo = steps.length? steps.reduce((a,b)=>a.delta<b.delta?a:b) : null;',
+        # KPI hi/lo transitions: chainsFor averages tiers across ONDs, so mixed
+        # ladder lengths can make a tier-mean step negative ("+$-378") or label
+        # a step with the SAME brand on both sides ("Business Flex → Business
+        # Flex"). Pick among positive, distinctly-labelled steps (fall back to
+        # positive-only if none qualify).
+        ('const hi = steps.length? steps.reduce((a,b)=>a.delta>b.delta?a:b) : null;\n'
+         '  const lo = steps.length? steps.reduce((a,b)=>a.delta<b.delta?a:b) : null;',
          'const _pos = steps.filter(s=>s.delta>0);\n'
-         '  const lo = _pos.length? _pos.reduce((a,b)=>a.delta<b.delta?a:b) : null;'),
+         '  const _lbl = _pos.filter(s=>s.fromBrand!==s.toBrand);\n'
+         '  const _cand = _lbl.length? _lbl : _pos;\n'
+         '  const hi = _cand.length? _cand.reduce((a,b)=>a.delta>b.delta?a:b) : null;\n'
+         '  const lo = _cand.length? _cand.reduce((a,b)=>a.delta<b.delta?a:b) : null;'),
     ]
     for old, new in patches:
         if old not in html:

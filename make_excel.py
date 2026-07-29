@@ -19,9 +19,11 @@ from openpyxl.utils import get_column_letter
 
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import AMENITY_KEYS, AMENITY_TR, canonical_rule_detail
-from branded_fare_scraper.models import AmenityStatus, Cabin
-from branded_fare_scraper.normalization import clean_fare_code, iter_ranked_by_cabin, tier_code
-from branded_fare_scraper.rebuild import iter_raw_records, raw_brand_from_dict
+from branded_fare_scraper.models import AmenityStatus
+from branded_fare_scraper.normalization import (clean_fare_code, iter_unit_ranked_by_cabin,
+                                                tier_code)
+from branded_fare_scraper.rebuild import (cabin_result_from_dict, iter_raw_records,
+                                          pair_prefs_for, season_pair_prefs)
 from branded_fare_scraper.report import CARRIER_NAMES
 
 _RANK = {AmenityStatus.INCLUDED: 3, AmenityStatus.PAID: 2, AmenityStatus.NOT_INCLUDED: 1, AmenityStatus.UNKNOWN: 0}
@@ -59,54 +61,55 @@ def main():
 
     scrape_time = datetime.now().replace(microsecond=0).isoformat()
     n = 0
-    for rec in iter_raw_records(out_dir / "raw_data.jsonl"):
-        for c in rec.get("cabins", []):
-                brands = [raw_brand_from_dict(b) for b in c.get("brands", [])]
-                if not brands:
+    raw_path = out_dir / "raw_data.jsonl"
+    prefs = season_pair_prefs(raw_path)      # cross-season ladder-order consensus
+    for rec in iter_raw_records(raw_path):
+        ppc = pair_prefs_for(prefs, rec["carrier"], rec["origin"], rec["destination"])
+        cabins = [cabin_result_from_dict(c) for c in rec.get("cabins", [])]
+        # One ladder per effective cabin for the unit (no duplicate PE rows).
+        for eff_cab, raw, nb, order, absp, c in iter_unit_ranked_by_cabin(
+                cabins, carrier=rec["carrier"], pair_prefs_by_cabin=ppc):
+            dep = c.departure.isoformat() if c.departure else None
+            ret = c.return_date.isoformat() if c.return_date else None
+            src = c.source or rec.get("source", "")   # per-cabin source from raw
+            amap = {k: ("Unknown", "") for k in AMENITY_KEYS}
+            for a in raw.amenities:
+                k = a.canonical_key
+                if k not in amap:
                     continue
-                dep = c.get("departure"); ret = c.get("return")
-                src = c.get("source") or rec.get("source", "")   # per-cabin source from raw
-                group_cabin = Cabin(c["cabin"])
-                for eff_cab, raw, nb, order, absp in iter_ranked_by_cabin(
-                        brands, group_cabin, carrier=rec["carrier"]):
-                    amap = {k: ("Unknown", "") for k in AMENITY_KEYS}
-                    for a in raw.amenities:
-                        k = a.canonical_key
-                        if k not in amap:
-                            continue
-                        if _RANK[a.status] >= _RANK[AmenityStatus(amap[k][0])]:
-                            amap[k] = (a.status.value, a.raw_value or "")   # tuple replace (no stale detail)
-                    mo = airport_meta(rec["origin"]); md = airport_meta(rec["destination"])
-                    row = [
-                        rec["carrier"], CARRIER_NAMES.get(rec["carrier"].upper(), rec["carrier"]),
-                        f'{rec["origin"]}-{rec["destination"]}', rec["origin"], rec["destination"],
-                        mo["city_code"], mo["country_code"], md["city_code"], md["country_code"],
-                        rec["season"], dep, ret, eff_cab.value, tier_code(eff_cab, order), order + 1,
-                        raw.raw_brand_name, nb.normalized_name, clean_fare_code(raw.fare_family_code),
-                        raw.display_price_text or "", (absp if absp is not None else raw.price_value),
-                        raw.currency or "USD", src,
-                    ]
-                    for k in AMENITY_KEYS:
-                        state, det = amap[k]
-                        canon = canonical_rule_detail(k, AmenityStatus(state))
-                        if canon is not None:
-                            det = canon          # one standard vocabulary for rule rights
-                        row.append(f"{state} — {det}" if (state != "Unknown" and det) else state)
-                    row += [
-                        ("Evet" if raw.miles.mileage_available else "Hayır") if raw.miles.mileage_available is not None else "",
-                        raw.miles.miles_earned or "", raw.miles.bonus_percent if raw.miles.bonus_percent is not None else "",
-                        scrape_time, rec.get("status", ""),
-                    ]
-                    ws.append(row)
-                    n += 1
-                    # colour amenity cells
-                    r_idx = ws.max_row
-                    for j, k in enumerate(AMENITY_KEYS):
-                        state = amap[k][0]
-                        cell = ws.cell(row=r_idx, column=len(BASE_COLS) + 1 + j)
-                        cell.fill = STATE_FILL[state]
-                        cell.font = STATE_FONT[state]
-                        cell.alignment = Alignment(horizontal="center")
+                if _RANK[a.status] >= _RANK[AmenityStatus(amap[k][0])]:
+                    amap[k] = (a.status.value, a.raw_value or "")   # tuple replace (no stale detail)
+            mo = airport_meta(rec["origin"]); md = airport_meta(rec["destination"])
+            row = [
+                rec["carrier"], CARRIER_NAMES.get(rec["carrier"].upper(), rec["carrier"]),
+                f'{rec["origin"]}-{rec["destination"]}', rec["origin"], rec["destination"],
+                mo["city_code"], mo["country_code"], md["city_code"], md["country_code"],
+                rec["season"], dep, ret, eff_cab.value, tier_code(eff_cab, order), order + 1,
+                raw.raw_brand_name, nb.normalized_name, clean_fare_code(raw.fare_family_code),
+                raw.display_price_text or "", (absp if absp is not None else raw.price_value),
+                raw.currency or "USD", src,
+            ]
+            for k in AMENITY_KEYS:
+                state, det = amap[k]
+                canon = canonical_rule_detail(k, AmenityStatus(state))
+                if canon is not None:
+                    det = canon          # one standard vocabulary for rule rights
+                row.append(f"{state} — {det}" if (state != "Unknown" and det) else state)
+            row += [
+                ("Evet" if raw.miles.mileage_available else "Hayır") if raw.miles.mileage_available is not None else "",
+                raw.miles.miles_earned or "", raw.miles.bonus_percent if raw.miles.bonus_percent is not None else "",
+                scrape_time, rec.get("status", ""),
+            ]
+            ws.append(row)
+            n += 1
+            # colour amenity cells
+            r_idx = ws.max_row
+            for j, k in enumerate(AMENITY_KEYS):
+                state = amap[k][0]
+                cell = ws.cell(row=r_idx, column=len(BASE_COLS) + 1 + j)
+                cell.fill = STATE_FILL[state]
+                cell.font = STATE_FONT[state]
+                cell.alignment = Alignment(horizontal="center")
 
     # header styling + layout
     for col in range(1, len(headers) + 1):

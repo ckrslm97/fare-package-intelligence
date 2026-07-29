@@ -47,3 +47,5 @@ output_v9/
 output_v10/evidence/searches/
 # v11 collection-moment search shots (521MB) stay local
 output_v11/evidence/searches/
+# v12 collection-moment search shots stay local
+output_v12/evidence/searches/

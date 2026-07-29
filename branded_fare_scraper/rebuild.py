@@ -4,6 +4,11 @@ Single source of truth for turning raw JSONL back into ``RawBrand`` /
 ``CabinResult`` / ``UnitResult``. Used by the runner's resume-merge and by the
 offline exporters (``reprocess_raw``, ``to_platform``, ``make_excel``) so the
 raw→brand reconstruction lives in exactly one place.
+
+It also builds the cross-season brand-pair preferences (see
+``normalization.cross_season_pair_prefs``) from either a raw file or in-memory
+results, so the run's own ``normalized_data.csv`` and every later reprocessing
+of the same raw data publish IDENTICAL ladders.
 """
 
 from __future__ import annotations
@@ -11,10 +16,12 @@ from __future__ import annotations
 import json
 from datetime import date
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 from .models import (AmenityStatus, Cabin, CabinResult, PriceType, RawAmenity, RawBrand,
                      RawMiles, ScrapeUnit, UnitResult, UnitStatus)
+from .normalization import (brand_match_key, cross_season_pair_prefs,
+                            iter_unit_ranked_by_cabin)
 
 _STATUSES = {s.value for s in AmenityStatus}
 
@@ -67,6 +74,64 @@ def iter_raw_records(path: Path) -> Iterator[dict]:
             line = line.strip()
             if line:
                 yield json.loads(line)
+
+
+# --------------------------------------------------------------------------- #
+# Cross-season pair-order preferences (shared by all four exporters)
+# --------------------------------------------------------------------------- #
+def collect_ladders(items: Iterable[tuple], ladders: Optional[dict] = None) -> dict:
+    """Build the ``cross_season_pair_prefs`` input from published ladders.
+
+    ``items`` yields ``(carrier, origin, destination, season, cabin_results)``.
+    Each cabin's ladder is produced EXACTLY as the exporters publish it — same
+    unit-level dedupe, ``iter_unit_ranked_by_cabin`` without preferences (the
+    preferences are what we are deriving) — keyed by the *effective* cabin, so
+    the evidence comes from the ladders that really publish. The FIRST ladder
+    seen per ``(carrier, origin, destination, cabin, season)`` wins.
+    """
+    out: dict = {} if ladders is None else ladders
+    for carrier, origin, destination, season, cabin_results in items:
+        season = getattr(season, "value", season)
+        per_cabin: dict = {}
+        for eff_cab, raw, _nb, _order, absp, _src in iter_unit_ranked_by_cabin(
+                cabin_results, carrier=carrier):
+            per_cabin.setdefault(eff_cab, []).append(
+                (brand_match_key(raw.raw_brand_name), absp))
+        for eff_cab, ladder in per_cabin.items():
+            out.setdefault((carrier, origin, destination, eff_cab, season), ladder)
+    return out
+
+
+def season_pair_prefs(raw_path: Path) -> dict:
+    """Cross-season pair preferences from a run's ``raw_data.jsonl``."""
+    def _items():
+        for rec in iter_raw_records(raw_path):
+            if rec.get("status", "success") != UnitStatus.SUCCESS.value:
+                continue
+            yield (rec["carrier"], rec["origin"], rec["destination"], rec["season"],
+                   [cabin_result_from_dict(c) for c in rec.get("cabins", [])])
+    return cross_season_pair_prefs(collect_ladders(_items()))
+
+
+def season_pair_prefs_from_results(results: Iterable[UnitResult]) -> dict:
+    """Same preferences, from in-memory results (the runner's own write path).
+
+    Safe to run before the exporting pass over the SAME objects:
+    ``iter_ranked_by_cabin`` mutates brand names/cabins but is idempotent.
+    """
+    def _items():
+        for r in results:
+            if r is None or r.status.value != UnitStatus.SUCCESS.value:
+                continue
+            job = r.unit.job
+            yield (job.carrier, job.origin, job.destination,
+                   r.unit.date_plan.season, r.cabin_results)
+    return cross_season_pair_prefs(collect_ladders(_items()))
+
+
+def pair_prefs_for(prefs: dict, carrier: str, origin: str, destination: str) -> dict:
+    """Per-cabin slice for ``iter_ranked_by_cabin(pair_prefs_by_cabin=…)``."""
+    return {cab: prefs.get((carrier, origin, destination, cab), {}) for cab in Cabin}
 
 
 def unit_result_from_raw(rec: dict, unit_by_key: dict[str, ScrapeUnit]) -> Optional[UnitResult]:

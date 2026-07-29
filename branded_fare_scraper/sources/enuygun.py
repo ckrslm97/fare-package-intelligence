@@ -112,7 +112,11 @@ class Enuygun(SourceAdapter):
         target = job.carrier.strip().upper()
         results: dict[Cabin, CabinResult] = {}
         any_flights = False
-        for search_cabin in self.cabins_for(job):
+        searched = self.cabins_for(job)
+        #: cabins filled by an upgrade leak from another cabin's search; the
+        #: dedicated search for that cabin overrides them (see ubfly).
+        provisional: set[Cabin] = set()
+        for search_cabin in searched:
             flights = await self._search(page, job.origin, job.destination,
                                          o_slug, d_slug, departure, search_cabin)
             if flights:
@@ -159,9 +163,17 @@ class Enuygun(SourceAdapter):
                         best[Cabin.PREMIUM_ECONOMY] = pe
                         break
             for cab, bs in best.items():
-                if bs and cab not in results:
-                    results[cab] = CabinResult(cabin=cab, departure=departure,
-                                               return_date=return_date, brands=bs)
+                if not bs:
+                    continue
+                dedicated = cab == search_cabin
+                if cab in results and not (dedicated and cab in provisional):
+                    continue
+                results[cab] = CabinResult(cabin=cab, departure=departure,
+                                           return_date=return_date, brands=bs)
+                if dedicated:
+                    provisional.discard(cab)
+                elif cab in searched:
+                    provisional.add(cab)
 
         if not results:
             if any_flights:

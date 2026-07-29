@@ -12,9 +12,10 @@ from branded_fare_scraper.amenities import (
 from branded_fare_scraper.dates import (SUMMER_MONTHS, WINTER_MONTHS, build_date_plan,
                                         pick_departure)
 from branded_fare_scraper.models import AmenityStatus, Cabin, PriceType, RawBrand, Season
-from branded_fare_scraper.normalization import (assign_brand_order, detect_cabin,
-                                                effective_cabin, iter_ranked_by_cabin,
-                                                normalize_brand, regroup_brands_by_cabin)
+from branded_fare_scraper.normalization import (assign_brand_order, cross_season_pair_prefs,
+                                                detect_cabin, effective_cabin,
+                                                iter_ranked_by_cabin, normalize_brand,
+                                                regroup_brands_by_cabin)
 from branded_fare_scraper.pricing import compute_absolute_prices, parse_price
 
 
@@ -366,6 +367,337 @@ def test_ac_ff_brand_table():
     from branded_fare_scraper.normalization import regroup_brands_by_cabin
     out = regroup_brands_by_cabin([b], Cabin.ECONOMY, keep_pe=True, carrier="AC")
     assert [x.raw_brand_name for x in out[Cabin.PREMIUM_ECONOMY]] == ["Premium Economy Flexible"]
+
+
+# ---------------- cross-season pair-order consensus (round 4, fix 1) ------- #
+# Live evidence, A3 ATH-BER Economy: Summer captured a momentary inversion
+# (Flex 268.74 under Light 270.74, gap 2.00); Winter shows the real ladder
+# (Light 270.84 < Flex 325.85 < ComfortFlex 357.85, gap 55.01).
+A3_ROUTE = ("A3", "ATH", "BER", Cabin.ECONOMY)
+A3_SUMMER = [("flex", 268.74), ("light", 270.74)]
+A3_WINTER = [("light", 270.84), ("flex", 325.85), ("comfortflex", 357.85)]
+
+
+def test_cross_season_pair_prefs_larger_gap_wins():
+    prefs = cross_season_pair_prefs({
+        A3_ROUTE + ("Summer",): A3_SUMMER,
+        A3_ROUTE + ("Winter",): A3_WINTER,
+    })
+    route = prefs[A3_ROUTE]
+    assert route[frozenset({"light", "flex"})] == ("light", "flex")   # 55.01 > 2.00
+    # pairs only one season carries give no evidence -> no preference
+    assert frozenset({"flex", "comfortflex"}) not in route
+    assert frozenset({"light", "comfortflex"}) not in route
+
+
+def test_cross_season_pair_prefs_abstains_without_evidence():
+    route = ("A3", "ATH", "BER", Cabin.ECONOMY)
+    # identical gaps, opposite orders -> nothing wins
+    assert cross_season_pair_prefs({
+        route + ("Summer",): [("flex", 100.0), ("light", 110.0)],
+        route + ("Winter",): [("light", 200.0), ("flex", 210.0)],
+    }) == {}
+    # a missing price kills that season's evidence for the pair
+    assert cross_season_pair_prefs({
+        route + ("Summer",): [("flex", None), ("light", 110.0)],
+        route + ("Winter",): [("light", 200.0), ("flex", 255.0)],
+    }) == {}
+    # one season alone -> nothing to compare
+    assert cross_season_pair_prefs({route + ("Summer",): A3_SUMMER}) == {}
+    # both seasons already agree -> no repair emitted
+    assert cross_season_pair_prefs({
+        route + ("Summer",): [("light", 100.0), ("flex", 150.0)],
+        route + ("Winter",): [("light", 200.0), ("flex", 210.0)],
+    }) == {}
+
+
+def test_assign_brand_order_applies_pair_pref():
+    # The Summer ladder alone would publish Flex first (it really was cheaper
+    # that day); Winter's much larger gap is the stronger evidence.
+    summer = [RawBrand("Flex", Cabin.ECONOMY, 0, 268.74, PriceType.ABSOLUTE),
+              RawBrand("Light", Cabin.ECONOMY, 1, 270.74, PriceType.ABSOLUTE)]
+    prefs = {frozenset({"light", "flex"}): ("light", "flex")}
+    ordered = assign_brand_order(summer, prefs)
+    assert [r.raw_brand_name for r, _, _ in ordered] == ["Light", "Flex"]
+    assert [o for _, _, o in ordered] == [0, 1]              # renumbered 0..n-1
+    # without preferences the price order stands
+    assert [r.raw_brand_name for r, _, _ in assign_brand_order(summer)] == ["Flex", "Light"]
+
+
+def test_pair_pref_swaps_only_adjacent_pairs():
+    winter = [RawBrand("Light", Cabin.ECONOMY, 0, 270.84, PriceType.ABSOLUTE),
+              RawBrand("Flex", Cabin.ECONOMY, 1, 325.85, PriceType.ABSOLUTE),
+              RawBrand("ComfortFlex", Cabin.ECONOMY, 2, 357.85, PriceType.ABSOLUTE)]
+    # already in the preferred order -> untouched
+    names = [r.raw_brand_name for r, _, _ in
+             assign_brand_order(winter, {frozenset({"light", "flex"}): ("light", "flex")})]
+    assert names == ["Light", "Flex", "ComfortFlex"]
+    # Light vs ComfortFlex are NOT neighbours: Flex's price sits between them,
+    # so the price order of the element in between wins and nothing moves.
+    names = [r.raw_brand_name for r, _, _ in
+             assign_brand_order(winter, {frozenset({"light", "comfortflex"}):
+                                         ("comfortflex", "light")})]
+    assert names == ["Light", "Flex", "ComfortFlex"]
+
+
+def test_af_business_cross_season_order():
+    # AF CDG-PEK Business: Summer put Standart first (gap 69.47), Winter put
+    # Business first (gap 89.98) -> Winter's order wins in BOTH seasons.
+    route = ("AF", "CDG", "PEK", Cabin.BUSINESS)
+    prefs = cross_season_pair_prefs({
+        route + ("Summer",): [("standart", 2000.00), ("business", 2069.47)],
+        route + ("Winter",): [("business", 2100.00), ("standart", 2189.98)],
+    })[route]
+    assert prefs[frozenset({"standart", "business"})] == ("business", "standart")
+    summer = [RawBrand("Standart", Cabin.BUSINESS, 0, 2000.00, PriceType.ABSOLUTE),
+              RawBrand("Business", Cabin.BUSINESS, 1, 2069.47, PriceType.ABSOLUTE)]
+    assert [r.raw_brand_name for r, _, _ in assign_brand_order(summer, prefs)] \
+        == ["Business", "Standart"]
+
+
+def _a3_raw_record(season, brands):
+    return {"unit_key": f"A3|ATH|BER|{season}", "carrier": "A3", "origin": "ATH",
+            "destination": "BER", "season": season, "source": "Ubfly",
+            "status": "success", "retry_count": 0,
+            "cabins": [{"cabin": "Economy", "source": "Ubfly", "departure": "2026-08-01",
+                        "return": "2026-08-04", "brands": [
+                            {"raw_brand_name": n, "cabin": "Economy", "screen_order": i,
+                             "price_value": p, "price_type": "absolute", "currency": "USD",
+                             "display_price_text": "", "fare_family_code": n.upper(),
+                             "amenities": [], "miles": {}}
+                            for i, (n, p) in enumerate(brands)]}]}
+
+
+A3_SUMMER_REC = _a3_raw_record("Summer", [("Flex", 268.74), ("Light", 270.74)])
+A3_WINTER_REC = _a3_raw_record("Winter", [("Light", 270.84), ("Flex", 325.85),
+                                          ("ComfortFlex", 357.85)])
+
+
+def test_season_pair_prefs_from_raw_fixes_both_seasons(tmp_path):
+    import json
+    from branded_fare_scraper.rebuild import (pair_prefs_for, raw_brand_from_dict,
+                                              season_pair_prefs)
+    raw = tmp_path / "raw_data.jsonl"
+    raw.write_text("\n".join(json.dumps(r) for r in (A3_SUMMER_REC, A3_WINTER_REC)),
+                   encoding="utf-8")
+    ppc = pair_prefs_for(season_pair_prefs(raw), "A3", "ATH", "BER")
+    for rec in (A3_SUMMER_REC, A3_WINTER_REC):
+        brands = [raw_brand_from_dict(b) for b in rec["cabins"][0]["brands"]]
+        names = [raw_b.raw_brand_name for _c, raw_b, _nb, _o, _a in iter_ranked_by_cabin(
+            brands, Cabin.ECONOMY, carrier="A3", pair_prefs_by_cabin=ppc)]
+        assert names[:2] == ["Light", "Flex"], rec["season"]
+
+
+def test_runner_prefs_match_reprocessed_prefs(tmp_path):
+    """The run's own outputs must order exactly like a later reprocess."""
+    import json
+    from branded_fare_scraper.models import (CabinResult, DatePlan, Job, ScrapeUnit,
+                                             UnitResult, UnitStatus)
+    from branded_fare_scraper.rebuild import (raw_brand_from_dict, season_pair_prefs,
+                                              season_pair_prefs_from_results)
+    raw = tmp_path / "raw_data.jsonl"
+    raw.write_text("\n".join(json.dumps(r) for r in (A3_SUMMER_REC, A3_WINTER_REC)),
+                   encoding="utf-8")
+    d0 = date(2026, 8, 1)
+    results = []
+    for rec, season in ((A3_SUMMER_REC, Season.SUMMER), (A3_WINTER_REC, Season.WINTER)):
+        unit = ScrapeUnit(Job("A3", "ATH", "BER"),
+                          DatePlan(season, d0, d0 + timedelta(days=3), [(d0, d0 + timedelta(days=3))]))
+        cabs = [CabinResult(cabin=Cabin.ECONOMY, departure=d0, return_date=d0 + timedelta(days=3),
+                            brands=[raw_brand_from_dict(b) for b in rec["cabins"][0]["brands"]])]
+        results.append(UnitResult(unit=unit, source="Ubfly", cabin_results=cabs,
+                                  status=UnitStatus.SUCCESS))
+    assert season_pair_prefs_from_results(results) == season_pair_prefs(raw)
+    assert season_pair_prefs(raw)[("A3", "ATH", "BER", Cabin.ECONOMY)] == {
+        frozenset({"light", "flex"}): ("light", "flex")}
+
+
+# ---------- one ladder per cabin per unit (duplicate-PE regression) -------- #
+def _cab_result(cabin, brands, source="Ubfly", day=1):
+    from branded_fare_scraper.models import CabinResult
+    return CabinResult(cabin=cabin, departure=date(2026, 8, day),
+                       return_date=date(2026, 8, day + 3),
+                       brands=[RawBrand(n, cabin, i, p, PriceType.ABSOLUTE, fare_family_code=ff)
+                               for i, (n, p, ff) in enumerate(brands)],
+                       source=source)
+
+
+def test_unit_publishes_one_pe_ladder_dedicated_result_wins():
+    # EK AMM-PVG Summer: the Economy result carries a PE family that leaked into
+    # the economy ladder (1899.96) while a dedicated PE result also exists
+    # (1892.81). Publishing both produced near-duplicate PE rows, sometimes with
+    # descending prices. Same length -> the result that IS Premium Economy wins.
+    from branded_fare_scraper.normalization import iter_unit_ranked_by_cabin
+    eco = _cab_result(Cabin.ECONOMY,
+                      [("Economy Saver", 850.11, "ECOSAVER"),
+                       ("Economy Flex", 1120.40, "ECOFLEX"),
+                       ("Premium Economy Flex Plus", 1899.96, "PYFLXPLUS-PYFLXPLUS")],
+                      source="Ubfly", day=1)
+    pe = _cab_result(Cabin.PREMIUM_ECONOMY,
+                     [("Premium Economy FlexPlus", 1892.81,
+                       "WF-79c0c922aa1c4f0e9a1a1b0d5d6e7f80")], source="Enuygun", day=5)
+    got = {}
+    for eff_cab, raw, _nb, order, absp, src in iter_unit_ranked_by_cabin([eco, pe], carrier="EK"):
+        got.setdefault(eff_cab, []).append((order, raw.raw_brand_name, absp, src.source))
+    assert len(got[Cabin.PREMIUM_ECONOMY]) == 1                      # was 2 -> duplicate rows
+    order, name, price, source = got[Cabin.PREMIUM_ECONOMY][0]
+    # Both spellings normalize to the same display name (EK spelling table);
+    # the dedicated result is identified by ITS price + source, not the string.
+    assert (order, name) == (0, "Premium Economy Flex Plus")
+    assert price == pytest.approx(1892.81)                            # dedicated result wins
+    assert source == "Enuygun"                                       # winner's own metadata
+    assert [n for _o, n, _p, _s in got[Cabin.ECONOMY]] == ["Economy Saver", "Economy Flex"]
+
+
+def test_unit_ladder_dedupe_prefers_the_richer_ladder():
+    # Rule (a) beats rule (b): a 3-fare PE ladder leaking out of the Economy
+    # result is more complete than the dedicated 1-fare PE result.
+    from branded_fare_scraper.normalization import iter_unit_ranked_by_cabin
+    eco = _cab_result(Cabin.ECONOMY,
+                      [("Economy Saver", 850.11, "ECOSAVER"),
+                       ("Premium Economy Light", 1700.00, "PRELIGHT"),
+                       ("Premium Economy Comfort", 1800.00, "PRECMFT"),
+                       ("Premium Economy Flex", 1900.00, "PREFLEX")])
+    pe = _cab_result(Cabin.PREMIUM_ECONOMY,
+                     [("Premium Economy Comfort", 1892.81, "PRECMFT")], source="Enuygun", day=5)
+    names, sources = [], set()
+    for eff_cab, raw, _nb, _order, _absp, src in iter_unit_ranked_by_cabin([eco, pe], carrier="LH"):
+        if eff_cab == Cabin.PREMIUM_ECONOMY:
+            names.append(raw.raw_brand_name)
+            sources.add(src.source)
+    assert names == ["Premium Economy Light", "Premium Economy Comfort",
+                     "Premium Economy Flex"]
+    assert sources == {"Ubfly"}                    # leak ladder won on brand count
+
+
+def test_unit_ladder_dedupe_keeps_distinct_cabins():
+    from branded_fare_scraper.normalization import iter_unit_ranked_by_cabin
+    eco = _cab_result(Cabin.ECONOMY, [("Economy Saver", 500.0, "E1")])
+    biz = _cab_result(Cabin.BUSINESS, [("Business Flex", 2500.0, "B1")], day=5)
+    got = {c: n for c, n, _, _, _, _ in
+           ((e, r.raw_brand_name, o, a, s, 0)
+            for e, r, _nb, o, a, s in iter_unit_ranked_by_cabin([eco, biz], carrier="XX"))}
+    assert got == {Cabin.ECONOMY: "Economy Saver", Cabin.BUSINESS: "Business Flex"}
+
+
+def test_all_consumers_share_the_unit_dedupe():
+    """reprocess/to_platform/make_excel/runner must call the same generator."""
+    import inspect
+    import make_excel, reprocess_raw, to_platform
+    from branded_fare_scraper import runner
+    for mod in (make_excel, reprocess_raw, to_platform, runner):
+        src = inspect.getsource(mod)
+        assert "iter_unit_ranked_by_cabin(" in src, mod.__name__
+        assert "iter_ranked_by_cabin(" not in src.replace("iter_unit_ranked_by_cabin(", ""), \
+            mod.__name__
+
+
+# ------------------- upgrade-leak capture (round 4, fix 2) ----------------- #
+def test_regroup_keeps_higher_cabin_leak_drops_lower():
+    # Economy search: a Business box on the row is a real sellable fare.
+    eco = [RawBrand("Economy Comfort", Cabin.ECONOMY, 0, 302.88, PriceType.ABSOLUTE),
+           RawBrand("Business", Cabin.ECONOMY, 1, 735.66, PriceType.ABSOLUTE)]
+    buckets = regroup_brands_by_cabin(eco, Cabin.ECONOMY, keep_pe=True)
+    assert set(buckets) == {Cabin.ECONOMY, Cabin.BUSINESS}
+    assert [b.raw_brand_name for b in buckets[Cabin.BUSINESS]] == ["Business"]
+    # Business search: an economy-named box is still noise (the $5,877 bug).
+    biz = [RawBrand("Business Flex", Cabin.BUSINESS, 0, 2500, PriceType.ABSOLUTE),
+           RawBrand("Economy Light", Cabin.BUSINESS, 1, 5877, PriceType.ABSOLUTE)]
+    assert set(regroup_brands_by_cabin(biz, Cabin.BUSINESS, keep_pe=False)) == {Cabin.BUSINESS}
+
+
+def test_ubfly_economy_search_captures_business_upgrade_leak():
+    # Live evidence, ATH-FRA economy search, row "LH 5919": COMFORT 0.00,
+    # FLEX +48.98, BUSINESS +432.78 on base 302.88. The BUSINESS box used to be
+    # thrown away, so LH ATH-FRA published with no Business at all.
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    flight = {"carrier": "LH", "fare_iata": "LH", "baseText": "302.88 USD", "direct": True,
+              "brands": [
+                  {"name": "COMFORT", "ffcode": "ECOCMFT", "cabin": "ECONOMY", "lis": [],
+                   "priceText": "0.00 USD"},
+                  {"name": "FLEX", "ffcode": "ECOFLEX", "cabin": "ECONOMY", "lis": [],
+                   "priceText": "+48.98 USD"},
+                  {"name": "BUSINESS", "ffcode": "BUSCMFT", "cabin": "ECONOMY", "lis": [],
+                   "priceText": "+432.78 USD"}]}
+    best = Ubfly().best_buckets([flight], Cabin.ECONOMY, "LH")
+    assert set(best) == {Cabin.ECONOMY, Cabin.BUSINESS}
+    assert len(best[Cabin.ECONOMY]) == 2
+    assert [b.price_value for b in best[Cabin.ECONOMY]] == [pytest.approx(302.88),
+                                                            pytest.approx(351.86)]
+    assert len(best[Cabin.BUSINESS]) == 1
+    assert best[Cabin.BUSINESS][0].price_value == pytest.approx(735.66, abs=0.01)
+
+
+def test_ubfly_business_search_still_drops_economy_box():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    flight = {"carrier": "XX", "fare_iata": "XX", "baseText": "2500.00 USD", "direct": True,
+              "brands": [
+                  {"name": "Business Flex", "ffcode": "BF", "cabin": "BUSINESS", "lis": [],
+                   "priceText": "0.00 USD"},
+                  {"name": "Economy Light", "ffcode": "EL", "cabin": "ECONOMY", "lis": [],
+                   "priceText": "+3377.00 USD"}]}
+    best = Ubfly().best_buckets([flight], Cabin.BUSINESS, "XX")
+    assert set(best) == {Cabin.BUSINESS}
+    assert [b.raw_brand_name for b in best[Cabin.BUSINESS]] == ["Business Flex"]
+
+
+# ------------------- direct-flight preference (round 4, fix 3) ------------- #
+def _eco_flight(carrier, base, fares, direct):
+    return {"carrier": carrier, "fare_iata": carrier, "direct": direct,
+            "baseText": f"{base:.2f} USD",
+            "brands": [{"name": n, "ffcode": n, "cabin": c, "lis": [], "priceText": p}
+                       for n, p, c in fares]}
+
+
+def test_best_buckets_prefers_direct_over_richer_connection():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    conn = _eco_flight("TK", 600.0, [("ECOFLY", "0.00 USD", "ECONOMY"),
+                                     ("EXTRAFLY", "+40 USD", "ECONOMY"),
+                                     ("FLEXFLY", "+108 USD", "ECONOMY"),
+                                     ("PRIMEFLY", "+214 USD", "ECONOMY")], False)
+    nonstop = _eco_flight("TK", 700.0, [("ECOFLY", "0.00 USD", "ECONOMY"),
+                                        ("EXTRAFLY", "+40 USD", "ECONOMY"),
+                                        ("FLEXFLY", "+108 USD", "ECONOMY")], True)
+    best = Ubfly().best_buckets([conn, nonstop], Cabin.ECONOMY, "TK")
+    assert len(best[Cabin.ECONOMY]) == 3                       # the direct ladder
+    assert best[Cabin.ECONOMY][0].price_value == pytest.approx(700.0)
+
+
+def test_best_buckets_falls_back_to_connection_without_direct():
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    conn = _eco_flight("TK", 600.0, [("ECOFLY", "0.00 USD", "ECONOMY"),
+                                     ("EXTRAFLY", "+40 USD", "ECONOMY"),
+                                     ("FLEXFLY", "+108 USD", "ECONOMY")], False)
+    # older stored flights carry no "direct" key at all -> treated as non-direct
+    legacy = {"carrier": "TK", "fare_iata": "TK", "baseText": "650.00 USD",
+              "brands": [{"name": "ECOFLY", "ffcode": "E1", "cabin": "ECONOMY", "lis": [],
+                          "priceText": "0.00 USD"}]}
+    best = Ubfly().best_buckets([legacy, conn], Cabin.ECONOMY, "TK")
+    assert len(best[Cabin.ECONOMY]) == 3                       # most packages still wins
+    assert best[Cabin.ECONOMY][0].price_value == pytest.approx(600.0)
+
+
+def test_best_buckets_side_picks_cabin_only_on_a_connection():
+    # Never lose a cabin just to stay direct: the direct flight sets the Economy
+    # ladder, the connection contributes the Premium Economy one.
+    from branded_fare_scraper.sources.ubfly import Ubfly
+    nonstop = _eco_flight("BA", 500.0, [("Economy Saver", "0.00 USD", "ECONOMY"),
+                                        ("Economy Flex", "+120 USD", "ECONOMY")], True)
+    conn = _eco_flight("BA", 480.0, [("Economy Saver", "0.00 USD", "ECONOMY"),
+                                     ("PREMECON", "+400 USD", "ECONOMY")], False)
+    best = Ubfly().best_buckets([nonstop, conn], Cabin.ECONOMY, "BA")
+    assert len(best[Cabin.ECONOMY]) == 2
+    assert best[Cabin.ECONOMY][0].price_value == pytest.approx(500.0)      # direct row
+    assert [b.raw_brand_name for b in best[Cabin.PREMIUM_ECONOMY]] == ["PREMECON"]
+    assert best[Cabin.PREMIUM_ECONOMY][0].price_value == pytest.approx(880.0)
+
+
+def test_extract_js_flags_direct_rows():
+    # The row's own text decides; the fare panel never carries this wording.
+    from branded_fare_scraper.sources.ubfly import _EXTRACT_JS
+    assert "const direct = /\\bDirect\\b/i.test(rowText) && !/Transfer/i.test(rowText);" \
+        in _EXTRACT_JS
+    assert "direct: direct" in _EXTRACT_JS
 
 
 # --------------------------- amenities ------------------------------------ #

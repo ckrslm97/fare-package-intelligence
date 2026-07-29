@@ -17,9 +17,11 @@ from .io_utils import (read_jobs, write_failed, write_normalized, write_raw, wri
 from .logging_setup import EventLog, setup_logging
 from .models import (AmenityStatus, BrandedFare, Cabin, CabinResult, Job, PriceType,
                      RunSummary, ScrapeUnit, UnitResult, UnitStatus, now_ts)
-from .normalization import enrich_brands, iter_ranked_by_cabin, ladder_metrics, tier_code
+from .normalization import (enrich_brands, iter_unit_ranked_by_cabin, ladder_metrics,
+                            tier_code)
 from .report import write_report
-from .rebuild import iter_raw_records, unit_result_from_raw
+from .rebuild import (iter_raw_records, pair_prefs_for, season_pair_prefs_from_results,
+                      unit_result_from_raw)
 from .retry import retry_async
 from .validation import apply_status, validate_unit
 from . import sources as _sources  # registers adapters
@@ -294,6 +296,12 @@ class Runner:
     # ------------------------------------------------------------------ #
     def _write_outputs(self, results: list[UnitResult]) -> None:
         results = [r for r in results if r is not None]
+        # Cross-season ladder-order consensus, built from the very same in-memory
+        # results that get written below, so this run's normalized_data.csv is
+        # identical to what reprocess_raw/to_platform/make_excel later produce
+        # from its raw_data.jsonl. (The ranking pass mutates the brand objects
+        # but idempotently, so this pre-pass is safe.)
+        prefs = season_pair_prefs_from_results(results)
         rows: list[BrandedFare] = []
         failed: list[UnitResult] = []
         for r in results:
@@ -304,7 +312,7 @@ class Runner:
                 continue
             self._tally(r)
             if r.total_brands() > 0:
-                rows.extend(self._to_branded_fares(r))
+                rows.extend(self._to_branded_fares(r, prefs))
             else:
                 failed.append(r)
 
@@ -335,44 +343,44 @@ class Runner:
         self.summary.units_missing_miles += int(report.missing_miles)
         self.summary.units_missing_source += int(report.missing_source)
 
-    def _to_branded_fares(self, r: UnitResult) -> list[BrandedFare]:
+    def _to_branded_fares(self, r: UnitResult, prefs: dict | None = None) -> list[BrandedFare]:
         out: list[BrandedFare] = []
         job, plan = r.unit.job, r.unit.date_plan
-        for cab in r.cabin_results:
-            if not cab.brands:
-                continue
-            # Re-bucket to each brand's effective cabin, order by price, per cabin.
-            for eff_cab, raw, nb, order, absp in iter_ranked_by_cabin(cab.brands, cab.cabin,
-                                                                      carrier=job.carrier):
-                amap = empty_amenity_map()
-                details: dict[str, str] = {}
-                for a in raw.amenities:
-                    key = a.canonical_key or map_label_to_canonical(a.raw_label)
-                    if not key or key not in amap:
-                        continue
-                    cur = AmenityStatus(amap[key])
-                    if _STATUS_RANK[a.status] >= _STATUS_RANK[cur]:
-                        amap[key] = a.status.value
-                        details[key] = a.raw_value or ""   # overwrite (clear stale detail)
-                out.append(BrandedFare(
-                    carrier=job.carrier, origin=job.origin, destination=job.destination,
-                    departure_date=cab.departure or plan.departure,
-                    return_date=cab.return_date or plan.return_date,
-                    season=plan.season, cabin=eff_cab, brand_order=order,
-                    tier_code=tier_code(eff_cab, order),
-                    raw_brand_name=raw.raw_brand_name,
-                    normalized_brand_name=nb.normalized_name,
-                    display_price=raw.display_price_text or (str(raw.price_value) if raw.price_value is not None else ""),
-                    calculated_absolute_price=(absp if absp is not None
-                                               else (raw.price_value if raw.price_type == PriceType.ABSOLUTE else None)),
-                    currency=raw.currency, source=cab.source or r.source or "",
-                    fare_family_code=raw.fare_family_code, brand_description=raw.description,
-                    amenities=amap, amenity_details=details,
-                    mileage_available=raw.miles.mileage_available,
-                    miles_earned=raw.miles.miles_earned,
-                    bonus_percent=raw.miles.bonus_percent,
-                    status=r.status.value, retry_count=r.retry_count,
-                ))
+        ppc = pair_prefs_for(prefs or {}, job.carrier, job.origin, job.destination)
+        # Re-bucket to each brand's effective cabin, order by price, and publish
+        # exactly ONE ladder per cabin for the unit (``cab`` is the winning
+        # ladder's own cabin result, for its dates/source).
+        for eff_cab, raw, nb, order, absp, cab in iter_unit_ranked_by_cabin(
+                r.cabin_results, carrier=job.carrier, pair_prefs_by_cabin=ppc):
+            amap = empty_amenity_map()
+            details: dict[str, str] = {}
+            for a in raw.amenities:
+                key = a.canonical_key or map_label_to_canonical(a.raw_label)
+                if not key or key not in amap:
+                    continue
+                cur = AmenityStatus(amap[key])
+                if _STATUS_RANK[a.status] >= _STATUS_RANK[cur]:
+                    amap[key] = a.status.value
+                    details[key] = a.raw_value or ""   # overwrite (clear stale detail)
+            out.append(BrandedFare(
+                carrier=job.carrier, origin=job.origin, destination=job.destination,
+                departure_date=cab.departure or plan.departure,
+                return_date=cab.return_date or plan.return_date,
+                season=plan.season, cabin=eff_cab, brand_order=order,
+                tier_code=tier_code(eff_cab, order),
+                raw_brand_name=raw.raw_brand_name,
+                normalized_brand_name=nb.normalized_name,
+                display_price=raw.display_price_text or (str(raw.price_value) if raw.price_value is not None else ""),
+                calculated_absolute_price=(absp if absp is not None
+                                           else (raw.price_value if raw.price_type == PriceType.ABSOLUTE else None)),
+                currency=raw.currency, source=cab.source or r.source or "",
+                fare_family_code=raw.fare_family_code, brand_description=raw.description,
+                amenities=amap, amenity_details=details,
+                mileage_available=raw.miles.mileage_available,
+                miles_earned=raw.miles.miles_earned,
+                bonus_percent=raw.miles.bonus_percent,
+                status=r.status.value, retry_count=r.retry_count,
+            ))
         return out
 
     def _print_summary(self) -> None:

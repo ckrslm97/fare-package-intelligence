@@ -28,7 +28,7 @@ from typing import Any, Optional
 from ..amenities import classify_status_from_text, map_label_to_canonical
 from ..models import (AmenityStatus, Cabin, CabinResult, Job, PriceType, RawAmenity,
                       RawBrand, RawMiles)
-from ..normalization import (detect_cabin, effective_cabin, ff_override,
+from ..normalization import (cabin_rank, detect_cabin, effective_cabin, ff_override,
                              ladder_metrics, regroup_brands_by_cabin)
 from ..pricing import parse_price
 from ..retry import CarrierAbsent, Forbidden, NoAvailabilityError
@@ -80,8 +80,12 @@ _EXTRACT_JS = r"""
   const out = [];
   const mains = [...document.querySelectorAll('tr.flight-item')];
   for (const main of mains) {
-    const headM = (main.innerText || '').match(priceRe);
+    const rowText = main.innerText || '';
+    const headM = rowText.match(priceRe);
     const baseText = headM ? headM[0] : '';
+    // Non-stop or not: the row's duration cell reads "Direct" vs "1 Transfers".
+    // Read the ROW's own text only — the fare panel below it never carries this.
+    const direct = /\bDirect\b/i.test(rowText) && !/Transfer/i.test(rowText);
     // The row's OWN airline identity: logo filename ("25px-QR.png") first, then
     // a flight-number prefix ("QR 120"). The fare boxes' IATA can belong to a
     // codeshare seller (QR-plated fares on BA metal), so it must not drive
@@ -92,7 +96,7 @@ _EXTRACT_JS = r"""
         .match(/(?:\d+px-)?([A-Z0-9]{2})\.(?:png|svg|jpe?g|webp)/i);
     if (srcM) rowCarrier = srcM[1].toUpperCase();
     if (!rowCarrier) {
-      const fm = (main.innerText || '').match(/\b([A-Z][A-Z0-9])\s?-?\s?\d{2,4}\b/);
+      const fm = rowText.match(/\b([A-Z][A-Z0-9])\s?-?\s?\d{2,4}\b/);
       if (fm) rowCarrier = fm[1].toUpperCase();
     }
     // Walk following sibling rows to this flight's branded panel.
@@ -125,7 +129,7 @@ _EXTRACT_JS = r"""
     });
     out.push({ carrier: rowCarrier || (brands[0] && brands[0].iata) || '',
                fare_iata: (brands[0] && brands[0].iata) || '',
-               baseText: baseText, brands: brands });
+               direct: direct, baseText: baseText, brands: brands });
   }
   return out;
 }
@@ -187,15 +191,24 @@ class Ubfly(SourceAdapter):
                      target: str) -> dict[Cabin, list[RawBrand]]:
         """Pick the best flight's re-bucketed ladder for one searched cabin.
 
-        Every carrier flight on the page is scored; the winner is the flight
-        with the MOST packages (user rule), then most cabins covered, fewest
-        implausible (>3x) price jumps, smallest worst step, cheapest base. PE
-        side-pick: if the winner lacks PE but another carrier flight offers it,
-        that flight contributes the PE bucket. Shared by ``fetch_search`` and
-        the screenshot-verification harness so both apply IDENTICAL selection.
+        Every carrier flight on the page is inspected and scored: MOST packages
+        (user rule), then most cabins covered, fewest implausible (>3x) price
+        jumps, smallest worst step, cheapest base. **Direct wins**: if any
+        non-stop flight yields a ladder for the searched cabin, the
+        representative flight is chosen among the direct ones only (user rule:
+        "if there is a direct flight, pick it — but still inspect every flight
+        and take the one with the most packages"); otherwise all flights compete.
+
+        Side-picks: a higher cabin the winner does not carry (Premium Economy,
+        or a Business upgrade-leak inside the Economy search) is taken from the
+        next flight that offers it — direct flights first, but a connection may
+        still supply it, because losing a whole cabin is worse than a stop.
+        Shared by ``fetch_search`` and the screenshot-verification harness so
+        both apply IDENTICAL selection. Flight dicts stored by older runs carry
+        no ``direct`` key; they simply count as non-direct.
         """
         keep_pe = search_cabin == Cabin.ECONOMY
-        scored: list[tuple[tuple, dict[Cabin, list[RawBrand]]]] = []
+        scored: list[tuple[tuple, dict[Cabin, list[RawBrand]], bool]] = []
         for f in carrier_flights:
             buckets = regroup_brands_by_cabin(
                 self._to_raw_brands(f, search_cabin), search_cabin,
@@ -206,15 +219,23 @@ class Ubfly(SourceAdapter):
             bad, worst = ladder_metrics(allb)
             base_val, _, _ = parse_price(_clean_price(f.get("baseText", "")))
             scored.append(((len(allb), len(buckets), -bad, -worst,
-                            -(base_val if base_val is not None else float("inf"))), buckets))
+                            -(base_val if base_val is not None else float("inf"))),
+                           buckets, bool(f.get("direct"))))
         scored.sort(key=lambda t: t[0], reverse=True)
-        best = scored[0][1] if scored else {}
-        if keep_pe and Cabin.PREMIUM_ECONOMY not in best:
-            for _, buckets in scored[1:]:
-                pe = buckets.get(Cabin.PREMIUM_ECONOMY)
-                if pe:
-                    best[Cabin.PREMIUM_ECONOMY] = pe
-                    break
+        order = list(range(len(scored)))
+        # Direct flights that actually price the searched cabin get the pick.
+        direct = [i for i in order if scored[i][2] and scored[i][1].get(search_cabin)]
+        primary = direct or order
+        if not primary:
+            return {}
+        best = dict(scored[primary[0]][1])
+        # Preference-ordered scan for the remaining cabins: direct first, rest after.
+        rest = [i for i in primary[1:]] + [i for i in order if i not in set(primary)]
+        if keep_pe:
+            for i in rest:
+                for cab, bs in scored[i][1].items():
+                    if bs and cab not in best and cabin_rank(cab) > cabin_rank(search_cabin):
+                        best[cab] = bs
         return best
 
     # ------------------------------------------------------------------ #
@@ -222,7 +243,11 @@ class Ubfly(SourceAdapter):
         results: dict[Cabin, CabinResult] = {}
         target = job.carrier.strip().upper()
         any_flights = False
-        for search_cabin in self.cabins_for(job):
+        searched = self.cabins_for(job)
+        #: cabins filled by an upgrade leak from ANOTHER cabin's search — the
+        #: dedicated search for that cabin (ct3 for Business) overrides them.
+        provisional: set[Cabin] = set()
+        for search_cabin in searched:
             flights = await self._search(page, job.origin, job.destination, departure, search_cabin)
             if flights:
                 any_flights = True
@@ -234,9 +259,19 @@ class Ubfly(SourceAdapter):
             # only (avoids double-counting it in the Business search).
             best = self.best_buckets(carrier_flights, search_cabin, target)
             for cab, bs in best.items():
-                if bs and cab not in results:
-                    results[cab] = CabinResult(cabin=cab, departure=departure,
-                                               return_date=return_date, brands=bs)
+                if not bs:
+                    continue
+                dedicated = cab == search_cabin
+                # A cabin's own search always beats a leak picked up in another
+                # search; a leak only fills a cabin nothing else provided.
+                if cab in results and not (dedicated and cab in provisional):
+                    continue
+                results[cab] = CabinResult(cabin=cab, departure=departure,
+                                           return_date=return_date, brands=bs)
+                if dedicated:
+                    provisional.discard(cab)
+                elif cab in searched:
+                    provisional.add(cab)
         if not results:
             if any_flights:
                 # Route has flights but none for this carrier -> it doesn't fly
@@ -329,11 +364,20 @@ class Ubfly(SourceAdapter):
             else:
                 # A box whose own two labels contradict each other (economy-named
                 # but structurally tagged Business) is untrustworthy junk either
-                # way — drop it. PE is exempt: an "economy" tag on a PE fare
-                # family is the normal leak pattern, not a conflict.
+                # way — drop it. Two exemptions, both real patterns:
+                #   * PE anywhere in the conflict — an "economy" tag on a PE fare
+                #     family is the normal leak, not a conflict;
+                #   * either label naming a cabin ABOVE the searched one — that
+                #     is an upgrade leak (LH ATH-FRA economy search sells a
+                #     BUSINESS box on the same row); keep it, and let
+                #     effective_cabin bucket it under its true cabin. A box
+                #     naming a LOWER cabin (economy box in a Business search)
+                #     stays dropped as noise.
                 name_cab = detect_cabin(name)
                 if (name_cab and box_cabin and name_cab != box_cabin
-                        and Cabin.PREMIUM_ECONOMY not in (name_cab, box_cabin)):
+                        and Cabin.PREMIUM_ECONOMY not in (name_cab, box_cabin)
+                        and max(cabin_rank(name_cab), cabin_rank(box_cabin))
+                        <= cabin_rank(requested_cabin)):
                     continue
                 cabin = effective_cabin(name, ff, box_cabin, requested_cabin, carrier=carrier)
             delta_val, _dt, delta_cur = parse_price(_clean_price(b.get("priceText", "")))

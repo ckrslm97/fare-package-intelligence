@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Optional
 
 from .models import Cabin, PriceType, RawBrand
@@ -22,6 +23,12 @@ CABIN_BASE = {
     Cabin.BUSINESS: 2000,
     Cabin.FIRST: 3000,
 }
+
+
+def cabin_rank(cabin: Optional[Cabin]) -> int:
+    """Global cabin ordering value: Economy < Premium Economy < Business < First."""
+    return CABIN_BASE.get(cabin, 0)
+
 
 # Cabin -> tier-code prefix (Eco-1, PEco-1, Bus-1, Fir-1) as in the reference image.
 CABIN_TIER_PREFIX = {
@@ -152,7 +159,8 @@ CARRIER_BRAND_SPELLING: dict[str, dict[str, str]] = {
     "EK": {"ecosaver": "Economy Saver", "ecoflex": "Economy Flex",
            "ecoflxplus": "Economy Flex Plus", "bssaver": "Business Saver",
            "bsflex": "Business Flex", "bsflxplus": "Business Flex Plus",
-           "pyflxplus": "Premium Economy Flex Plus"},
+           "pyflxplus": "Premium Economy Flex Plus",
+           "premiumeconomyflexplus": "Premium Economy Flex Plus"},
     "EY": {"ybasic": "Economy Basic", "yvalue": "Economy Value",
            "ycomfort": "Economy Comfort", "ydeluxe": "Economy Deluxe",
            "jvalue": "Business Value", "jcomfort": "Business Comfort",
@@ -192,7 +200,25 @@ CARRIER_BRAND_SPELLING: dict[str, dict[str, str]] = {
            "joyplus": "Joy Plus", "joy": "Joy"},
     "J2": {"budget": "Budget"},
     "PC": {"avantaj": "Avantaj"},
-    "RJ": {"buvalue": "Business Value"},
+    "RJ": {"buvalue": "Business Value", "busaver": "Business Saver",
+           "ecflex": "Economy Flex", "ecsaver": "Economy Saver",
+           "ecvalue": "Economy Value"},
+    # Business fare families surfaced by the upgrade-leak capture (v12) —
+    # compressed OTA tokens -> the airlines' own brand wording.
+    "AA": {"fbus": "Flagship Business"},
+    "CA": {"stdbiz": "Business Standard", "flexbiz": "Business Flex",
+           "ltbiz": "Business Lite"},
+    "CX": {"bizlight": "Business Light", "bizessent": "Business Essential",
+           "bclassic": "Business Classic"},
+    "FB": {"bexecutive": "Business Executive"},
+    "HO": {"flexbiz": "Business Flex"},
+    "KE": {"prstandard": "Prestige Standard", "prplus": "Prestige Plus"},
+    "NH": {"bizclassic": "Business Classic", "bizstd": "Business Standard",
+           "bizval": "Business Value", "bizvalpls": "Business Value Plus"},
+    "OZ": {"prstandard": "Prestige Standard", "prplus": "Prestige Plus"},
+    "PR": {"busvalue": "Business Value"},
+    "TG": {"bufl": "Business Flexible"},
+    "VS": {"upper": "Upper Class"},
     "GF": {"ecolite": "Economy Lite", "ecosmart": "Economy Smart",
            "ecoflex": "Economy Flex", "bizsmart": "Business Smart"},
     "UA": {"premeco": "Premium Economy", "premecoref": "Premium Economy Refundable",
@@ -353,7 +379,99 @@ def _resolved_prices(brands: list[RawBrand]) -> list[Optional[float]]:
     return out
 
 
-def assign_brand_order(brands: list[RawBrand]) -> list[tuple[RawBrand, NormalizedBrand, int]]:
+# --------------------------------------------------------------------------- #
+# Cross-season pair-order consensus
+#
+# A momentary price inversion (a promo that dips one package under the one below
+# it for a day) flips the published ladder in ONE season while the other season
+# shows the airline's real hierarchy. Evidence rule: for a brand pair that both
+# seasons list, the season whose two fares are FURTHER apart is the one that
+# reflects the real ladder — a 2.00 gap is noise, a 55.01 gap is structure.
+# --------------------------------------------------------------------------- #
+#: ``{frozenset({match_key_a, match_key_b}): (first_key, second_key)}``
+PairPrefs = dict
+
+
+def cross_season_pair_prefs(ladders: dict) -> dict:
+    """Derive per-route brand-pair order preferences from multi-season evidence.
+
+    ``ladders`` maps ``(carrier, origin, destination, cabin, season)`` to the
+    published ladder as an ordered list of ``(brand_match_key, absolute_price)``.
+    For each ``(carrier, origin, destination, cabin)`` seen in ≥2 seasons, every
+    brand pair that appears in both seasons **with a different relative order**
+    is decided by the season with the LARGER absolute price gap. Equal gaps
+    (or a pair whose price is missing in a season) yield no preference.
+
+    Returns ``{(carrier, origin, destination, cabin): {pair: (first, second)}}``.
+    """
+    by_route: dict = {}
+    for (carrier, origin, destination, cabin, season), ladder in ladders.items():
+        pos_price: dict[str, tuple[int, Optional[float]]] = {}
+        for pos, (key, price) in enumerate(ladder):
+            if key and key not in pos_price:          # first occurrence wins
+                pos_price[key] = (pos, price)
+        by_route.setdefault((carrier, origin, destination, cabin), {})[season] = pos_price
+
+    out: dict = {}
+    for route, seasons in by_route.items():
+        if len(seasons) < 2:
+            continue
+        names = sorted(seasons)
+        pairs: set[tuple[str, str]] = set()
+        for i, s1 in enumerate(names):
+            for s2 in names[i + 1:]:
+                common = set(seasons[s1]) & set(seasons[s2])
+                pairs.update(combinations(sorted(common), 2))
+        prefs: dict = {}
+        for a, b in sorted(pairs):
+            evidence: list[tuple[float, tuple[str, str]]] = []
+            for s in names:
+                d = seasons[s]
+                if a not in d or b not in d:
+                    continue
+                (pa, va), (pb, vb) = d[a], d[b]
+                if va is None or vb is None:
+                    continue                          # no price -> no evidence
+                evidence.append((abs(va - vb), (a, b) if pa < pb else (b, a)))
+            if len(evidence) < 2 or len({o for _, o in evidence}) < 2:
+                continue                              # seasons agree -> nothing to repair
+            best_gap = max(g for g, _ in evidence)
+            winners = {o for g, o in evidence if g == best_gap}
+            if len(winners) != 1:
+                continue                              # equal gaps disagree -> no preference
+            prefs[frozenset((a, b))] = winners.pop()
+        if prefs:
+            out[route] = prefs
+    return out
+
+
+def _apply_pair_prefs(enriched: list, pair_prefs: dict) -> list:
+    """Bubble ADJACENT contradicted pairs into their preferred order.
+
+    Only neighbours are swapped: a non-adjacent contradiction means some third
+    package's price sits between the two, and that price ordering wins. Repeats
+    until a full pass makes no swap (hard cap: ``len(list) ** 2`` passes).
+    """
+    keys = [brand_match_key(raw.raw_brand_name) for raw, _nb, _p in enriched]
+    n = len(enriched)
+    for _ in range(n * n):
+        swapped = False
+        for i in range(n - 1):
+            a, b = keys[i], keys[i + 1]
+            if not a or not b or a == b:
+                continue
+            if pair_prefs.get(frozenset((a, b))) == (b, a):
+                enriched[i], enriched[i + 1] = enriched[i + 1], enriched[i]
+                keys[i], keys[i + 1] = keys[i + 1], keys[i]
+                swapped = True
+        if not swapped:
+            break
+    return enriched
+
+
+def assign_brand_order(brands: list[RawBrand],
+                       pair_prefs: Optional[dict] = None
+                       ) -> list[tuple[RawBrand, NormalizedBrand, int]]:
     """Return brands ranked into their true hierarchy for one cabin.
 
     Primary sort key = **absolute price** — airline sites present a cabin's
@@ -362,6 +480,10 @@ def assign_brand_order(brands: list[RawBrand]) -> list[tuple[RawBrand, Normalize
     screen order only break ties. A leading cabin-base offset keeps cabins from
     interleaving if a mixed list is ever passed. Returns ``(raw, normalized,
     order)`` with ``order`` a 0-based index within the cabin.
+
+    ``pair_prefs`` (from :func:`cross_season_pair_prefs`) then repairs pairs
+    whose price order is a momentary inversion, using the other season's
+    stronger evidence; orders are renumbered 0..n-1 afterwards.
     """
     prices = _resolved_prices(brands)
     enriched = []
@@ -375,6 +497,8 @@ def assign_brand_order(brands: list[RawBrand]) -> list[tuple[RawBrand, Normalize
         return (CABIN_BASE.get(raw.cabin, 0), p, nb.rank, raw.screen_order)
 
     enriched.sort(key=sort_key)
+    if pair_prefs:
+        enriched = _apply_pair_prefs(enriched, pair_prefs)
     return [(raw, nb, i) for i, (raw, nb, _p) in enumerate(enriched)]
 
 
@@ -383,12 +507,21 @@ def regroup_brands_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
                             carrier: Optional[str] = None) -> dict[Cabin, list[RawBrand]]:
     """Re-bucket brands to their *effective* cabin, dropping contradictions.
 
-    A source can list a fare from another cabin inside a search (an "Economy
-    Light" upsell in a Business search, or a Premium-Economy family leaking into
-    the Economy search). Policy: keep a brand only if its effective cabin equals
-    the searched/group cabin, or — when ``keep_pe`` — if it is Premium Economy
-    (a legitimate reclassification). Anything else is noise and is dropped.
-    Mutates each kept brand's ``cabin`` to the effective value.
+    A source can list a fare from another cabin inside a search. The rule is
+    **direction-sensitive**:
+
+    * effective cabin == the searched/group cabin -> keep (the normal case);
+    * effective cabin ABOVE it (Premium Economy or Business boxes offered inside
+      an Economy search) -> a real *upgrade leak*: keep it, bucketed under its
+      own cabin. These are genuine sellable fares the site displays in that
+      search, and dropping them lost whole cabins (LH ATH-FRA Business);
+    * effective cabin BELOW it (an "Economy Light" upsell listed in a Business
+      search) -> mislabeled noise, dropped (the $5,877 "business" outlier).
+
+    ``keep_pe`` (kept for signature compatibility) gates the upgrade-leak
+    branch: it is set only for the Economy search, so the Business search never
+    re-imports higher cabins. Mutates each kept brand's ``cabin`` to the
+    effective value.
     """
     out: dict[Cabin, list[RawBrand]] = {}
     for b in brands:
@@ -397,7 +530,7 @@ def regroup_brands_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
             b.raw_brand_name = ov[0]     # the OTA's display name for this code is junk
         eff = effective_cabin(b.raw_brand_name, b.fare_family_code, b.cabin,
                               group_cabin, carrier=carrier)
-        if eff == group_cabin or (keep_pe and eff == Cabin.PREMIUM_ECONOMY):
+        if eff == group_cabin or (keep_pe and cabin_rank(eff) > cabin_rank(group_cabin)):
             b.cabin = eff
             out.setdefault(eff, []).append(b)
         # else: cabin contradicts the search -> drop as mislabeled noise
@@ -405,12 +538,19 @@ def regroup_brands_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
 
 
 def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
-                         carrier: Optional[str] = None):
+                         carrier: Optional[str] = None,
+                         pair_prefs_by_cabin: Optional[dict] = None):
     """Regroup ``brands`` to their effective cabin, then within each cabin yield
     ``(effective_cabin, raw, normalized, order, absolute_price)`` in price order.
 
     Single source of truth for every exporter (runner, reprocess, to_platform,
     make_excel) so ordering, tier codes and cabin re-bucketing stay identical.
+
+    ``pair_prefs_by_cabin`` is an optional ``{Cabin: {pair: (first, second)}}``
+    map (see :func:`cross_season_pair_prefs`); the effective cabin's slice is
+    handed to :func:`assign_brand_order`. NOTE: this function MUTATES the brand
+    objects (pretty-cased display name, effective cabin), but idempotently — so
+    a pre-pass that builds the preferences from the very same objects is safe.
     """
     from .pricing import compute_absolute_prices  # local import avoids an import cycle
     for eff_cabin, bs in regroup_brands_by_cabin(brands, group_cabin, carrier=carrier).items():
@@ -421,10 +561,65 @@ def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
         bs = [b for b in bs if not _BARE_CODE_RE.match(b.raw_brand_name)]
         if not bs:
             continue
-        ranked = assign_brand_order(bs)
+        ranked = assign_brand_order(bs, (pair_prefs_by_cabin or {}).get(eff_cabin))
         abs_prices = compute_absolute_prices([raw for raw, _, _ in ranked])
         for (raw, nb, order), absp in zip(ranked, abs_prices):
             yield eff_cabin, raw, nb, order, absp
+
+
+def iter_unit_ranked_by_cabin(cabin_results, carrier: Optional[str] = None,
+                              pair_prefs_by_cabin: Optional[dict] = None):
+    """Publish ONE ladder per effective cabin for a whole scrape unit.
+
+    ``iter_ranked_by_cabin`` works on a single cabin result, so two of them can
+    legitimately produce the SAME effective cabin: the Economy result carries a
+    Premium-Economy family that leaked into the economy ladder, while a
+    dedicated Premium-Economy result also exists (EK AMM-PVG: "Premium Economy
+    Flex Plus" 1899.96 inside Economy vs "Premium Economy FlexPlus" 1892.81 in
+    the PE result). Concatenating both published near-duplicate rows in one
+    (carrier, OND, season, cabin) group, sometimes with descending prices.
+
+    One ladder per effective cabin wins the unit:
+
+    1. the ladder with MORE brands (the richer, more complete ladder);
+    2. tie -> the ladder whose cabin result was ALREADY that cabin (the adapter
+       picked it deliberately — same principle as ct3 overriding a ct2 leak);
+    3. still tied -> the earlier cabin result.
+
+    Yields ``(effective_cabin, raw, normalized, order, absolute_price,
+    cabin_result)``; the trailing cabin result is the WINNING ladder's own
+    source, so callers read its ``departure`` / ``return_date`` / ``source``
+    rather than the one they happen to be looping over.
+    """
+    ladders: dict[tuple[int, Cabin], list] = {}
+    produced: list[tuple[int, Cabin]] = []          # encounter order, for stable output
+    for i, c in enumerate(cabin_results):
+        if not getattr(c, "brands", None):
+            continue
+        for eff_cabin, raw, nb, order, absp in iter_ranked_by_cabin(
+                c.brands, c.cabin, carrier=carrier,
+                pair_prefs_by_cabin=pair_prefs_by_cabin):
+            key = (i, eff_cabin)
+            if key not in ladders:
+                ladders[key] = []
+                produced.append(key)
+            ladders[key].append((raw, nb, order, absp))
+
+    def strength(key: tuple[int, Cabin]) -> tuple:
+        i, eff_cabin = key
+        return (len(ladders[key]), int(cabin_results[i].cabin == eff_cabin), -i)
+
+    winner: dict[Cabin, tuple[int, Cabin]] = {}
+    for key in produced:
+        cur = winner.get(key[1])
+        if cur is None or strength(key) > strength(cur):
+            winner[key[1]] = key
+    for key in produced:
+        i, eff_cabin = key
+        if winner.get(eff_cabin) != key:
+            continue                                # duplicate ladder for this cabin
+        for raw, nb, order, absp in ladders[key]:
+            yield eff_cabin, raw, nb, order, absp, cabin_results[i]
 
 
 _HEX_ID_RE = re.compile(r"^[0-9a-f]{16,}$", re.IGNORECASE)
