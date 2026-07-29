@@ -12,6 +12,7 @@ Kullanım:
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -35,17 +36,39 @@ def _out_dir() -> Path | None:
     return max(cands, key=lambda p: p.stat().st_mtime).parent.parent
 
 
-def _last_log_line(out: Path) -> str:
+def _log_state(out: Path) -> dict:
+    """Progress truth from the newest run log.
+
+    checkpoint.json only records units that produced data, so "no flights on
+    this route" terminals never advance it — a finished run can look 40% done.
+    The log has one terminal line per unit (success / no_availability / failed
+    / partial; official-site lines that say "falling back" are mid-unit, not
+    terminal) plus a final "normalized rows=" summary when the run completed.
+    """
     logs = sorted(out.glob("logs/*.log"), key=lambda p: p.stat().st_mtime)
+    st = {"last": "", "skipped": 0, "terminal": 0, "finished": False, "summary": ""}
     if not logs:
-        return ""
+        return st
     try:
-        with logs[-1].open("rb") as f:
-            f.seek(max(0, f.seek(0, 2) - 4096))
-            lines = f.read().decode("utf-8", "replace").strip().splitlines()
-        return lines[-1] if lines else ""
+        text = logs[-1].read_text("utf-8", errors="replace")
     except OSError:
-        return ""
+        return st
+    lines = text.strip().splitlines()
+    st["last"] = lines[-1] if lines else ""
+    for ln in lines:
+        m = re.search(r"Units: (\d+) total, (\d+) pending, (\d+) skipped", ln)
+        if m:
+            st["skipped"] = int(m.group(3))
+            st["terminal"] = 0                    # restart count at newest header
+            st["finished"] = False
+        elif re.search(r"\| (success|no_availability|failed|partial) \|", ln) \
+                and "falling back" not in ln:
+            st["terminal"] += 1
+        elif "normalized rows=" in ln:
+            st["finished"] = True
+        elif re.search(r"success=\d+\s+partial=\d+", ln):
+            st["summary"] = ln.split("|")[-1].strip()
+    return st
 
 
 def snapshot() -> dict:
@@ -57,11 +80,17 @@ def snapshot() -> dict:
         total = len(plan.get("units", []))
     except (OSError, json.JSONDecodeError):
         total = 0
-    try:
-        ck = json.loads((out / "state" / "checkpoint.json").read_text("utf-8"))
-        done = len(ck.get("completed", []))
-    except (OSError, json.JSONDecodeError):
-        done = 0
+    ls = _log_state(out)
+    if ls["finished"]:
+        done = total
+    else:
+        done = min(total, ls["skipped"] + ls["terminal"]) if (ls["skipped"] or ls["terminal"]) else 0
+        if not done:
+            try:
+                ck = json.loads((out / "state" / "checkpoint.json").read_text("utf-8"))
+                done = len(ck.get("completed", []))
+            except (OSError, json.JSONDecodeError):
+                done = 0
 
     now = time.time()
     _samples.append((now, done))
@@ -78,13 +107,15 @@ def snapshot() -> dict:
 
     ck_path = out / "state" / "checkpoint.json"
     stale_s = now - ck_path.stat().st_mtime if ck_path.exists() else None
+    last = (ls["summary"] if ls["finished"] and ls["summary"] else ls["last"])
     return {
         "dir": out.name, "total": total, "done": done,
         "pct": round(100 * done / total, 1) if total else 0,
+        "finished": ls["finished"],
         "rate_per_min": round(rate, 1) if rate else None,
         "eta_min": round(eta_s / 60) if eta_s else None,
         "idle_s": round(stale_s) if stale_s is not None else None,
-        "last_log": _last_log_line(out)[-220:],
+        "last_log": last[-220:],
         "ts": time.strftime("%H:%M:%S"),
     }
 
@@ -128,7 +159,7 @@ async function tick(){
   try{
     const d = await (await fetch('/data')).json();
     if(d.error){ document.getElementById('sub').textContent = d.error; return; }
-    const fin = d.total && d.done >= d.total;
+    const fin = d.finished || (d.total && d.done >= d.total);
     document.body.classList.toggle('done', fin);
     document.getElementById('sub').textContent =
       d.dir + (fin ? ' — koşu tamamlandı' :
