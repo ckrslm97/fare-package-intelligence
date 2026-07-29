@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "progress",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["live_progress.py"],
+      "port": 8765
+    }
+  ]
+}
