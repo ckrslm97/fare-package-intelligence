@@ -1,0 +1,443 @@
+[
+ {
+  "carrier": "A3",
+  "ond": "OTP-ATH",
+  "search": "Economy",
+  "dep": "2026-12-19",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "AA",
+  "ond": "GRU-HND",
+  "search": "Economy",
+  "dep": "2026-10-06",
+  "result": "OK",
+  "detail": "",
+  "shot": "AA_GRUHND_eco.png"
+ },
+ {
+  "carrier": "AC",
+  "ond": "YTZ-HKG",
+  "search": "Economy",
+  "dep": "2027-05-12",
+  "result": "OK",
+  "detail": "",
+  "shot": "AC_YTZHKG_eco.png"
+ },
+ {
+  "carrier": "AF",
+  "ond": "CDG-HKT",
+  "search": "Economy",
+  "dep": "2027-03-28",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Economy: stored ['Light', 'Standard', 'Flex', 'Premium Light', 'Premium Standard', 'Premium Flex', 'Economy Full Flex', 'Premium'] vs live-now ['Light', 'Standard', 'Flex', 'Premium Light', 'Economy Full Flex']",
+  "shot": ""
+ },
+ {
+  "carrier": "AF",
+  "ond": "CDG-HKT",
+  "search": "Business",
+  "dep": "2027-04-01",
+  "result": "NO_CARRIER_TODAY",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "AI",
+  "ond": "YVR-DEL",
+  "search": "Economy",
+  "dep": "2026-10-07",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "AI",
+  "ond": "YVR-DEL",
+  "search": "Business",
+  "dep": "2026-10-07",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "AZ",
+  "ond": "FCO-HND",
+  "search": "Economy",
+  "dep": "2026-08-20",
+  "result": "OK",
+  "detail": "",
+  "shot": "AZ_FCOHND_eco.png"
+ },
+ {
+  "carrier": "AZ",
+  "ond": "FCO-HND",
+  "search": "Business",
+  "dep": "2026-08-20",
+  "result": "OK",
+  "detail": "",
+  "shot": "AZ_FCOHND_bus.png"
+ },
+ {
+  "carrier": "BA",
+  "ond": "LGW-BKK",
+  "search": "Economy",
+  "dep": "2026-09-15",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "BA",
+  "ond": "LGW-BKK",
+  "search": "Business",
+  "dep": "2026-09-15",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "CA",
+  "ond": "CDG-CAN",
+  "search": "Economy",
+  "dep": "2026-09-20",
+  "result": "OK",
+  "detail": "",
+  "shot": "CA_CDGCAN_eco.png"
+ },
+ {
+  "carrier": "CX",
+  "ond": "CDG-NRT",
+  "search": "Economy",
+  "dep": "2027-05-04",
+  "result": "OK",
+  "detail": "",
+  "shot": "CX_CDGNRT_eco.png"
+ },
+ {
+  "carrier": "DL",
+  "ond": "GRU-ICN",
+  "search": "Economy",
+  "dep": "2027-04-25",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Economy: stored ['Main Classic', 'Comfort Classic', 'Premium Select Classic', 'Main Extra', 'Comfort Extra', 'Premium Select Extra'] vs live-now ['Main Classic', 'Comfort Classic', 'Main Extra', 'Comfort Extra']",
+  "shot": ""
+ },
+ {
+  "carrier": "DL",
+  "ond": "GRU-ICN",
+  "search": "Business",
+  "dep": "2027-04-25",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "EK",
+  "ond": "VCE-ICN",
+  "search": "Economy",
+  "dep": "2026-11-25",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "EK",
+  "ond": "VCE-ICN",
+  "search": "Business",
+  "dep": "2026-11-26",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "EY",
+  "ond": "BEY-MEL",
+  "search": "Economy",
+  "dep": "2027-04-27",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "EY",
+  "ond": "BEY-MEL",
+  "search": "Business",
+  "dep": "2027-04-27",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "FB",
+  "ond": "SOF-AGP",
+  "search": "Economy",
+  "dep": "2027-04-24",
+  "result": "OK",
+  "detail": "",
+  "shot": "FB_SOFAGP_eco.png"
+ },
+ {
+  "carrier": "GF",
+  "ond": "AMM-CAN",
+  "search": "Economy",
+  "dep": "2026-09-07",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "GF",
+  "ond": "AMM-CAN",
+  "search": "Business",
+  "dep": "2026-09-07",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "GQ",
+  "ond": "ATH-BER",
+  "search": "Economy",
+  "dep": "2026-09-10",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "GQ",
+  "ond": "ATH-BER",
+  "search": "Business",
+  "dep": "2026-09-10",
+  "result": "OK",
+  "detail": "",
+  "shot": "GQ_ATHBER_bus.png"
+ },
+ {
+  "carrier": "J2",
+  "ond": "VKO-MLE",
+  "search": "Economy",
+  "dep": "2027-02-14",
+  "result": "OK",
+  "detail": "",
+  "shot": "J2_VKOMLE_eco.png"
+ },
+ {
+  "carrier": "JL",
+  "ond": "CDG-HND",
+  "search": "Economy",
+  "dep": "2026-09-13",
+  "result": "OK",
+  "detail": "",
+  "shot": "JL_CDGHND_eco.png"
+ },
+ {
+  "carrier": "KE",
+  "ond": "FCO-ICN",
+  "search": "Economy",
+  "dep": "2027-04-10",
+  "result": "OK",
+  "detail": "",
+  "shot": "KE_FCOICN_eco.png"
+ },
+ {
+  "carrier": "KL",
+  "ond": "AMS-ATH",
+  "search": "Economy",
+  "dep": "2027-04-08",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "KL",
+  "ond": "AMS-ATH",
+  "search": "Business",
+  "dep": "2027-04-08",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "LH",
+  "ond": "ATH-FRA",
+  "search": "Economy",
+  "dep": "2027-04-04",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Comfort: 345.79 -> 413.28 | Economy/Flex: 394.77 -> 462.26",
+  "shot": ""
+ },
+ {
+  "carrier": "MU",
+  "ond": "LED-CAN",
+  "search": "Economy",
+  "dep": "2026-09-19",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Basic: 502.48 -> 345.54",
+  "shot": "MU_LEDCAN_eco.png"
+ },
+ {
+  "carrier": "NH",
+  "ond": "CDG-HND",
+  "search": "Economy",
+  "dep": "2026-09-13",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "OS",
+  "ond": "VAR-BER",
+  "search": "Economy",
+  "dep": "2026-11-02",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "OZ",
+  "ond": "KIX-LHR",
+  "search": "Economy",
+  "dep": "2026-09-17",
+  "result": "OK",
+  "detail": "",
+  "shot": "OZ_KIXLHR_eco.png"
+ },
+ {
+  "carrier": "PC",
+  "ond": "ATH-CRL",
+  "search": "Economy",
+  "dep": "2026-10-19",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "PR",
+  "ond": "YYZ-MNL",
+  "search": "Economy",
+  "dep": "2026-10-29",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Basic: 964.13 -> 742.17",
+  "shot": "PR_YYZMNL_eco.png"
+ },
+ {
+  "carrier": "QR",
+  "ond": "NCE-BKK",
+  "search": "Economy",
+  "dep": "2026-10-10",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "QR",
+  "ond": "NCE-BKK",
+  "search": "Business",
+  "dep": "2026-10-10",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "RJ",
+  "ond": "AMM-CAN",
+  "search": "Economy",
+  "dep": "2026-09-07",
+  "result": "OK",
+  "detail": "",
+  "shot": "RJ_AMMCAN_eco.png"
+ },
+ {
+  "carrier": "SK",
+  "ond": "ATH-LHR",
+  "search": "Economy",
+  "dep": "2026-10-09",
+  "result": "OK",
+  "detail": "",
+  "shot": "SK_ATHLHR_eco.png"
+ },
+ {
+  "carrier": "SN",
+  "ond": "ATH-BRU",
+  "search": "Economy",
+  "dep": "2027-04-02",
+  "result": "OK",
+  "detail": "",
+  "shot": "SN_ATHBRU_eco.png"
+ },
+ {
+  "carrier": "SU",
+  "ond": "LED-HKT",
+  "search": "Economy",
+  "dep": "2026-08-23",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "SV",
+  "ond": "JED-CAN",
+  "search": "Economy",
+  "dep": "2026-09-28",
+  "result": "OK",
+  "detail": "",
+  "shot": "SV_JEDCAN_eco.png"
+ },
+ {
+  "carrier": "SV",
+  "ond": "JED-CAN",
+  "search": "Business",
+  "dep": "2026-09-28",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "TG",
+  "ond": "BKK-FRA",
+  "search": "Economy",
+  "dep": "2027-04-09",
+  "result": "OK",
+  "detail": "",
+  "shot": "TG_BKKFRA_eco.png"
+ },
+ {
+  "carrier": "TK",
+  "ond": "CLJ-ATH",
+  "search": "Economy",
+  "dep": "2027-05-23",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "UA",
+  "ond": "GRU-HND",
+  "search": "Economy",
+  "dep": "2026-10-06",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Economy: stored ['Economy', 'Economy Fully Refundable', 'Premium Economy', 'Premium Economy Refundable'] vs live-now ['Economy', 'Economy Fully Refundable']",
+  "shot": ""
+ },
+ {
+  "carrier": "VS",
+  "ond": "LHR-BOM",
+  "search": "Economy",
+  "dep": "2027-05-16",
+  "result": "OK",
+  "detail": "",
+  "shot": "VS_LHRBOM_eco.png"
+ },
+ {
+  "carrier": "WY",
+  "ond": "MED-MNL",
+  "search": "Economy",
+  "dep": "2027-04-09",
+  "result": "OK",
+  "detail": "",
+  "shot": ""
+ }
+]

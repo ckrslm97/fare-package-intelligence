@@ -148,6 +148,12 @@ def main():
          'rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim)+"|"+(f.season||"");'),
         ('const f0=g[0], flowLabel=flowKey(f0,pdDim);',
          'const f0=g[0], flowLabel=flowKey(f0,pdDim)+(f0.season?(" · "+f0.season):"");'),
+        # KPI "En Düşük Geçiş" = cheapest UPGRADE. chainsFor averages tiers
+        # across ONDs, so mixed ladder lengths can make a tier-mean step
+        # negative ("+$-378", same from/to name). Pick among positive steps.
+        ('const lo = steps.length? steps.reduce((a,b)=>a.delta<b.delta?a:b) : null;',
+         'const _pos = steps.filter(s=>s.delta>0);\n'
+         '  const lo = _pos.length? _pos.reduce((a,b)=>a.delta<b.delta?a:b) : null;'),
     ]
     for old, new in patches:
         if old not in html:

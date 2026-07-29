@@ -121,9 +121,10 @@ def reset_caches() -> None:
     """Clear adapters' process-global dict caches/locks (call at run start) so a
     second run in the same process can't reuse stale results or dead-loop locks."""
     for s in _REGISTRY:
-        for attr in ("_cache", "_result_cache", "_slug_cache", "_locks", "_result_locks"):
+        for attr in ("_cache", "_result_cache", "_slug_cache", "_locks", "_result_locks",
+                     "_dead_routes"):
             v = getattr(type(s), attr, None)
-            if isinstance(v, dict):
+            if isinstance(v, (dict, set)):
                 v.clear()
 
 

@@ -1,0 +1,55 @@
+# Screenshot Verification Report (publish gate)
+
+Samples: 49 — OK: 48, NAME_MISMATCH: 0, suspicious display names: 0
+
+| Carrier | OND | Search | Result | Evidence |
+|---|---|---|---|---|
+| A3 | OTP-ATH | Economy | OK | - |
+| AA | GRU-HND | Economy | OK | AA_GRUHND_eco.png |
+| AC | YTZ-HKG | Economy | OK | AC_YTZHKG_eco.png |
+| AF | CDG-HKT | Economy | OK_INVENTORY_CHANGED | - |
+| AF | CDG-HKT | Business | NO_CARRIER_TODAY | - |
+| AI | YVR-DEL | Economy | OK | - |
+| AI | YVR-DEL | Business | OK | - |
+| AZ | FCO-HND | Economy | OK | AZ_FCOHND_eco.png |
+| AZ | FCO-HND | Business | OK | AZ_FCOHND_bus.png |
+| BA | LGW-BKK | Economy | OK | - |
+| BA | LGW-BKK | Business | OK | - |
+| CA | CDG-CAN | Economy | OK | CA_CDGCAN_eco.png |
+| CX | CDG-NRT | Economy | OK | CX_CDGNRT_eco.png |
+| DL | GRU-ICN | Economy | OK_INVENTORY_CHANGED | - |
+| DL | GRU-ICN | Business | OK | - |
+| EK | VCE-ICN | Economy | OK | - |
+| EK | VCE-ICN | Business | OK | - |
+| EY | BEY-MEL | Economy | OK | - |
+| EY | BEY-MEL | Business | OK | - |
+| FB | SOF-AGP | Economy | OK | FB_SOFAGP_eco.png |
+| GF | AMM-CAN | Economy | OK | - |
+| GF | AMM-CAN | Business | OK | - |
+| GQ | ATH-BER | Economy | OK | - |
+| GQ | ATH-BER | Business | OK | GQ_ATHBER_bus.png |
+| J2 | VKO-MLE | Economy | OK | J2_VKOMLE_eco.png |
+| JL | CDG-HND | Economy | OK | JL_CDGHND_eco.png |
+| KE | FCO-ICN | Economy | OK | KE_FCOICN_eco.png |
+| KL | AMS-ATH | Economy | OK | - |
+| KL | AMS-ATH | Business | OK | - |
+| LH | ATH-FRA | Economy | OK_PRICE_DRIFT | - |
+| MU | LED-CAN | Economy | OK_PRICE_DRIFT | MU_LEDCAN_eco.png |
+| NH | CDG-HND | Economy | OK | - |
+| OS | VAR-BER | Economy | OK | - |
+| OZ | KIX-LHR | Economy | OK | OZ_KIXLHR_eco.png |
+| PC | ATH-CRL | Economy | OK | - |
+| PR | YYZ-MNL | Economy | OK_PRICE_DRIFT | PR_YYZMNL_eco.png |
+| QR | NCE-BKK | Economy | OK | - |
+| QR | NCE-BKK | Business | OK | - |
+| RJ | AMM-CAN | Economy | OK | RJ_AMMCAN_eco.png |
+| SK | ATH-LHR | Economy | OK | SK_ATHLHR_eco.png |
+| SN | ATH-BRU | Economy | OK | SN_ATHBRU_eco.png |
+| SU | LED-HKT | Economy | OK | - |
+| SV | JED-CAN | Economy | OK | SV_JEDCAN_eco.png |
+| SV | JED-CAN | Business | OK | - |
+| TG | BKK-FRA | Economy | OK | TG_BKKFRA_eco.png |
+| TK | CLJ-ATH | Economy | OK | - |
+| UA | GRU-HND | Economy | OK_INVENTORY_CHANGED | - |
+| VS | LHR-BOM | Economy | OK | VS_LHRBOM_eco.png |
+| WY | MED-MNL | Economy | OK | - |

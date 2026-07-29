@@ -1,0 +1,21 @@
+{
+  "run_id": "20260729_162549",
+  "started_at": "2026-07-29T16:25:49",
+  "finished_at": "2026-07-29T16:28:05",
+  "total_units": 1808,
+  "total_jobs": 904,
+  "succeeded": 383,
+  "partial": 330,
+  "failed": 0,
+  "no_availability": 375,
+  "skipped_checkpoint": 1792,
+  "opportunistic_absent": 720,
+  "units_missing_cabin": 375,
+  "units_missing_brands": 375,
+  "units_missing_price": 0,
+  "units_missing_amenities": 0,
+  "units_missing_miles": 330,
+  "units_missing_source": 0,
+  "total_normalized_rows": 3488,
+  "total_seconds": 135.86
+}

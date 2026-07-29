@@ -112,6 +112,15 @@ CARRIER_FF_BRANDS: dict[str, dict[str, tuple[str, Cabin]]] = {
         "EL": ("Business Lowest", Cabin.BUSINESS),
         "EF": ("Business Flexible", Cabin.BUSINESS),
     },
+    # Saudia guest fares: Ubfly's dictionary labels the NFLEXE box "Basic".
+    "SV": {
+        "NBASICE": ("Economy Basic", Cabin.ECONOMY),
+        "NSEMIFLEXE": ("Economy Semi Flex", Cabin.ECONOMY),
+        "NFLEXE": ("Economy Flex", Cabin.ECONOMY),
+        "NBASICB": ("Business Basic", Cabin.BUSINESS),
+        "NSEMIFLEXB": ("Business Semi Flex", Cabin.BUSINESS),
+        "NFLEXB": ("Business Flex", Cabin.BUSINESS),
+    },
 }
 
 
@@ -163,11 +172,27 @@ CARRIER_BRAND_SPELLING: dict[str, dict[str, str]] = {
            "precmftpls": "Premium Economy Comfort Plus", "preflex": "Premium Economy Flex",
            "pregreic": "Premium Economy Green", "buslight": "Business Light",
            "buscmft": "Business Comfort", "buscmftpls": "Business Comfort Plus",
-           "busgreic": "Business Green"},
+           "busgreic": "Business Green", "ecogreic": "Economy Green",
+           "ecmftflxi": "Economy Comfort Flex", "buscmtflx": "Business Comfort Flex",
+           "precmftflx": "Premium Economy Comfort Flex"},
     "AF": {"lightbag": "Light", "standard3": "Standard", "flex1": "Flex",
-           "premstand": "Premium Standard", "premflex": "Premium Flex"},
+           "premstand": "Premium Standard", "premflex": "Premium Flex",
+           "premlight": "Premium Light", "premlightb": "Premium Light",
+           "bizlight": "Business Light"},
     "KL": {"bizlight": "Business Light", "premlight": "Premium Light",
-           "premstand": "Premium Standard", "premflex": "Premium Flex"},
+           "premstand": "Premium Standard", "premflex": "Premium Flex",
+           "lightbag": "Light", "standard3": "Standard", "flex1": "Flex",
+           "premlightb": "Premium Light"},
+    # ITA Airways now files LH-group style family tokens
+    "AZ": {"ecocmft": "Economy Comfort", "ecocmftpls": "Economy Comfort Plus",
+           "ecoflex": "Economy Flex", "precmft": "Premium Economy Comfort",
+           "precmftpls": "Premium Economy Comfort Plus", "preflex": "Premium Economy Flex",
+           "buscmft": "Business Comfort", "buscmftpls": "Business Comfort Plus"},
+    "GQ": {"bliss": "Bliss", "blissplus": "Bliss Plus", "enjoy": "Enjoy",
+           "joyplus": "Joy Plus", "joy": "Joy"},
+    "J2": {"budget": "Budget"},
+    "PC": {"avantaj": "Avantaj"},
+    "RJ": {"buvalue": "Business Value"},
     "GF": {"ecolite": "Economy Lite", "ecosmart": "Economy Smart",
            "ecoflex": "Economy Flex", "bizsmart": "Business Smart"},
     "UA": {"premeco": "Premium Economy", "premecoref": "Premium Economy Refundable",
@@ -186,7 +211,7 @@ _BARE_CODE_RE = re.compile(r"^[A-Z]{2,3}\d?$")
 _FARE_WORDS = {"flexible", "standard", "comfort", "latitude", "basic", "economy",
                "business", "flex", "classic", "saver", "value", "ultimate",
                "premium", "lite", "light", "smart", "prime", "restricted",
-               "promo", "plus", "elite", "convenience"}
+               "promo", "promotional", "plus", "elite", "convenience"}
 
 
 def pretty_brand_name(name: str, carrier: Optional[str] = None) -> str:

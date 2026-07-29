@@ -151,6 +151,10 @@ class Ubfly(SourceAdapter):
     # every carrier on that route.
     _cache: dict[str, list[dict]] = {}
     _locks: dict[str, asyncio.Lock] = {}
+    #: (origin, destination) pairs Ubfly redirected back to the search form for
+    #: (unserved points like ZYR = Brussels Midi RAIL) — skip every further
+    #: date/carrier on them instead of burning a 45s timeout per search.
+    _dead_routes: set = set()
     #: When set (by the runner) every ACTUAL page search saves a full-page PNG
     #: here — collection-moment evidence; cache hits reuse the existing shot.
     evidence_dir = None
@@ -245,6 +249,8 @@ class Ubfly(SourceAdapter):
     # ------------------------------------------------------------------ #
     async def _search(self, page, origin: str, destination: str, departure: date,
                       cabin: Cabin) -> list[dict]:
+        if (origin, destination) in self._dead_routes:
+            return []
         param = CABIN_PARAM.get(cabin, "2")
         key = f"{origin}|{destination}|{departure.isoformat()}|{param}"
         if key in self._cache:
@@ -278,6 +284,15 @@ class Ubfly(SourceAdapter):
             if re.search(r"just a moment|attention required|access denied|"
                          r"you have been blocked|verify you are (a )?human", probe, re.I):
                 raise Forbidden("Ubfly Cloudflare / bot challenge")
+            # Unserved point: the site bounced the deep-link back to the search
+            # form (URL lost the results path / destination left blank). Mark
+            # the pair dead so no further date/carrier wastes a 45s timeout.
+            try:
+                if "dis-hat-arama-sonuc" not in (page.url or ""):
+                    Ubfly._dead_routes.add((origin, destination))
+                    _LOG.info("Ubfly: %s-%s not served (form bounce) — skipping route", origin, destination)
+            except Exception:  # noqa: BLE001
+                pass
             return []                                      # genuine "no results"
         await asyncio.sleep(1.0)                            # let the list settle
         try:
