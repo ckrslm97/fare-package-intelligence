@@ -55,6 +55,19 @@ class SourceAdapter(abc.ABC):
         carrier not listed in that day's economy results) must not end the
         search for the other cabins — each ``CabinResult`` carries its own
         departure date, so cabins found on different window days merge cleanly.
+
+        While those extra dates are being walked for a MISSING cabin, a cabin
+        that was already found is upgraded whenever a later date returns a
+        STRICTLY richer ladder for it (EK ISB-MAN Summer locked in a 2-fare
+        business ladder on the first date, while the dates walked for the
+        missing economy cabin were showing the full 3-fare one). Equal or
+        shorter ladders never displace the earlier capture, so the result stays
+        stable; the replacement carries its own departure date, so the record
+        remains coherent.
+
+        Accepted limitation: this never costs an extra search. The
+        ``want <= set(found)`` break is unchanged, so a unit whose cabins all
+        complete on the first date stops there and is never upgraded.
         """
         result = UnitResult(unit=unit, source=self.name, started_at=now_ts())
         last_error = ""
@@ -83,7 +96,11 @@ class SourceAdapter(abc.ABC):
                            unit.job.route, unit.date_plan.season.value, dep)
                 continue
             for c in cabins or []:
-                if c.brands and c.cabin not in found:
+                if not c.brands:
+                    continue
+                prev = found.get(c.cabin)
+                # New cabin, or a strictly richer ladder for one we already have.
+                if prev is None or len(c.brands) > len(prev.brands):
                     found[c.cabin] = c
             # PE piggybacks on the economy search; completion = wanted cabins.
             if want <= set(found):

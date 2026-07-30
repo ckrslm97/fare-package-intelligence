@@ -813,6 +813,90 @@ def test_window_keeps_walking_for_missing_cabins():
     assert cabs[Cabin.ECONOMY].departure == d0 + timedelta(days=2)
 
 
+def test_window_upgrades_cabin_to_a_richer_ladder():
+    # EK ISB-MAN Summer: business was locked in on the first window date with a
+    # 2-fare ladder while the unit kept walking dates for the missing economy
+    # cabin — and those later ct3 searches were showing the full 3-fare ladder
+    # (BSFLXPLUS), which used to be discarded. A strictly richer ladder for an
+    # already-found cabin now replaces it, at no extra search cost.
+    import asyncio
+    from datetime import timedelta
+    from branded_fare_scraper.sources.base import SourceAdapter
+    from branded_fare_scraper.models import CabinResult, DatePlan, Job, ScrapeUnit
+
+    d0 = date(2026, 9, 2)
+    window = [(d0 + timedelta(days=i), d0 + timedelta(days=i + 3)) for i in range(8)]
+    unit = ScrapeUnit(Job("EK", "ISB", "MAN"),
+                      DatePlan(Season.SUMMER, d0, d0 + timedelta(days=3), window))
+
+    def _biz(names, dep, ret):
+        return CabinResult(cabin=Cabin.BUSINESS, departure=dep, return_date=ret,
+                           brands=[RawBrand(n, Cabin.BUSINESS, i, p, PriceType.ABSOLUTE)
+                                   for i, (n, p) in enumerate(names)])
+
+    class ThinThenFull(SourceAdapter):
+        name = "t4"
+        def __init__(self): self.calls = 0
+        def supports(self, c): return True
+        def cabins_for(self, job): return [Cabin.ECONOMY, Cabin.BUSINESS]
+        async def fetch_search(self, page, job, dep, ret):
+            self.calls += 1
+            if self.calls == 1:                    # 09-02: thin business, no economy
+                return [_biz([("Business Saver", 2450.0), ("Business Flex", 2890.0)], dep, ret)]
+            return [                               # later date: full ladder + economy
+                _biz([("Business Saver", 2455.0), ("Business Flex", 2895.0),
+                      ("Business Flex Plus", 3310.0)], dep, ret),
+                CabinResult(cabin=Cabin.ECONOMY, departure=dep, return_date=ret,
+                            brands=[RawBrand("Economy Saver", Cabin.ECONOMY, 0, 690.0,
+                                             PriceType.ABSOLUTE),
+                                    RawBrand("Economy Flex", Cabin.ECONOMY, 1, 940.0,
+                                             PriceType.ABSOLUTE)])]
+
+    a = ThinThenFull()
+    res = asyncio.run(a.run_unit(None, unit))
+    cabs = {c.cabin: c for c in res.cabin_results}
+    assert a.calls == 2                                    # no extra searches bought
+    assert [b.raw_brand_name for b in cabs[Cabin.BUSINESS].brands] == \
+        ["Business Saver", "Business Flex", "Business Flex Plus"]
+    assert cabs[Cabin.BUSINESS].departure == d0 + timedelta(days=1)   # upgrade's own date
+    assert len(cabs[Cabin.ECONOMY].brands) == 2
+    assert cabs[Cabin.ECONOMY].departure == d0 + timedelta(days=1)
+
+
+def test_window_keeps_first_capture_when_ladder_is_not_richer():
+    # Equal-length later ladders must NOT churn the capture (prices move all day).
+    import asyncio
+    from datetime import timedelta
+    from branded_fare_scraper.sources.base import SourceAdapter
+    from branded_fare_scraper.models import CabinResult, DatePlan, Job, ScrapeUnit
+
+    d0 = date(2026, 9, 2)
+    window = [(d0 + timedelta(days=i), d0 + timedelta(days=i + 3)) for i in range(8)]
+    unit = ScrapeUnit(Job("EK", "ISB", "MAN"),
+                      DatePlan(Season.SUMMER, d0, d0 + timedelta(days=3), window))
+
+    class AlwaysTwo(SourceAdapter):
+        name = "t5"
+        def __init__(self): self.calls = 0
+        def supports(self, c): return True
+        def cabins_for(self, job): return [Cabin.ECONOMY, Cabin.BUSINESS]
+        async def fetch_search(self, page, job, dep, ret):
+            self.calls += 1
+            bump = 100.0 * self.calls              # a different price every date
+            return [CabinResult(cabin=Cabin.BUSINESS, departure=dep, return_date=ret,
+                                brands=[RawBrand("Business Saver", Cabin.BUSINESS, 0,
+                                                 2450.0 + bump, PriceType.ABSOLUTE),
+                                        RawBrand("Business Flex", Cabin.BUSINESS, 1,
+                                                 2890.0 + bump, PriceType.ABSOLUTE)])]
+
+    a = AlwaysTwo()
+    res = asyncio.run(a.run_unit(None, unit))
+    cabs = {c.cabin: c for c in res.cabin_results}
+    assert a.calls == 8                            # economy never appears -> full walk
+    assert cabs[Cabin.BUSINESS].departure == d0    # the FIRST capture is kept
+    assert cabs[Cabin.BUSINESS].brands[0].price_value == pytest.approx(2550.0)
+
+
 def test_rebuild_roundtrip():
     from branded_fare_scraper.rebuild import raw_brand_from_dict
     d = {"raw_brand_name": "Eco", "cabin": "Economy", "screen_order": 1,

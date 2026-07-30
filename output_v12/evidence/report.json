@@ -4,8 +4,8 @@
   "ond": "OTP-ATH",
   "search": "Economy",
   "dep": "2027-04-28",
-  "result": "NO_CARRIER_TODAY",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Flex: 162.1 -> 161.75 | Economy/Comfort Flex: 191.71 -> 191.3",
   "shot": ""
  },
  {
@@ -46,20 +46,20 @@
  },
  {
   "carrier": "AF",
-  "ond": "GRU-KIX",
+  "ond": "CDG-KIX",
   "search": "Economy",
-  "dep": "2027-04-02",
-  "result": "OK_INVENTORY_CHANGED",
-  "detail": "Economy: stored ['Light', 'Standard', 'Flex', 'Premium Light', 'Premium Standard', 'Premium Flex', 'Premium', 'Economy Full Flex'] vs live-now ['Light', 'Standard']",
+  "dep": "2026-08-23",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  },
  {
   "carrier": "AF",
-  "ond": "GRU-KIX",
+  "ond": "CDG-KIX",
   "search": "Business",
-  "dep": "2027-04-02",
-  "result": "OK_INVENTORY_CHANGED",
-  "detail": "Business: stored ['Business Standart', 'Business Flex', 'Business'] vs live-now ['Business Standart', 'Business Flex']",
+  "dep": "2026-08-23",
+  "result": "OK",
+  "detail": "",
   "shot": ""
  },
  {
@@ -67,8 +67,8 @@
   "ond": "YVR-DEL",
   "search": "Economy",
   "dep": "2026-08-28",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Economy Value: 879.78 -> 878.9 | Economy/Economy Classic: 924.62 -> 923.66 | Economy/Economy Flex: 1052.26 -> 1051.11",
   "shot": ""
  },
  {
@@ -76,8 +76,8 @@
   "ond": "YVR-DEL",
   "search": "Business",
   "dep": "2026-08-28",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Business Value: 3154.9 -> 3150.51 | Business/Business Flex: 3325.1 -> 3320.43",
   "shot": ""
  },
  {
@@ -85,8 +85,8 @@
   "ond": "FCO-HND",
   "search": "Economy",
   "dep": "2027-05-08",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Economy Comfort: 1154.04 -> 1447.11 | Economy/Economy Comfort Plus: 1222.37 -> 1515.31 | Economy/Economy Flex: 1294.11 -> 1586.9 | Economy/Premium Economy Comfort: 1716.64 -> 1713.05 | Economy/Premium Economy Comfort Plus: 1830.53 -> 1826.7 | Economy/Premium Economy Flex: 1944.41 -> 1940.36",
   "shot": ""
  },
  {
@@ -94,8 +94,8 @@
   "ond": "FCO-HND",
   "search": "Business",
   "dep": "2027-05-08",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Business Comfort: 5327.68 -> 5316.55 | Business/Business Comfort Plus: 5441.56 -> 5430.2 | Business/Business Flexible: 5555.47 -> 5543.86",
   "shot": ""
  },
  {
@@ -103,8 +103,8 @@
   "ond": "YYZ-BOM",
   "search": "Economy",
   "dep": "2026-09-08",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Basic: 825.48 -> 824.19 | Economy/Economy Basic: 896.27 -> 894.85 | Economy/Economy Pro: 1008.45 -> 1006.86 | Economy/Plus Flex: 2820.33 -> 2815.95 | Premium Economy/PEFLEX: 5405.41 -> 5397.01",
   "shot": ""
  },
  {
@@ -112,8 +112,8 @@
   "ond": "YYZ-BOM",
   "search": "Business",
   "dep": "2026-09-08",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Business: 5506.71 -> 5498.24 | Business/Business Pro: 5932.22 -> 5923.08 | Business/Business Flex: 7520.72 -> 7509.13",
   "shot": ""
  },
  {
@@ -157,8 +157,8 @@
   "ond": "GRU-ICN",
   "search": "Economy",
   "dep": "2026-10-05",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Main Classic: 2358.94 -> 2360.74 | Economy/Comfort Classic: 2478.84 -> 2480.74 | Economy/Premium Select Classic: 2798.58 -> 2800.74 | Economy/Main Extra: 2883.52 -> 2885.74 | Economy/Comfort Extra: 3003.44 -> 3005.74 | Economy/Premium Select Extra: 3323.18 -> 3325.74",
   "shot": ""
  },
  {
@@ -166,42 +166,42 @@
   "ond": "GRU-ICN",
   "search": "Business",
   "dep": "2026-10-05",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Delta One Classic: 8960.58 -> 8967.59 | Business/Delta One Extra: 10259.55 -> 10267.58",
   "shot": ""
  },
  {
   "carrier": "EK",
-  "ond": "GRU-PEK",
+  "ond": "GRU-KIX",
   "search": "Economy",
-  "dep": "2026-09-28",
+  "dep": "2027-02-28",
   "result": "OK",
   "detail": "",
-  "shot": "EK_GRUPEK_eco.png"
+  "shot": "EK_GRUKIX_eco.png"
  },
  {
   "carrier": "EK",
-  "ond": "GRU-PEK",
+  "ond": "GRU-KIX",
   "search": "Business",
-  "dep": "2026-09-28",
+  "dep": "2027-02-28",
+  "result": "NO_CARRIER_TODAY",
+  "detail": "",
+  "shot": ""
+ },
+ {
+  "carrier": "EY",
+  "ond": "KHI-JFK",
+  "search": "Economy",
+  "dep": "2026-12-03",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "EY",
-  "ond": "YYZ-BOM",
-  "search": "Economy",
-  "dep": "2026-09-08",
-  "result": "OK",
-  "detail": "",
-  "shot": ""
- },
- {
-  "carrier": "EY",
-  "ond": "YYZ-BOM",
+  "ond": "KHI-JFK",
   "search": "Business",
-  "dep": "2026-09-08",
+  "dep": "2026-12-03",
   "result": "OK",
   "detail": "",
   "shot": ""
@@ -229,8 +229,8 @@
   "ond": "AMM-CAN",
   "search": "Economy",
   "dep": "2027-04-23",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Economy Lite: 907.16 -> 907.87 | Economy/Economy Smart: 944.68 -> 945.41 | Economy/Economy Flex: 1005.28 -> 1006.06",
   "shot": ""
  },
  {
@@ -238,8 +238,8 @@
   "ond": "AMM-CAN",
   "search": "Business",
   "dep": "2027-04-23",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Business Smart: 2736.94 -> 2739.09 | Business/Business Flex: 2883.51 -> 2885.77",
   "shot": ""
  },
  {
@@ -247,8 +247,8 @@
   "ond": "ATH-BRU",
   "search": "Economy",
   "dep": "2026-10-27",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Joy: 240.01 -> 239.49 | Economy/Joy Plus: 281.01 -> 280.41 | Economy/Enjoy: 340.22 -> 339.51",
   "shot": ""
  },
  {
@@ -256,8 +256,8 @@
   "ond": "ATH-BRU",
   "search": "Business",
   "dep": "2026-10-27",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Bliss: 669.36 -> 667.97 | Business/Bliss Plus: 728.57 -> 727.05",
   "shot": ""
  },
  {
@@ -283,8 +283,8 @@
   "ond": "VKO-MLE",
   "search": "Economy",
   "dep": "2026-11-04",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Budget: 559.25 -> 558.09 | Economy/Eko Classic: 615.04 -> 613.78 | Economy/Eco Plus: 667.44 -> 666.06",
   "shot": ""
  },
  {
@@ -325,37 +325,37 @@
  },
  {
   "carrier": "KL",
-  "ond": "AMS-ATH",
+  "ond": "AMS-BOM",
   "search": "Economy",
-  "dep": "2027-05-16",
+  "dep": "2027-02-02",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "KL",
-  "ond": "AMS-ATH",
+  "ond": "AMS-BOM",
   "search": "Business",
-  "dep": "2027-05-16",
+  "dep": "2027-02-02",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "LH",
-  "ond": "SOF-SVQ",
+  "ond": "FRA-PEK",
   "search": "Economy",
-  "dep": "2027-05-21",
+  "dep": "2027-04-13",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "LH",
-  "ond": "SOF-SVQ",
+  "ond": "FRA-PEK",
   "search": "Business",
-  "dep": "2027-05-21",
-  "result": "NO_CARRIER_TODAY",
+  "dep": "2027-04-13",
+  "result": "OK",
   "detail": "",
   "shot": ""
  },
@@ -382,8 +382,8 @@
   "ond": "ORD-BKK",
   "search": "Economy",
   "dep": "2027-04-25",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Eco I Basic 1n: 566.49 -> 566.88 | Economy/Eco I Value Pls 2c: 683.39 -> 683.88 | Economy/Eco I Fullflex 2f: 7690.89 -> 7696.89",
   "shot": ""
  },
  {
@@ -400,8 +400,8 @@
   "ond": "VAR-BER",
   "search": "Economy",
   "dep": "2026-10-13",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Comfort: 270.55 -> 332.12 | Economy/Flex: 304.71 -> 366.21",
   "shot": ""
  },
  {
@@ -436,8 +436,8 @@
   "ond": "ATH-CRL",
   "search": "Economy",
   "dep": "2026-08-24",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Light: 399.55 -> 400.46 | Economy/SUPER_ECO: 438.59 -> 439.53 | Economy/Avantaj: 459.98 -> 460.93 | Economy/COMFORT_FLEX: 476.61 -> 477.57",
   "shot": ""
  },
  {
@@ -460,19 +460,19 @@
  },
  {
   "carrier": "QR",
-  "ond": "GRU-CAN",
+  "ond": "ISB-MAN",
   "search": "Economy",
-  "dep": "2026-10-29",
+  "dep": "2027-03-06",
   "result": "OK",
   "detail": "",
   "shot": ""
  },
  {
   "carrier": "QR",
-  "ond": "GRU-CAN",
+  "ond": "ISB-MAN",
   "search": "Business",
-  "dep": "2026-10-29",
-  "result": "NO_CARRIER_TODAY",
+  "dep": "2027-03-06",
+  "result": "OK",
   "detail": "",
   "shot": ""
  },
@@ -536,7 +536,7 @@
   "search": "Economy",
   "dep": "2026-09-27",
   "result": "OK_PRICE_DRIFT",
-  "detail": "Economy/Economy Saver: 418.96 -> 416.62 | Economy/Economy Classic: 514.72 -> 511.83 | Economy/Economy Flex: 690.26 -> 686.35",
+  "detail": "Economy/Economy Saver: 418.96 -> 414.24 | Economy/Economy Classic: 514.72 -> 508.9 | Economy/Economy Flex: 690.26 -> 682.48",
   "shot": ""
  },
  {
@@ -562,8 +562,8 @@
   "ond": "JED-CAN",
   "search": "Business",
   "dep": "2026-09-09",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/Business Basic: 4328.14 -> 4319.45 | Business/Business Flex: 4444.58 -> 4435.67",
   "shot": ""
  },
  {
@@ -589,8 +589,8 @@
   "ond": "GRU-CAN",
   "search": "Economy",
   "dep": "2026-10-29",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/Semi Flexible: 1497.75 -> 1498.88 | Economy/Flexible: 1711.86 -> 1713.15",
   "shot": ""
  },
  {
@@ -607,8 +607,8 @@
   "ond": "GRU-HND",
   "search": "Economy",
   "dep": "2027-04-28",
-  "result": "NO_CARRIER_TODAY",
-  "detail": "",
+  "result": "OK_INVENTORY_CHANGED",
+  "detail": "Economy: stored ['Economy', 'Premium Economy', 'Economy Fully Refundable', 'Premium Economy Refundable'] vs live-now ['Economy', 'Economy Fully Refundable', 'Premium Economy', 'Premium Economy Refundable']",
   "shot": ""
  },
  {
@@ -643,8 +643,8 @@
   "ond": "MED-MNL",
   "search": "Economy",
   "dep": "2026-09-14",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Economy/EC: 434.12 -> 433.33 | Economy/Eco Fly: 519.69 -> 518.73",
   "shot": ""
  },
  {
@@ -652,8 +652,8 @@
   "ond": "MED-MNL",
   "search": "Business",
   "dep": "2026-09-18",
-  "result": "OK",
-  "detail": "",
+  "result": "OK_PRICE_DRIFT",
+  "detail": "Business/BC: 1374.3 -> 1371.64 | Business/Business Fly: 1482.61 -> 1479.73",
   "shot": ""
  }
 ]
