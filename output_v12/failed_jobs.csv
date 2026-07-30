@@ -1,4 +1,9 @@
 Carrier,Origin,Destination,Season,Status,Retry Count,Sources Tried,Error,Validation Issues,Elapsed (s)
+AC,YTZ,HKG,Summer,no_availability,0,,Ubfly: no flights YTZ-HKG 2027-05-30,,814.189
+AC,YTZ,MNL,Winter,no_availability,0,,Ubfly: no flights YTZ-MNL 2026-11-20,,744.06
+CA,MXP,ICN,Summer,no_availability,0,,Ubfly: CA not on route MXP-ICN,,132.796
+VS,MLE,LHR,Summer,no_availability,0,,Ubfly: VS not on route MLE-LHR,,24.092
+MU,BKK,LGW,Summer,no_availability,0,,Ubfly: MU not on route BKK-LGW,,48.19
 ET,GRU,CAN,Summer,no_availability,0,,Ubfly: ET not on route GRU-CAN,,0.0
 ET,GRU,CAN,Winter,no_availability,0,,Ubfly: ET not on route GRU-CAN,,0.0
 ET,GRU,PVG,Summer,no_availability,0,,Ubfly: ET not on route GRU-PVG,,0.0

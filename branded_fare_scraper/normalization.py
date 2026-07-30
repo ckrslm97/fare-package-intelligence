@@ -119,6 +119,12 @@ CARRIER_FF_BRANDS: dict[str, dict[str, tuple[str, Cabin]]] = {
         "EL": ("Business Lowest", Cabin.BUSINESS),
         "EF": ("Business Flexible", Cabin.BUSINESS),
     },
+    # Royal Jordanian partner-plated single-fare boxes: Ubfly labels the
+    # YDELUXE box "Basic"; the code decides name and cabin.
+    "RJ": {
+        "YDELUXE": ("Economy Deluxe", Cabin.ECONOMY),
+        "JDELUXE": ("Business Deluxe", Cabin.BUSINESS),
+    },
     # Saudia guest fares: Ubfly's dictionary labels the NFLEXE box "Basic".
     "SV": {
         "NBASICE": ("Economy Basic", Cabin.ECONOMY),
@@ -201,8 +207,10 @@ CARRIER_BRAND_SPELLING: dict[str, dict[str, str]] = {
     "J2": {"budget": "Budget"},
     "PC": {"avantaj": "Avantaj"},
     "RJ": {"buvalue": "Business Value", "busaver": "Business Saver",
+           "bssaver": "Business Saver", "buflex": "Business Flex",
+           "jdeluxe": "Business Deluxe", "ydeluxe": "Economy Deluxe",
            "ecflex": "Economy Flex", "ecsaver": "Economy Saver",
-           "ecvalue": "Economy Value"},
+           "ecvalue": "Economy Value", "ecoflex": "Economy Flex"},
     # Business fare families surfaced by the upgrade-leak capture (v12) —
     # compressed OTA tokens -> the airlines' own brand wording.
     "AA": {"fbus": "Flagship Business"},
