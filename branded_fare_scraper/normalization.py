@@ -11,10 +11,20 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 from itertools import combinations
 from typing import Optional
 
 from .models import Cabin, PriceType, RawBrand
+
+#: Carriers with no Business-cabin branded-fare product to find in the first
+#: place — a Business-cabin gap for one of these is not a scrape defect.
+#: Single source of truth: exporters (to_platform.py) and the scrape-time
+#: completeness check (validation.py) both key off this set, so "should this
+#: carrier have Business?" is answered identically at report time and at
+#: retry-decision time.
+LCC_CARRIERS = {"PC", "VF", "TR", "U2", "FR", "W6", "W4", "W9", "G9", "J9",
+                "6E", "XY", "ZF", "NO", "TU", "FZ", "4S"}
 
 # Cabin base offsets keep cabins globally ordered (all Economy < all Business).
 CABIN_BASE = {
@@ -49,6 +59,7 @@ SUBTIER_ORDER = [
     ("basic", 20, "Basic"),
     ("standard", 30, "Standard"),
     ("comfort", 40, "Comfort"),
+    ("semiflex", 45, "Semi Flex"),
     ("flex", 50, "Flex"),
     ("premium", 60, "Premium"),
 ]
@@ -65,13 +76,20 @@ SUBTIER_TOKENS: list[tuple[str, str]] = [
     # generic
     ("light", "lite"), ("lite", "lite"), ("hafif", "lite"),
     ("basic", "basic"), ("basis", "basic"), ("saver", "basic"), ("promo", "basic"),
-    ("value", "basic"), ("go ", "basic"), ("economy go", "basic"), ("eco ", "basic"),
+    ("value", "basic"),
     ("standard", "standard"), ("classic", "standard"), ("smart", "standard"),
-    ("main", "standard"), ("semiflex", "standard"),
+    ("main", "standard"),
+    # Semi-flex is its OWN tier between comfort and flex — must be tested
+    # before the bare "flex" token below or it would rank as full flex.
+    ("semi-flex", "semiflex"), ("semi flex", "semiflex"), ("semiflex", "semiflex"),
+    ("deluxe", "premium"),
     ("comfort", "comfort"), ("plus", "comfort"), ("advantage", "comfort"),
     ("flex", "flex"), ("flexible", "flex"), ("esnek", "flex"),
     ("premium", "premium"), ("prime", "premium"), ("full", "premium"),
     ("max", "premium"), ("top", "premium"),
+    # Cabin-prefix fallbacks LAST: "Eco Classic" is a standard fare whose first
+    # word is just the cabin, so a real family word must always win over these.
+    ("go ", "basic"), ("economy go", "basic"), ("eco ", "basic"),
 ]
 
 # Cabin tokens for when the cabin is not already known from structured data.
@@ -349,10 +367,15 @@ def detect_subtier(raw_name: str) -> Optional[str]:
 
 @dataclass
 class NormalizedBrand:
-    normalized_name: str
+    normalized_name: str   # PUBLISHED name (airline wording once ranked, see below)
     subtier: Optional[str]
     rank: int
     matched: bool          # whether the sub-tier was recognized (vs. fallback)
+    #: The canonical "<Cabin> <SubTier>" label. Used for ordering/tiering only —
+    #: several distinct families share one canonical label ("Economy Comfort"
+    #: and "Economy Comfort Green" are both comfort), so publishing it merged
+    #: real products into one row.
+    canonical_name: str = ""
 
 
 def normalize_brand(raw_name: str, cabin: Optional[Cabin] = None) -> NormalizedBrand:
@@ -545,6 +568,30 @@ def regroup_brands_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
     return out
 
 
+def display_names(raws: list[str], carrier: Optional[str] = None) -> list[str]:
+    """Published names for one ladder: the airline's own wording, made unique.
+
+    The canonical sub-tier label is deliberately NOT used here: it collapses
+    distinct families (Economy Comfort vs Economy Comfort Green, Business Flex
+    vs Business Semi-Flex) into one published row. Where two fares would still
+    render identically, the distinguishing words from the raw names are appended
+    — never an index, which would invent a difference the airline never showed.
+    """
+    pretty = [pretty_brand_name(r, carrier) for r in raws]
+    counts: dict[str, int] = {}
+    for n in pretty:
+        counts[n] = counts.get(n, 0) + 1
+    out: list[str] = []
+    for name, raw in zip(pretty, raws):
+        if counts[name] < 2:
+            out.append(name)
+            continue
+        extra = [w for w in re.split(r"[\s/_-]+", (raw or "").strip())
+                 if w and w.lower() not in {p.lower() for p in name.split()}]
+        out.append(f"{name} {' '.join(extra)}".strip() if extra else name)
+    return out
+
+
 def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
                          carrier: Optional[str] = None,
                          pair_prefs_by_cabin: Optional[dict] = None):
@@ -571,7 +618,29 @@ def iter_ranked_by_cabin(brands: list[RawBrand], group_cabin: Cabin,
             continue
         ranked = assign_brand_order(bs, (pair_prefs_by_cabin or {}).get(eff_cabin))
         abs_prices = compute_absolute_prices([raw for raw, _, _ in ranked])
-        for (raw, nb, order), absp in zip(ranked, abs_prices):
+        shown = display_names([raw.raw_brand_name for raw, _, _ in ranked], carrier)
+        # `display_names` only disambiguates when the raw name has an extra
+        # word to borrow; two entries with the literal same raw name (a tier
+        # pulled in twice — e.g. merge_cross_date_ladder borrowing an
+        # identically-named family from another sampled date, live-verified
+        # 2026-08-04 on EK where a same-day and a cross-date "Economy Flex"
+        # both survived name-based dedup) still come out with an identical
+        # published name. One row per name is the invariant the reports
+        # promise, so on a collision the cheaper entry wins — same "cheap and
+        # plausible over expensive and stray" bias ladder_metrics already
+        # applies — and the rest are dropped here, at the single choke point
+        # every exporter reads through.
+        best_by_name: dict[str, tuple] = {}
+        for item in zip(ranked, abs_prices, shown):
+            (_raw, _nb, _order), absp, name = item
+            cur = best_by_name.get(name)
+            if cur is None or (absp or float("inf")) < (cur[1] or float("inf")):
+                best_by_name[name] = item
+        for (raw, nb, order), absp, name in best_by_name.values():
+            # Publish the airline's family name; keep the canonical label for
+            # rank/tier so ordering and Eco-N/Bus-N are unchanged.
+            nb.canonical_name = nb.normalized_name
+            nb.normalized_name = name
             yield eff_cabin, raw, nb, order, absp
 
 
@@ -702,6 +771,85 @@ def ladder_metrics(brands: list[RawBrand]) -> tuple[int, float]:
             if r > 3.0:
                 bad += 1
     return bad, round(worst, 3)
+
+
+def merge_ladders(primary: list[RawBrand], secondary: list[RawBrand],
+                  secondary_source: str = "") -> tuple[list[RawBrand], list[str]]:
+    """Top up a ladder with families only the secondary source sells.
+
+    The primary source owns every family it lists — name, price and amenities
+    are kept verbatim, because mixing two OTAs' prices for the same fare would
+    publish a number no one can reproduce. Families the primary does NOT have
+    are appended with their own ``source`` recorded, so the report can say where
+    each fare came from. Ordering is left to ``assign_brand_order`` downstream;
+    ``screen_order`` is renumbered by price so the raw record stays sensible.
+
+    Returns ``(merged, added_names)``.
+    """
+    have = {brand_match_key(b.raw_brand_name) for b in primary}
+    added: list[RawBrand] = []
+    for b in secondary or []:
+        key = brand_match_key(b.raw_brand_name)
+        if not key or key in have:
+            continue                      # primary wins on every shared family
+        have.add(key)
+        if secondary_source:
+            b.source = secondary_source
+        added.append(b)
+    merged = list(primary) + added
+    merged.sort(key=lambda x: (x.price_value if x.price_value is not None else float("inf")))
+    for i, b in enumerate(merged):
+        b.screen_order = i
+    return merged, [b.raw_brand_name for b in added]
+
+
+def merge_cross_date_ladder(primary: list[RawBrand],
+                            others: list[tuple[Optional[date], list[RawBrand]]],
+                            adapter_name: str = "") -> tuple[list[RawBrand], list[str]]:
+    """Fill tiers missing from ``primary`` using OTHER SAMPLED DATES of the same
+    OND/cabin/season/carrier walk — 2026-08-03, opt-in via
+    ``Config.merge_cross_date_ladders``.
+
+    ``base.SourceAdapter.run_unit`` already opens every date in the window and
+    keeps only the single strongest ladder per cabin, discarding the rest. If
+    Tuesday sells [Basic, Smart, Plus] (Go sold out) and Wednesday sells
+    [Basic, Smart, Go] (Plus sold out), today's code picks whichever ladder is
+    "stronger" and throws the other away whole — even though between the two,
+    the OND's real four-tier structure (Basic/Smart/Go/Plus) is fully visible.
+    No extra scraping is needed: these dates are walked anyway.
+
+    Unlike ``merge_ladders`` (same-day cross-SOURCE top-up, where mixing
+    prices is safe because both sources describe the same day's inventory),
+    a borrowed tier here carries a DIFFERENT day's price. Two guards specific
+    to that:
+
+    * name matching only (via ``merge_ladders``'s own logic) — never the
+      same-length/price-order fallback, which would pair off two genuinely
+      different tiers just because both ladders happen to have N entries;
+    * a candidate is rejected if adding it raises the ladder's implausible-step
+      count (``ladder_metrics``) — a >3x jump is more likely that other day's
+      inventory quirk than a real gap in the primary day's structure.
+
+    Returns ``(merged, notes)`` where ``notes`` describes what was imported
+    from where, for the same kind of log line ``merge_ladders`` already gets.
+    """
+    cur = list(primary)
+    cur_bad, _ = ladder_metrics(cur)
+    notes: list[str] = []
+    for dep, other_brands in others:
+        if not other_brands:
+            continue
+        trial, added = merge_ladders(cur, other_brands, adapter_name)
+        if not added:
+            continue
+        bad, _worst = ladder_metrics(trial)
+        if bad > cur_bad:
+            continue          # would introduce a new implausible jump — skip
+        cur = trial
+        cur_bad = bad
+        when = dep.isoformat() if dep else "?"
+        notes.append(f"{', '.join(added)} (from {when})")
+    return cur, notes
 
 
 def enrich_brands(primary: list[RawBrand], other: list[RawBrand]) -> int:

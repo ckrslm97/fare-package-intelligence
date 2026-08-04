@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .models import AmenityStatus, UnitResult, UnitStatus
+from .models import AmenityStatus, Cabin, UnitResult, UnitStatus
+from .normalization import LCC_CARRIERS
 
 
 @dataclass
@@ -21,6 +22,7 @@ class ValidationReport:
     missing_amenities: bool = False
     missing_miles: bool = False
     missing_source: bool = False
+    missing_business_cabin: bool = False
     issues: list[str] = field(default_factory=list)
 
     @property
@@ -28,11 +30,16 @@ class ValidationReport:
         return not self.issues
 
     def needs_retry(self) -> bool:
-        # Empty results / missing source / missing prices are worth another try.
-        return self.missing_brands or self.missing_source or self.missing_price
+        # Empty results / missing source / missing prices are worth another try,
+        # and so is a Business gap on a carrier that should have one (see
+        # missing_business_cabin below) — the runner's single bounded
+        # validation-retry pass re-attempts exactly these units.
+        return (self.missing_brands or self.missing_source or self.missing_price
+                or self.missing_business_cabin)
 
 
-def validate_unit(result: UnitResult, expected_min_cabins: int = 1) -> ValidationReport:
+def validate_unit(result: UnitResult, expected_min_cabins: int = 1,
+                  carrier: str = "") -> ValidationReport:
     r = ValidationReport()
 
     if not result.source:
@@ -43,6 +50,21 @@ def validate_unit(result: UnitResult, expected_min_cabins: int = 1) -> Validatio
     if len(result.cabin_results) < expected_min_cabins:
         r.missing_cabin = True
         r.issues.append(f"cabins found={len(result.cabin_results)} < expected {expected_min_cabins}")
+
+    # A full-service carrier (anything outside LCC_CARRIERS) that came back
+    # with Economy but no Business at all is exactly the shape a silent
+    # search failure takes — the dedicated `sinif=business` request can come
+    # back empty from a timeout or a thin response on the SAME unit where the
+    # Economy request succeeded (see enuygun.py _do_search: a poll timeout
+    # and a genuine "no business flights" both fall through to `return []`,
+    # indistinguishable from here). One bounded extra attempt (the runner's
+    # validation-retry pass) tells the two apart; flagging it unconditionally
+    # for every LCC would instead retry a legitimate, permanent absence on
+    # every run for nothing.
+    if (carrier and carrier.upper() not in LCC_CARRIERS
+            and not any(c.cabin == Cabin.BUSINESS for c in non_empty_cabins)):
+        r.missing_business_cabin = True
+        r.issues.append(f"no Business cabin for non-LCC carrier {carrier.upper()}")
 
     total_brands = sum(len(c.brands) for c in result.cabin_results)
     if total_brands == 0:

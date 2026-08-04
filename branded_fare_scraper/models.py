@@ -95,6 +95,16 @@ class DatePlan:
     departure: date
     return_date: date
     window: list[tuple[date, date]]
+    #: Candidates are walked in BLOCKS of this size (far3: 3 consecutive days
+    #: per lead-time band). 0 = the whole window is one block (legacy walk).
+    #: A later block is only tried when the earlier one produced nothing.
+    block_size: int = 0
+
+    @property
+    def blocks(self) -> list[list[tuple[date, date]]]:
+        """The window split into its ordered fallback blocks."""
+        n = self.block_size or len(self.window) or 1
+        return [self.window[i:i + n] for i in range(0, len(self.window), n)] or [[]]
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,6 +112,7 @@ class DatePlan:
             "departure": self.departure.isoformat(),
             "return_date": self.return_date.isoformat(),
             "window": [[d.isoformat(), r.isoformat()] for d, r in self.window],
+            "block_size": self.block_size,
         }
 
     @classmethod
@@ -111,6 +122,7 @@ class DatePlan:
             departure=date.fromisoformat(d["departure"]),
             return_date=date.fromisoformat(d["return_date"]),
             window=[(date.fromisoformat(a), date.fromisoformat(b)) for a, b in d["window"]],
+            block_size=int(d.get("block_size", 0)),      # older plans: one block
         )
 
 
@@ -152,6 +164,9 @@ class RawBrand:
     description: str = ""
     amenities: list[RawAmenity] = field(default_factory=list)
     miles: RawMiles = field(default_factory=RawMiles)
+    #: Which adapter contributed THIS fare. Normally the cabin's own source;
+    #: set explicitly when a top-up source adds a family the primary missed.
+    source: str = ""
 
 
 @dataclass
@@ -165,6 +180,22 @@ class CabinResult:
     has_availability: bool = True
     note: str = ""
     source: str = ""                       # which adapter provided this cabin
+
+    # Identity of the itinerary this ladder was actually read from. Trip.com's
+    # raw never carried it, which is why the 2026-08-02 name-authority work had
+    # no join key and was abandoned: two sources could describe the same flight
+    # and nothing tied them together. Enuygun publishes all of it, so a
+    # cross-source check on ONE flight becomes possible instead of a comparison
+    # of two ladders that may not even be the same departure.
+    flight_no: str = ""                    # e.g. "GQ700" (marketing)
+    booking_class: str = ""                # RBD, e.g. "D" / "F"
+    operating_carrier: str = ""            # IATA of the metal's operator
+    #: The user's rules treat these differently: an interline itinerary is
+    #: dropped (it sells another carrier's product), a codeshare is KEPT but
+    #: must be visible. Sources that state them explicitly beat inferring from
+    #: an operator-name string comparison.
+    is_codeshare: Optional[bool] = None
+    is_interline: Optional[bool] = None
 
 
 # --------------------------------------------------------------------------- #
@@ -266,6 +297,7 @@ class RunSummary:
     units_missing_amenities: int = 0
     units_missing_miles: int = 0
     units_missing_source: int = 0
+    units_missing_business_cabin: int = 0
     total_normalized_rows: int = 0
     total_seconds: float = 0.0
 

@@ -13,12 +13,13 @@ from .browser_pool import BrowserPool, NullPool
 from .checkpoint import Checkpoint
 from .config import Config
 from .dates import build_date_plan
-from .io_utils import (read_jobs, write_failed, write_normalized, write_raw, write_summary)
+from .io_utils import (append_raw, read_jobs, write_failed, write_normalized,
+                       write_raw, write_summary)
 from .logging_setup import EventLog, setup_logging
 from .models import (AmenityStatus, BrandedFare, Cabin, CabinResult, Job, PriceType,
                      RunSummary, ScrapeUnit, UnitResult, UnitStatus, now_ts)
 from .normalization import (enrich_brands, iter_unit_ranked_by_cabin, ladder_metrics,
-                            tier_code)
+                            merge_ladders, tier_code)
 from .report import write_report
 from .rebuild import (iter_raw_records, pair_prefs_for, season_pair_prefs_from_results,
                       unit_result_from_raw)
@@ -50,15 +51,33 @@ class Runner:
         t0 = time.monotonic()
         reset_source_caches()               # fresh caches per run (no stale/dead-loop state)
         # Collection-moment evidence: every actual OTA search saves one page shot.
+        from .sources.tripcom import Tripcom
         from .sources.ubfly import Ubfly
         ev_dir = self.cfg.out / "evidence" / "searches"
         ev_dir.mkdir(parents=True, exist_ok=True)
         Ubfly.evidence_dir = ev_dir
+        Tripcom.evidence_dir = ev_dir
+        Tripcom.min_interval_s = self.cfg.tripcom_min_interval_s
+        Tripcom.source_concurrency = self.cfg.source_concurrency
+        Ubfly.min_interval_s = self.cfg.ubfly_min_interval_s
+        # Shared across every adapter (run_unit lives on the base class), so
+        # the flag lives on SourceAdapter itself rather than per-subclass.
+        from .sources.base import SourceAdapter
+        SourceAdapter.merge_cross_date = self.cfg.merge_cross_date_ladders
+        self.log.info("Trip.com politeness: %.1fs global interval, %d concurrent worker(s)",
+                      Tripcom.min_interval_s, Tripcom.source_concurrency)
+        if self.cfg.merge_cross_date_ladders:
+            self.log.info("Cross-date ladder merge: ON (pilot)")
         units = self._build_or_resume_units()
         self.summary.total_units = len(units)
         self.summary.total_jobs = len({u.job.key() for u in units})
 
         pending = [u for u in units if not (not self.cfg.fresh and self.checkpoint.is_done(u))]
+        # Walk the list in a RANDOM order (seeded, so a resume is reproducible):
+        # marching through it alphabetically hits one host's routes in an
+        # obviously robotic pattern.
+        random.Random(self.cfg.seed if self.cfg.seed is not None
+                      else self.cfg.run_id).shuffle(pending)
         self.summary.skipped_checkpoint = len(units) - len(pending)
         self.log.info("Units: %d total, %d pending, %d skipped (checkpoint)",
                       len(units), len(pending), self.summary.skipped_checkpoint)
@@ -67,10 +86,17 @@ class Runner:
             s.needs_browser
             for u in pending for s in get_sources_for(u.job.carrier, self.cfg.sources or None)
         )
-        pool = BrowserPool(self.cfg) if need_browser else NullPool()
+        if not need_browser:
+            pool = NullPool()
+        elif self.cfg.browseract_browser_id:
+            from .browseract_pool import BrowserActPool      # local: optional path
+            pool = BrowserActPool(self.cfg)
+        else:
+            pool = BrowserPool(self.cfg)
         if need_browser:
-            self.log.info("Starting browser pool (size=%d, headless=%s)",
-                          self.cfg.browser_pool_size, self.cfg.headless)
+            self.log.info("Starting browser pool (size=%d, headless=%s, transport=%s)",
+                          self.cfg.browser_pool_size, self.cfg.headless,
+                          "browser-act" if self.cfg.browseract_browser_id else "playwright")
             await pool.start()
 
         sem = asyncio.Semaphore(self.cfg.concurrency)
@@ -117,7 +143,10 @@ class Runner:
                 ond_plans[k] = build_date_plan(
                     season, today, min_lead_days=self.cfg.min_lead_days,
                     horizon_days=self.cfg.horizon_days, trip_length=self.cfg.trip_length,
-                    window_days=self.cfg.window_days, rng=rng)
+                    window_days=self.cfg.window_days,
+                    mode=self.cfg.date_mode,
+                    far_lead=(self.cfg.far_lead_min_days,
+                              self.cfg.far_lead_max_days), rng=rng)
             return ond_plans[k]
 
         units: list[ScrapeUnit] = []
@@ -197,7 +226,19 @@ class Runner:
             last: UnitResult | None = None
             total_retry = 0
             t0 = now_ts()
-            for i, adapter in enumerate(adapters):
+            # Ubfly is NOT part of the primary chain any more: it is a gentle
+            # TOP-UP asked only for cabins Trip.com already covered (and a
+            # fallback when Trip.com found nothing). It must never run first.
+            primary = [a for a in adapters if a.name != "Ubfly"]
+            topup = next((a for a in adapters if a.name == "Ubfly"), None)
+            if not primary and topup is not None:
+                # "Never first" is a rule about PREFERENCE, not a veto. With no
+                # primary in the chain — `--sources Ubfly`, or every other source
+                # walled off — the top-up path has no cabins to enrich, so the
+                # unit came back empty and the run collected nothing in 1.2 s.
+                # When Ubfly is all there is, it IS the primary.
+                primary, topup = [topup], None
+            for i, adapter in enumerate(primary):
                 tried.append(adapter.name)
                 result = await self._run_with_retry(adapter, unit, pool)
                 total_retry += result.retry_count
@@ -224,17 +265,74 @@ class Runner:
                                   filled, ",".join(o.source for _, o in cands[1:]))
                 merged[cab] = best_cr
 
+            if topup is not None:
+                merged = await self._ubfly_topup(topup, unit, pool, merged, tried)
+
             if merged:
                 out = UnitResult(
                     unit=unit, cabin_results=list(merged.values()), retry_count=total_retry,
                     sources_tried=list(tried), started_at=t0, finished_at=now_ts(),
                     source=",".join(sorted({cr.source for cr in merged.values()})))
-                report = validate_unit(out, expected_min_cabins=1)
+                report = validate_unit(out, expected_min_cabins=1, carrier=unit.job.carrier)
                 out.validation_issues = report.issues
                 apply_status(out, report)
                 self.checkpoint.mark_done(unit)   # only cache real successes
+                self._persist(out)                # durable NOW, not at run end
                 return out
             return last  # all sources exhausted, no data
+
+    async def _ubfly_topup(self, adapter, unit: ScrapeUnit, pool,
+                           merged: dict, tried: list[str]) -> dict:
+        """Ask Ubfly for the SAME dates the primary used and add missing families.
+
+        Never a replacement: a family both sources sell keeps the primary's
+        name, price and amenities. Ubfly-only families are appended with their
+        own source so the report can attribute them. Ubfly is currently behind
+        an interactive Cloudflare challenge and self-disables — in that case the
+        ladder is returned untouched and the run simply continues.
+        """
+        from .sources.ubfly import Ubfly
+        if Ubfly._challenge_disabled:
+            return merged
+        # One search per (date) covers every cabin that date offers.
+        dates = {cr.departure: cr.return_date for cr in merged.values() if cr.departure}
+        if not dates:
+            return merged
+        tried.append(f"{adapter.name}(top-up)")
+        Ubfly._primitives()
+        async with Ubfly._slot:
+            for dep, ret in sorted(dates.items()):
+                try:
+                    if adapter.needs_browser:
+                        async with pool.page() as page:
+                            cabins = await adapter.fetch_search(page, unit.job, dep, ret)
+                    else:
+                        cabins = await adapter.fetch_search(None, unit.job, dep, ret)
+                except Exception as e:  # noqa: BLE001 - a top-up must never fail a unit
+                    self.log.debug("Ubfly top-up skipped for %s %s: %s",
+                                   unit.job.route, dep, str(e)[:120])
+                    continue
+                for cr in cabins or []:
+                    prim = merged.get(cr.cabin)
+                    if prim is None:
+                        continue          # primary had nothing here; handled elsewhere
+                    if prim.departure and cr.departure and prim.departure != cr.departure:
+                        continue          # only top up the SAME date
+                    combined, added = merge_ladders(prim.brands, cr.brands, adapter.name)
+                    if added:
+                        prim.brands = combined
+                        self.log.info("Top-up: %s %s %s +%d family(ies) from Ubfly (%s)",
+                                      unit.job.carrier, unit.job.route, cr.cabin.value,
+                                      len(added), ", ".join(added))
+                    enrich_brands(prim.brands, cr.brands)     # fill-only amenities
+        return merged
+
+    def _persist(self, result: UnitResult) -> None:
+        """Append a finished unit's raw record so a stop cannot lose it."""
+        try:
+            append_raw(result, self.cfg.out)
+        except Exception as e:  # noqa: BLE001 - persistence must never kill a unit
+            self.log.debug("Could not append raw record: %s", e)
 
     async def _run_with_retry(self, adapter, unit: ScrapeUnit, pool) -> UnitResult:
         attempts = {"n": 0}
@@ -281,11 +379,31 @@ class Runner:
         return result
 
     async def _retry_incomplete(self, results: list[UnitResult], pool, sem) -> list[UnitResult]:
-        redo_idx = [i for i, r in enumerate(results)
-                    if r is not None and r.total_brands() == 0
-                    and r.status in (UnitStatus.FAILED,)]
+        # Two distinct reasons to spend a second attempt on a unit:
+        #  - totally empty (the original check): nothing came back at all.
+        #  - a Business-cabin gap on a carrier that should have one: Economy
+        #    succeeded but the dedicated `sinif=business` request came back
+        #    empty, which a timeout and a genuine "no business" both look
+        #    like from here (see validation.py). One bounded re-attempt tells
+        #    them apart instead of silently publishing Economy-only forever.
+        redo_idx = [i for i, r in enumerate(results) if r is not None and (
+            (r.total_brands() == 0 and r.status is UnitStatus.FAILED)
+            or validate_unit(r, carrier=r.unit.job.carrier).missing_business_cabin
+        )]
         if not redo_idx:
             return results
+        # Enuygun caches a search by (origin, destination, date, cabin) for the
+        # life of the process (see enuygun.py _search) — re-processing the SAME
+        # unit without clearing it just replays the first attempt's response,
+        # cabin gap and all, instantly and unchanged (live-verified 2026-08-04:
+        # a 24-unit retry pass came back in 0.0s per unit, byte-for-byte the
+        # same as the original). Bust every date this unit could have hit
+        # before re-queuing it, so the retry is an actual second look.
+        from .sources.enuygun import Enuygun
+        for i in redo_idx:
+            u = results[i].unit
+            for dep, ret in u.date_plan.window:
+                Enuygun.invalidate(u.job.origin, u.job.destination, dep)
         self.log.info("Validation retry pass: re-attempting %d incomplete unit(s)", len(redo_idx))
         redone = await asyncio.gather(*(self._process_unit(results[i].unit, pool, sem) for i in redo_idx))
         for i, new in zip(redo_idx, redone):
@@ -335,13 +453,14 @@ class Runner:
             self.summary.no_availability += 1
         else:
             self.summary.failed += 1
-        report = validate_unit(r)
+        report = validate_unit(r, carrier=r.unit.job.carrier)
         self.summary.units_missing_cabin += int(report.missing_cabin)
         self.summary.units_missing_brands += int(report.missing_brands)
         self.summary.units_missing_price += int(report.missing_price)
         self.summary.units_missing_amenities += int(report.missing_amenities)
         self.summary.units_missing_miles += int(report.missing_miles)
         self.summary.units_missing_source += int(report.missing_source)
+        self.summary.units_missing_business_cabin += int(report.missing_business_cabin)
 
     def _to_branded_fares(self, r: UnitResult, prefs: dict | None = None) -> list[BrandedFare]:
         out: list[BrandedFare] = []

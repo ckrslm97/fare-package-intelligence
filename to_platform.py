@@ -19,8 +19,8 @@ from pathlib import Path
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus
-from branded_fare_scraper.normalization import (clean_fare_code, iter_unit_ranked_by_cabin,
-                                                tier_code)
+from branded_fare_scraper.normalization import (LCC_CARRIERS, clean_fare_code,
+                                                iter_unit_ranked_by_cabin, tier_code)
 from branded_fare_scraper.rebuild import (cabin_result_from_dict, iter_raw_records,
                                           pair_prefs_for, season_pair_prefs)
 from branded_fare_scraper.report import CARRIER_NAMES
@@ -36,7 +36,45 @@ FEATURE_KEY = {
     "sports_equipment": "sport_equipment", "pet": "pet",
 }
 
-LCC = {"PC", "VF", "TR", "U2", "FR", "W6", "W4", "W9", "G9", "J9", "6E", "XY", "ZF", "NO", "TU", "FZ", "4S"}
+
+#: "Yakl. 3531.00 TRY (48 saate kadar)" -> 3531.00 + TRY. Enuygun writes the
+#: figure into the tooltip; Trip.com's phrasing ("Change fee: from $180") puts
+#: the symbol first, so both orders are accepted.
+_FEE_RE = re.compile(
+    r"(?:([$€£])\s*([\d][\d.,]*)|([\d][\d.,]*)\s*(TRY|USD|EUR|GBP|TL))", re.I)
+_SYMBOL = {"$": "USD", "€": "EUR", "£": "GBP"}
+#: The platform reports every price in USD (see BrandedFare.currency, which
+#: adapters always normalize) EXCEPT this one tooltip string, which is the
+#: raw text an OTA's own rule-fee popup shows and was never run through that
+#: conversion. No per-record rate survives to this stage (Enuygun's own
+#: currency_rates are read and applied at scrape time, then discarded), so a
+#: fixed approximate rate is used here — acceptable because the figure is
+#: already presented as an estimate ("~"), not a bookable price.
+_TO_USD = {"USD": 1.0, "TRY": 1 / 41.0, "EUR": 1.09, "GBP": 1.27}
+
+
+def _fee_text(raw: str) -> str:
+    """"~86 USD" for a rule right that states its price, else "". Always USD —
+    every other currency is converted (see _TO_USD)."""
+    m = _FEE_RE.search(raw or "")
+    if not m:
+        return ""
+    sym, after, before, cur = m.groups()
+    amount = after or before or ""
+    currency = _SYMBOL.get(sym or "", "") or (cur or "").upper()
+    if currency == "TL":
+        currency = "TRY"
+    try:                      # "3531.00" / "3.531,00" -> 3531
+        n = float(amount.replace(".", "").replace(",", ".")
+                  if amount.count(",") == 1 and amount.rfind(",") > amount.rfind(".")
+                  else amount.replace(",", ""))
+    except ValueError:
+        return ""
+    n *= _TO_USD.get(currency, 1.0)
+    currency = "USD"
+    if n <= 0:
+        return ""
+    return f"~{n:,.0f} {currency}".replace(",", ".")
 
 
 def _short_detail(key: str, raw: str, status: AmenityStatus) -> str:
@@ -47,16 +85,34 @@ def _short_detail(key: str, raw: str, status: AmenityStatus) -> str:
     """
     canon = canonical_rule_detail(key, status)
     if canon is not None:
-        return canon
+        # The standardized word stays FIRST and unchanged — the vocabulary rule
+        # is about how a right is named, not about hiding what it costs. Enuygun
+        # publishes the actual figure ("Yakl. 3531.00 TRY (48 saate kadar)") and
+        # returning the word alone threw it away on 340 of 624 rule rights.
+        fee = _fee_text(raw)
+        return f"{canon} · {fee}" if fee else canon
     raw = (raw or "").strip()
     if not raw:
         return ""
     if key in ("cabin_baggage", "checked_baggage", "extra_baggage"):
-        m2 = re.search(r"(\d+)\s*[x×]\s*(\d+)", raw)         # pieces × kg
+        # "1 parça X 8 kg kabin bagajı (55x40x20 cm)": the OLD pattern had no
+        # "kg" anchor and no case-insensitive flag, so it missed "X" (capital)
+        # here and fell through to the dimensions in parentheses instead,
+        # reading "55x40" as pieces×kg — live-verified 2026-08-04 on Condor.
+        # Requiring "kg" right after the second number makes that impossible:
+        # a WxHxD-in-cm triple is never followed by "kg", so it can never match.
+        m2 = re.search(r"(\d+)\s*(?:parça|pieces?|pc)?\s*[x×]\s*(\d+)\s*kg", raw, re.I)
         if m2:
             return f"{m2.group(1)}×{m2.group(2)}kg"
         m1 = re.search(r"(\d+)\s*kg", raw, re.I)             # weight only
         if m1:
+            # A source can state the piece count and the weight WITHOUT an
+            # "x"/"×" between them ("2 parça, 8 kg"). Dropping the piece count
+            # here would be the exact "8kg instead of 2×8kg" complaint — check
+            # for it separately rather than only ever showing bare weight.
+            mp = re.search(r"(\d+)\s*(?:parça|pieces?|pc)\b", raw, re.I)
+            if mp:
+                return f"{mp.group(1)}×{m1.group(1)}kg"
             return f"{m1.group(1)}kg"
         return ""                                            # e.g. "1 piece" -> just ✓
     return ""  # other rights: the ✓/€/— state colour already carries the meaning
@@ -88,6 +144,52 @@ def _features(raw):
     return out
 
 
+def used_feature_keys(fares) -> list[str]:
+    """Platform feature keys that at least one fare in the dataset carries.
+
+    User rule: "hiçbir taşıyıcıda olmayan paket içeriklerini kaldır" — a right
+    no carrier in the dataset reports is an empty row on every card, so it is
+    dropped from the display. The raw data keeps the full taxonomy.
+    """
+    used: set[str] = set()
+    for f in fares:
+        for k, v in (f.get("features") or {}).items():
+            if v and v.get("state"):
+                used.add(k)
+    return sorted(used)
+
+
+def prune_empty_features(fares) -> list[str]:
+    """Drop stateless feature entries in place; return the surviving keys."""
+    keep = set(used_feature_keys(fares))
+    for f in fares:
+        feats = f.get("features") or {}
+        for k in [k for k in feats if k not in keep]:
+            del feats[k]
+    return sorted(keep)
+
+
+#: Anchor for the template's FEATURE_META table (last row + closing brace).
+FEATURE_META_ANCHOR = ('  miles:            ["Mil Kazanımı",'
+                       '"Sadakat programı mil kazanım oranı"],\n};')
+
+
+def feature_filter_patch(keys) -> tuple[str, str]:
+    """(anchor, replacement) that hides FEATURE_META rows absent from the data.
+
+    Every view enumerates rights with ``Object.keys(FEATURE_META)``, so pruning
+    the table itself removes the empty rows/columns everywhere at once
+    (matrix, cards, TSV/XLS export) without touching each view.
+    """
+    allowed = json.dumps(sorted(keys), ensure_ascii=False)
+    return (FEATURE_META_ANCHOR,
+            FEATURE_META_ANCHOR + "\n"
+            "/*fpi-fix: rights with no data in this dataset are not rendered*/\n"
+            f"const FPI_PRESENT_FEATURES = new Set({allowed});\n"
+            "Object.keys(FEATURE_META).forEach(k=>{"
+            "if(!FPI_PRESENT_FEATURES.has(k)) delete FEATURE_META[k];});")
+
+
 def build_fares(out_dir: Path):
     now = datetime.now().replace(microsecond=0).isoformat()
     coll_month = datetime.now().strftime("%Y-%m")
@@ -101,7 +203,7 @@ def build_fares(out_dir: Path):
         mo = airport_meta(o); md = airport_meta(d)
         oc, oreg = mo["country_name"], mo["region"]
         dc, dreg = md["country_name"], md["region"]
-        ctype = "Low Cost" if carrier.upper() in LCC else "Legacy"
+        ctype = "Low Cost" if carrier.upper() in LCC_CARRIERS else "Legacy"
         # Local if either endpoint's country is Turkey, else Beyond.
         ondtype = "Local" if "TR" in (mo["country_code"], md["country_code"]) else "Beyond"
         cabins = [cabin_result_from_dict(c) for c in rec.get("cabins", [])]
@@ -128,9 +230,50 @@ def build_fares(out_dir: Path):
                 "price": price, "price_usd": price_usd,
                 "currency": cur, "travel_date": dep,
                 "features": _features(raw),
-                "source": src, "flight_no": None,
+                # Identity of the itinerary the ladder was read from. Was hard
+                # -coded None because no source recorded it; Enuygun does, and
+                # it is what lets a price be traced back to a real departure.
+                "source": src, "flight_no": c.flight_no or None,
+                "booking_class": c.booking_class or None,
+                "operating_carrier": c.operating_carrier or None,
+                "is_codeshare": c.is_codeshare,
+                "is_interline": c.is_interline,
             })
     return fares
+
+
+def build_runs(out_dir: Path, fares: list[dict]) -> list[dict]:
+    """Archive rows for the platform's Arşiv tab, one per collection season.
+
+    The tab was rendering "no archived collection yet" because nothing ever filled
+    `runs`. The facts come from summary.json (run id, timings) plus the fares
+    themselves (which carriers and ONDs that season actually produced).
+    """
+    try:
+        summary = json.loads((out_dir / "summary.json").read_text())
+    except (OSError, ValueError):
+        return []
+    # Group by SEASON, not by coll_date: one calendar run collects both the
+    # summer and the winter window, so every fare shares the same coll_date and
+    # grouping on it would collapse two distinct collections into one row.
+    by_season: dict[tuple, list[dict]] = {}
+    for f in fares:
+        by_season.setdefault((f["coll_date"], f.get("coll_season", "")), []).append(f)
+    runs = []
+    for (coll_date, season), rows in sorted(by_season.items()):
+        runs.append({
+            "run_id": f"{summary.get('run_id', 'run')}_{season or coll_date}",
+            "coll_date": coll_date,
+            "coll_season": rows[0].get("coll_season", ""),
+            "query_date": rows[0].get("query_date", ""),
+            "collected_at": summary.get("finished_at") or summary.get("started_at", ""),
+            "airlines": sorted({r["airline"] for r in rows}),
+            "onds": sorted({f"{r['origin']}-{r['destination']}" for r in rows}),
+            "record_count": len(rows),
+            "status": "OK",
+            "ond_type": "Karma",
+        })
+    return runs
 
 
 def main():
@@ -138,14 +281,17 @@ def main():
     out_dir = Path(sys.argv[2])
     out_html = Path(sys.argv[3])
     fares = build_fares(out_dir)
+    present = prune_empty_features(fares)     # rights no carrier reports at all
     payload = {"generated_at": datetime.now().replace(microsecond=0).isoformat(),
-               "count": len(fares), "fares": fares}
+               "count": len(fares), "fares": fares,
+               "runs": build_runs(out_dir, fares)}
     embedded = json.dumps(payload, ensure_ascii=False)
     html = template.read_text(encoding="utf-8")
 
     # --- Fix 1: the detail view grouped by carrier|OND only, so both travel
     # seasons became duplicate columns. Split cards by season and label them.
     patches = [
+        feature_filter_patch(present),
         ('rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim);',
          'rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim)+"|"+(f.season||"");'),
         ('const f0=g[0], flowLabel=flowKey(f0,pdDim);',

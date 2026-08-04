@@ -82,9 +82,13 @@ CLASS_PARAM: dict[Cabin, Optional[str]] = {
 }
 
 
-# NOT registered (user decision 2026-07-28: "kaynak olarak enuygunu kullanma").
-# The adapter is kept importable for tests / potential future reinstatement;
-# re-adding @register would put it back in the chain.
+# Reinstated 2026-08-03 on the user's condition "enuygunda business varsa olur":
+# CLASS_PARAM confirms Business live (sinif=business). It had been off since
+# 2026-07-28 ("kaynak olarak enuygunu kullanma"). Priority 3 keeps it behind
+# Trip.com, so it only ever fills gaps — it never outranks the primary OTA.
+# Premium Economy stays disabled above: its class param is still unconfirmed and
+# guessing it would mislabel Economy results as PE.
+@register
 class Enuygun(SourceAdapter):
     name = "Enuygun"
     priority = 3
@@ -95,6 +99,78 @@ class Enuygun(SourceAdapter):
     _result_cache: dict[str, list[dict]] = {}
     _result_locks: dict[str, asyncio.Lock] = {}
 
+    # --- Circuit breaker: same shape as Tripcom's, added 2026-08-03. Enuygun's
+    # site already anticipates a Cloudflare challenge (_do_search raises
+    # Forbidden on "just a moment"/"attention required"), but nothing backed the
+    # WHOLE run off when it fires — each unit just retried into it independently
+    # via the generic 3-retry/30s-cap backoff. At today's tested concurrency (2)
+    # that never triggered; tonight's run is ~10x the volume at concurrency 8,
+    # so N concurrent workers hammering a live wall with their own retries is
+    # untested territory, not a remote one. Mirrors Tripcom's proven pattern:
+    # first detector owns the pause, everyone else awaits the same event, and
+    # 3 maxed-out pauses stop the source cleanly (checkpoint intact) rather than
+    # burning hours against a wall that will not lift by asking harder.
+    cooldown_base_s: float = 90.0
+    cooldown_max_s: float = 600.0
+    max_maxed_pauses: int = 3
+    clean_streak_reset: int = 8
+
+    _cooldown_s: float = 90.0
+    _clean_streak: int = 0
+    _maxed_pauses: int = 0
+    _abort_run: bool = False
+    _pause_event = None
+
+    @classmethod
+    def _primitives(cls) -> None:
+        if cls._pause_event is None:
+            cls._pause_event = asyncio.Event()
+            cls._pause_event.set()
+
+    @classmethod
+    async def _cooldown(cls) -> bool:
+        """Pause EVERY worker for the current cooldown. False = give up cleanly."""
+        cls._primitives()
+        if not cls._pause_event.is_set():
+            await cls._pause_event.wait()             # someone else is pausing
+            return not cls._abort_run
+        cls._pause_event.clear()
+        try:
+            wait = cls._cooldown_s
+            cls._clean_streak = 0
+            if wait >= cls.cooldown_max_s:
+                cls._maxed_pauses += 1
+            _LOG.warning("Enuygun Cloudflare wall — pausing all workers for %.0fs "
+                        "(no bypass attempted)", wait)
+            await asyncio.sleep(wait)
+            cls._cooldown_s = min(cls._cooldown_s * 2, cls.cooldown_max_s)
+            if cls._maxed_pauses >= cls.max_maxed_pauses:
+                cls._abort_run = True
+                _LOG.error("Enuygun Cloudflare wall persists after %d maxed pauses — "
+                          "stopping this source cleanly; the checkpoint holds, so "
+                          "resume later WITHOUT --fresh", cls._maxed_pauses)
+                return False
+            return True
+        finally:
+            cls._pause_event.set()
+
+    @classmethod
+    def _note_clean(cls) -> None:
+        cls._clean_streak += 1
+        if cls._clean_streak >= cls.clean_streak_reset and cls._cooldown_s > cls.cooldown_base_s:
+            _LOG.info("Enuygun: %d clean searches — cooldown back to %.0fs",
+                      cls._clean_streak, cls.cooldown_base_s)
+            cls._cooldown_s = cls.cooldown_base_s
+            cls._maxed_pauses = 0
+
+    @classmethod
+    def reset_state(cls) -> None:
+        cls._pause_event = None          # asyncio primitives bind to a loop
+        cls._cooldown_s = cls.cooldown_base_s
+        cls._clean_streak = 0
+        cls._maxed_pauses = 0
+        cls._abort_run = False
+
     def supports(self, carrier: str) -> bool:
         return True  # aggregator
 
@@ -102,6 +178,25 @@ class Enuygun(SourceAdapter):
         # Only cabins with a confirmed class param (Economy is the default).
         return [c for c in (Cabin.ECONOMY, Cabin.PREMIUM_ECONOMY, Cabin.BUSINESS)
                 if CLASS_PARAM.get(c) is not None]
+
+    @classmethod
+    def invalidate(cls, origin: str, destination: str, departure: date) -> None:
+        """Drop every cached cabin search for one (origin, destination, date).
+
+        ``_search`` caches by exact key (cabin's class param included) for the
+        life of the process, so re-calling ``fetch_search`` for the SAME unit —
+        which is exactly what the runner's validation-retry pass does — replays
+        the identical cached response instead of asking the site again. That
+        makes a "retry" indistinguishable from a no-op for a unit whose gap
+        (e.g. a Business search that came back empty) needs a genuinely fresh
+        request to tell a transient miss from a real one. Live-verified
+        2026-08-04: a 24-unit retry pass returned every single result in 0.0s,
+        each one identical to its first attempt. The runner calls this right
+        before re-queuing a unit so the retry is a real network round-trip.
+        """
+        prefix = f"{origin}|{destination}|{departure.isoformat()}|"
+        for key in [k for k in cls._result_cache if k.startswith(prefix)]:
+            del cls._result_cache[key]
 
     # ------------------------------------------------------------------ #
     async def fetch_search(self, page, job: Job, departure: date, return_date: date) -> list[CabinResult]:
@@ -153,11 +248,15 @@ class Enuygun(SourceAdapter):
                 bad, worst = ladder_metrics(allb)
                 n_items = sum(len(b.amenities) for b in allb)
                 scored.append(((len(buckets), len(allb), -bad, -worst, n_items,
-                                -(base if base is not None else float("inf"))), buckets))
+                                -(base if base is not None else float("inf"))),
+                               buckets, f))
             scored.sort(key=lambda t: t[0], reverse=True)
             best = scored[0][1] if scored else {}
+            # Remember WHICH itinerary won, so the published ladder can name the
+            # flight it came from instead of being an anonymous price list.
+            best_flight = scored[0][2] if scored else None
             if keep_pe and Cabin.PREMIUM_ECONOMY not in best:
-                for _, buckets in scored[1:]:
+                for _, buckets, _f in scored[1:]:
                     pe = buckets.get(Cabin.PREMIUM_ECONOMY)
                     if pe:
                         best[Cabin.PREMIUM_ECONOMY] = pe
@@ -168,8 +267,10 @@ class Enuygun(SourceAdapter):
                 dedicated = cab == search_cabin
                 if cab in results and not (dedicated and cab in provisional):
                     continue
+                ident = _flight_identity(best_flight)
                 results[cab] = CabinResult(cabin=cab, departure=departure,
-                                           return_date=return_date, brands=bs)
+                                           return_date=return_date, brands=bs,
+                                           **ident)
                 if dedicated:
                     provisional.discard(cab)
                 elif cab in searched:
@@ -238,6 +339,8 @@ class Enuygun(SourceAdapter):
             return flights
 
     async def _do_search(self, page, o_slug, d_slug, orgn, dest, departure, param="") -> list[dict]:
+        if Enuygun._abort_run:
+            return []
         bodies: list[str] = []
 
         async def on_resp(resp):
@@ -261,6 +364,10 @@ class Enuygun(SourceAdapter):
             await self._cookies(page)
             title = (await page.title()) or ""
             if re.search(r"just a moment|attention required|access denied", title, re.I):
+                _LOG.warning("Enuygun: Cloudflare challenge on %s-%s %s",
+                            orgn, dest, departure)
+                if not await self._cooldown():
+                    return []           # aborted: give up on this unit cleanly
                 raise Forbidden("Enuygun Cloudflare challenge")
             # Poll for the async-result body (Enuygun streams partial -> full).
             waited = 0.0
@@ -274,6 +381,7 @@ class Enuygun(SourceAdapter):
 
         if not bodies:
             return []
+        self._note_clean()
         best = max(bodies, key=len)
         try:
             data = json.loads(best)
@@ -398,6 +506,37 @@ def _airline_all(flight: dict, target: str) -> bool:
     segs = flight.get("segments") or []
     marketing = [_seg_marketing(s) for s in segs]
     return bool(marketing) and all(m == target for m in marketing)
+
+
+def _flight_identity(flight: Optional[dict]) -> dict:
+    """Itinerary identity + the codeshare/interline facts the payload states.
+
+    Enuygun answers both questions outright, so we stop inferring them from an
+    operator-name string: ``warnings.is_code_shared_flight`` per segment, and
+    ``infos.is_virtual_interlining`` for the itinerary. A multi-carrier
+    itinerary also counts as interline — the user's rule drops those because
+    they sell another airline's product, while a codeshare is kept.
+    """
+    if not flight:
+        return {}
+    segs = flight.get("segments") or []
+    if not segs:
+        return {}
+    first = segs[0]
+    marketing = {(_seg_marketing(s) or "").upper() for s in segs} - {""}
+    operating = {str(s.get("operating_airline") or "").upper() for s in segs} - {""}
+    codeshare = any((s.get("warnings") or {}).get("is_code_shared_flight")
+                    for s in segs) or bool(operating - marketing)
+    interline = bool((flight.get("infos") or {}).get("is_virtual_interlining")) \
+        or len(marketing) > 1
+    fn = str(first.get("flight_number") or "")
+    return {
+        "flight_no": fn,
+        "booking_class": str(first.get("class") or ""),
+        "operating_carrier": str(first.get("operating_airline") or ""),
+        "is_codeshare": bool(codeshare),
+        "is_interline": bool(interline),
+    }
 
 
 def _flight_base(flight: dict) -> Optional[float]:

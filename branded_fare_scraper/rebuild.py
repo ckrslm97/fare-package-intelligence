@@ -53,6 +53,7 @@ def raw_brand_from_dict(d: dict) -> RawBrand:
         amenities=[raw_amenity_from_dict(a) for a in d.get("amenities", [])],
         miles=RawMiles(mileage_available=m.get("mileage_available"),
                        miles_earned=m.get("miles_earned"), bonus_percent=m.get("bonus_percent")),
+        source=d.get("source", ""),          # absent in pre-round-16 raw files
     )
 
 
@@ -65,15 +66,66 @@ def cabin_result_from_dict(c: dict) -> CabinResult:
         has_availability=c.get("has_availability", True),
         note=c.get("note", ""),
         source=c.get("source", ""),
+        flight_no=c.get("flight_no", ""),
+        booking_class=c.get("booking_class", ""),
+        operating_carrier=c.get("operating_carrier", ""),
+        is_codeshare=c.get("is_codeshare"),
+        is_interline=c.get("is_interline"),
     )
 
 
+def _record_strength(rec: dict) -> tuple:
+    """(total packages, total amenity lines) — used to pick a winner when the
+    same unit was scraped more than once (see iter_raw_records)."""
+    pkgs = 0
+    amenities = 0
+    for c in rec.get("cabins", []):
+        brands = c.get("brands", [])
+        pkgs += len(brands)
+        for b in brands:
+            amenities += len(b.get("amenities", []))
+    return (pkgs, amenities)
+
+
 def iter_raw_records(path: Path) -> Iterator[dict]:
+    """Yield one record per (carrier, origin, destination, season) — deduped.
+
+    A night's raw_data.jsonl is often the concatenation of several passes
+    (the main run, a gap-fill retry, a resumed half) — appended with plain
+    `cat`, not merged. If the SAME unit was scraped in more than one pass
+    (its input list overlapped with a retry list, or a unit that already had
+    data got re-attempted for a different reason), the file holds it TWICE
+    and nothing downstream deduped that: both ladders got published side by
+    side, doubling every tier on screen (live-verified 2026-08-04, TK
+    AMS-ATH Winter showed "Restricted" and "Flexible" each twice).
+
+    The stronger record (more packages, tie-broken by more amenity detail,
+    tie-broken by "scraped later in the file") wins; the other is dropped
+    before anything downstream ever sees it — this is the one place both
+    reprocess_raw.py and to_platform.py read raw_data.jsonl through, so the
+    fix applies everywhere without each caller having to know about it.
+    """
+    best: dict[tuple, dict] = {}
+    order: list[tuple] = []          # first-seen order, for stable output
     with Path(path).open(encoding="utf-8") as f:
-        for line in f:
+        for i, line in enumerate(f):
             line = line.strip()
-            if line:
-                yield json.loads(line)
+            if not line:
+                continue
+            rec = json.loads(line)
+            key = (rec.get("carrier", ""), rec.get("origin", ""),
+                  rec.get("destination", ""), rec.get("season", ""))
+            cur = best.get(key)
+            if cur is None:
+                best[key] = rec
+                order.append(key)
+                continue
+            # Tie -> the later pass wins: it is presumably the more recent
+            # attempt (a retry exists BECAUSE the earlier one was suspect).
+            if _record_strength(rec) >= _record_strength(cur):
+                best[key] = rec
+    for key in order:
+        yield best[key]
 
 
 # --------------------------------------------------------------------------- #
