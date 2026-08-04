@@ -34,7 +34,7 @@
   --green:#0C8F5E; --green-soft:#E4F7EE; --green-line:#9EDBBE;
   --red:#D9273E; --red-soft:#FCEAED;
   --violet:#7C3AED; --violet-soft:#F1EAFD;
-  --tk:#E11D48; --tk-soft:#FDEAEF; --tk-line:#F6A8B9;
+  --tk:#C8102E; --tk-soft:#FCEAEE; --tk-line:#F0A6B3;
   --eco:#2A63EB; --pey:#7C3AED; --biz:#C4720A;
   --ink:#0F1B2E; --tooltip-bg:#152036; --tooltip-fg:#F4F7FD;
   --range-a:#E7EEF9; --range-b:#D7E1F1; --range-line:#C3CFE4;
@@ -48,8 +48,8 @@
   --accent-grad:linear-gradient(135deg,#2A63EB 0%,#5B8DFF 55%,#7CB2FF 100%);
   --page-grad:radial-gradient(1100px 480px at 12% -8%,rgba(42,99,235,.08),transparent 60%),
               radial-gradient(900px 420px at 100% 0%,rgba(124,58,237,.05),transparent 55%);
-  --font:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;
-  --mono:'IBM Plex Mono','Consolas',monospace;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI Variable Text','Segoe UI',Inter,Roboto,'Helvetica Neue',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace;
   color-scheme:light;
 }
 :root[data-theme="dark"]{
@@ -61,7 +61,7 @@
   --green:#3DDBA0; --green-soft:#0E271F; --green-line:#1F4C3B;
   --red:#FF7A88; --red-soft:#341419;
   --violet:#B79BFF; --violet-soft:#241A3E;
-  --tk:#FF5C82; --tk-soft:#2E1420; --tk-line:#5A2436;
+  --tk:#FF4A66; --tk-soft:#2E1218; --tk-line:#5E2430;
   --eco:#6E9BFF; --pey:#B79BFF; --biz:#E7A94A;
   --ink:#0A0E19; --tooltip-bg:#1C2842; --tooltip-fg:#F4F7FD;
   --range-a:#1B2540; --range-b:#232F52; --range-line:#334268;
@@ -408,22 +408,6 @@ table.mx td.rowlabel{background:var(--bg-alt);text-align:left;font-family:var(--
   display:flex;align-items:center;gap:7px}
 .cmp-panel h4 .dot{width:9px;height:9px;border-radius:50%}
 
-/* ---------- Paket Evrimi (büyük + koşullu) ---------- */
-.tl{border-collapse:collapse;width:100%;min-width:560px}
-.tl th{font-size:11px;color:var(--dim);padding:9px 12px;font-family:var(--mono);border-bottom:2px solid var(--line);text-align:center}
-.tl th.pkgh{text-align:left;font-family:var(--font)}
-.tl td{border-bottom:1px solid var(--line);padding:0}
-.tl td.pkg{font-size:13px;font-weight:700;text-align:left;padding:12px 14px;white-space:nowrap}
-.tl td.cell{text-align:center;padding:10px 14px;font-family:var(--mono);font-size:12.5px}
-.tl td.cell .sc{font-weight:800;font-size:13px}
-.tl td.cell .tr{display:block;font-size:10.5px;color:var(--dim)}
-.tl tr.changed td{background:var(--amber-soft)}
-.tl tr.changed td.pkg::after{content:" ⚠";font-size:12px}
-.tl td.chg{font-size:11px;font-family:var(--font);color:var(--amber);font-weight:700;padding:10px 12px;line-height:1.45}
-.tl td.chg.ok{color:var(--green)}
-.tl .added{color:var(--green);font-weight:800}
-.tl .removed{color:var(--red);font-weight:800}
-
 /* ---------- Arşiv ---------- */
 table.arch{width:100%;border-collapse:collapse}
 table.arch th{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);text-align:left;padding:9px 11px;border-bottom:2px solid var(--line);white-space:nowrap}
@@ -491,8 +475,11 @@ table.raw td{padding:6px 9px;border-bottom:1px solid var(--line);white-space:now
   border:1px solid transparent;line-height:1.15;letter-spacing:.1px}
 .pos-badge.cheap,.pos-badge.rich{background:var(--green-soft);color:var(--green);border-color:var(--green-line)}
 .pos-badge.par{background:var(--bg-alt);color:var(--dim);border-color:var(--line-2)}
-.pos-badge.exp{background:var(--red-soft);color:var(--red);border-color:var(--tk-line)}
+.pos-badge.exp{background:var(--red-soft);color:var(--red);border-color:var(--red)}
 .pos-badge.poor{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-line)}
+/* "TK bu pazarda yok" bir SONUÇ değil, veri yokluğudur — kesik çerçeve onu
+   diğer rozetlerden ayırır, yoksa nötr bir değerlendirme gibi okunuyordu. */
+.pos-badge.none{background:transparent;color:var(--faint);border-color:var(--line-2);border-style:dashed}
 /* .avg (pazar ortalaması karesi) çubuğun ÜSTÜNDE, .tkm (TK) ile AYNI dikey
    hizada durur. Konumları çakışırsa avgMarkerStyle (JS) kareyi TK'nın
    merkezinden sabit pikselle yana iter — ikisi de aynı satırda, ayrı görünür. */
@@ -642,7 +629,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
   <div class="fb-row">
     <div class="fb-search">
       <span class="fb-search-ico" aria-hidden="true">⌕</span>
-      <input id="fSearch" type="text" placeholder="Search route, carrier or brand…">
+      <input id="fSearch" type="text" placeholder="Search OND, carrier or brand…">
     </div>
     <!-- birincil çoklu seçim filtreleri JS tarafından buraya kurulur -->
     <span id="msHost" style="display:contents"></span>
@@ -678,7 +665,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="sub" id="makroSub">Her satır bir pazardır ve tek soruyu yanıtlar: <b>TK'nın kademe geçişleri bu pazarda ucuz mu, pahalı mı, hak içeriği zengin mi?</b> Gri bant = rakip aralığı, <span style="display:inline-block;width:10px;height:11px;background:var(--text);border-radius:2px;vertical-align:-1px"></span> = pazar ortalaması, <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--tk);color:#fff;font-size:7px;font-weight:800;text-align:center;line-height:14px;vertical-align:-2px">TK</span> = TK. Satıra tıklayınca pazarın Paket İndeksi açılır.</div>
         <div class="an-controls">
           <div class="f-group"><label>Breakdown</label>
-            <select id="mxDim"><option value="region">Region → Region</option><option value="country">Country → Country</option><option value="ond">Route</option></select></div>
+            <select id="mxDim"><option value="region">Region → Region</option><option value="country">Country → Country</option><option value="ond">OND</option></select></div>
           <div class="f-group"><label>Cabin</label>
             <select id="mxCabin"><option>Economy</option><option>Business</option></select></div>
           <div class="f-group"><label>Tier</label>
@@ -694,7 +681,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="sub">Kademeler sütunlara hizalıdır: <b>aynı sütun = aynı geçiş</b>; göz yukarıdan aşağı inerek taşıyıcıları doğrudan kıyaslar. Hücre: geçiş ücreti (USD) + kazanılan haklar + varılan paket. Baz sütunu pazara giriş paketidir (0 noktası). TK üstte sabit referanstır.</div>
         <div class="an-controls">
           <div class="f-group"><label>Breakdown</label>
-            <select id="ixDim"><option value="ond">Route</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
+            <select id="ixDim"><option value="ond">OND</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
           <div class="f-group"><label>Market</label><select id="ixFlow"></select></div>
           <div class="f-group"><label>Cabin</label>
             <select id="ixCabin"><option>Economy</option><option>Business</option></select></div>
@@ -711,7 +698,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="sub">Eş değer paketler grup grup: solda <b>Eco-1'de TK, LH, AF… içerik skorları</b>, sağda <b>1→2, 2→3 geçiş ücretleri</b> aynı gruplama ile. "Bu kademede skor olarak neredeyim, geçişte neredeyim" sorusu tek ekranda yanıtlanır; TK her grupta üstte ve kırmızıdır.</div>
         <div class="an-controls">
           <div class="f-group"><label>Breakdown</label>
-            <select id="kcDim"><option value="ond">Route</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
+            <select id="kcDim"><option value="ond">OND</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
           <div class="f-group"><label>Market</label><select id="kcFlow"></select></div>
           <div class="f-group"><label>Cabin</label>
             <select id="kcCabin"><option>Economy</option><option>Business</option></select></div>
@@ -726,7 +713,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="sub">TK'nın seçili pazardaki geçiş merdiveni pazar dinamiğine göre değerlendirilir: her geçiş için pazar bandındaki konum, hak başına ücret (verimlilik) ve aksiyon önerisi. En altta what-if simülatörü: "bu geçişi $X yaparsam veya şu hakkı eklersem" etkisi anında hesaplanır.</div>
         <div class="an-controls">
           <div class="f-group"><label>Breakdown</label>
-            <select id="scDim"><option value="ond">Route</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
+            <select id="scDim"><option value="ond">OND</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
           <div class="f-group"><label>Pazar</label><select id="scFlow"></select></div>
           <div class="f-group"><label>Cabin</label>
             <select id="scCabin"><option>Economy</option><option>Business</option></select></div>
@@ -745,7 +732,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
       </div>
       <div class="f-group"><label style="font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--faint)">Breakdown</label>
         <select id="pdDim">
-          <option value="ond">Route</option>
+          <option value="ond">OND</option>
           <option value="country">Country → Country</option>
           <option value="region">Region → Region</option>
         </select></div>
@@ -761,9 +748,9 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
       <div class="sub">Odak yalnızca geçişkenliktir: <b>başlangıç paketi 0 (baz)</b> kabul edilir, hücreler kademeler ARASI geçişi gösterir. Kademeler içerik skoruna göre küçükten büyüğe standarttır (Eco-1 &lt; Eco-2 &lt; Eco-3…); TK satır/sütunları kalın-kırmızı ayrıştırılır.</div>
       <div class="an-controls">
         <div class="f-group"><label>Rows</label>
-          <select id="hmRow"><option value="airline">Carrier</option><option value="ond">Route</option><option value="country">Route country</option><option value="region">Route region</option></select></div>
+          <select id="hmRow"><option value="airline">Carrier</option><option value="ond">OND</option><option value="country">OND country</option><option value="region">OND region</option></select></div>
         <div class="f-group"><label>Columns</label>
-          <select id="hmCol"><option value="std_eco">Std Paket — Economy</option><option value="std_bus">Std Paket — Business</option><option value="fare_brand">Fare Package (marka)</option><option value="airline">Carrier</option></select></div>
+          <select id="hmCol"><option value="std_eco">Std Paket — Economy</option><option value="std_bus">Std Paket — Business</option><option value="airline">Carrier</option></select></div>
         <div class="f-group"><label>Metric</label>
           <select id="hmMetric"><option value="step">Step fee (USD)</option><option value="gains">Rights gained</option><option value="score">Score change</option></select></div>
       </div>
@@ -777,7 +764,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
       <div class="sub">Eş değer paketler kademe gruplarında karşılaştırılır: solda <b>Eco-1 grubunda TK, LH, AF… skorları</b> alt alta; sağda aynı mantıkla <b>1→2, 2→3 geçiş ücretleri</b>. "1-2 geçişinde skor olarak neredeyim, geçiş ücreti olarak neredeyim" tek bakışta okunur. TK her grupta üstte ve kırmızıdır; bar üzerine gelince ayrıntı görünür.</div>
       <div class="an-controls">
         <div class="f-group"><label>Breakdown</label>
-          <select id="scoDim"><option value="ond">Route</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
+          <select id="scoDim"><option value="ond">OND</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
         <div class="f-group"><label>Market</label><select id="scoFlow"></select></div>
         <div class="f-group"><label>Cabin</label>
           <select id="scoCabin"><option>Economy</option><option>Business</option></select></div>
@@ -791,7 +778,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
       <div class="sub">Her kademe geçişi çubuk çiftiyle karşılaştırılır; altındaki <b>içgörü satırları</b> farkı cümleyle söyler: aynı geçişte kimin kaç USD avantajı var, sende hangi hak değişiyor, rakipte hangi hak değişiyor. Başlangıç paketi 0 kabul edilir. Kırılım: OND / Ülke→Ülke (Almanya→Çin) / Bölge→Bölge (Asya→Avrupa).</div>
       <div class="an-controls">
         <div class="f-group"><label>Breakdown</label>
-          <select id="cmpDim"><option value="ond">Route</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
+          <select id="cmpDim"><option value="ond">OND</option><option value="country">Country → Country</option><option value="region">Region → Region</option></select></div>
         <div class="f-group"><label>Market</label><select id="cmpFlow"></select></div>
         <div class="f-group"><label>Carrier</label><select id="cmpCarrier"></select></div>
       </div>
@@ -800,15 +787,6 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="cmp-panel"><h4><span class="dot" style="background:var(--biz)"></span>Business</h4><div id="cmpBus"></div></div>
       </div>
     </div>
-
-    <div class="section-title">Paket Evrimi</div>
-    <div class="chart-card">
-      <h3>Sezonlar Arası Paket Değişimi</h3>
-      <div class="sub">Her satır <b>bir kademe geçişidir</b>: Winter ve Summer çekimlerindeki geçiş ücreti yan yana, fark ok + % ile. İçerik değişimi ve eklenen/kaldırılan paketler ayrı işaretlenir; değişen satırlar koşullu renklendirilir.</div>
-      <div class="an-controls"><div class="f-group"><label>Carrier</label><select id="evoCarrier"></select></div></div>
-      <div id="evolution" style="overflow-x:auto"></div>
-    </div>
-  </section>
 
   <!-- ======================= ARŞİV ======================= -->
   <section class="tab-page" id="page-archive">
@@ -891,11 +869,31 @@ let FILTERED = [];
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const fmtD = v => v==null ? "—" : "+$" + Math.round(v).toLocaleString("en-US");   // geçiş farkı
-const CABIN_COLOR = {"Economy":"#1D6FE0","Premium Economy":"#7C3AED","Business":"#D97706"};
+/* TEK renk kaynağı. Daha önce aynı anlam birden çok yerde farklı hex ile
+   çizilirdi (TK üç ayrı kırmızıyla: #C8102E, #E11D48, #DC2626) ve SVG'lerde
+   sabit koyu lacivert metinler karanlık temada okunmuyordu. Artık her renk
+   CSS değişkeninden okunur; tema değişince kendiliğinden doğru olur. */
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {
+  get tk(){ return cssVar("--tk"); },          // TK'nın kendi kırmızısı — SADECE TK için
+  get eco(){ return cssVar("--eco"); },
+  get peco(){ return cssVar("--pey"); },
+  get biz(){ return cssVar("--biz"); },
+  get text(){ return cssVar("--text"); },
+  get dim(){ return cssVar("--dim"); },
+  get faint(){ return cssVar("--faint"); },
+  get line(){ return cssVar("--line-2"); },
+  get good(){ return cssVar("--green"); },
+  get bad(){ return cssVar("--red"); },
+  get surface(){ return cssVar("--surface"); },
+};
+const CABIN_COLOR = {"Economy":"var(--eco)","Premium Economy":"var(--pey)","Business":"var(--biz)"};
 const CABIN_ORDER = {"Economy":0,"Premium Economy":1,"Business":2};
 const CABIN_SHORT = {"Economy":"Eco","Premium Economy":"PEco","Business":"Bus"};
+/* Taşıyıcı paleti: TK kırmızısı BİLEREK dışarıda — o renk yalnız TK'yı
+   işaretler, rastgele bir rakibe düşerse ayırt ediciliği kaybolur. */
 const CARRIER_PALETTE = ["#1D6FE0","#0E9F6E","#7C3AED","#D97706","#0891B2","#DB2777","#65A30D",
-  "#4338CA","#0D9488","#B45309","#9333EA","#E11D48","#2563EB","#15803D","#C026D3","#A16207","#0E7490","#7C2D12","#1E40AF","#047857","#BE123C","#5B21B6"];
+  "#4338CA","#0D9488","#B45309","#9333EA","#2563EB","#15803D","#C026D3","#A16207","#0E7490","#7C2D12","#1E40AF","#047857","#5B21B6"];
 const AIRPORT_INFO = {
   IST:["Türkiye","Turkey"],SAW:["Türkiye","Turkey"],CDG:["France","Europe"],MAD:["Spain","Europe"],
   FCO:["Italy","Europe"],ATH:["Greece","Europe"],LHR:["UK","Europe"],FRA:["Germany","Europe"],
@@ -964,7 +962,9 @@ function modeOf(vals){
   return best ?? (vals[0] ?? "");
 }
 const escap = s => String(s??"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const scoreColor = s => s>=70 ? ["#E6F7F0","#0E9F6E"] : s>=45 ? ["#EAF2FD","#12488F"] : ["#FDF3E3","#B45309"];
+const scoreColor = s => s>=70 ? ["var(--green-soft)","var(--green)"]
+                      : s>=45 ? ["var(--blue-soft)","var(--blue-dark)"]
+                              : ["var(--amber-soft)","var(--amber)"];
 
 /* Akış anahtarı: OND / Ülke→Ülke / Bölge→Bölge */
 function flowKey(f, dim){
@@ -1216,10 +1216,10 @@ const alertsFor = (airline, ond) => ALERTS.filter(a=>a.airline===airline && (!on
 const MS_DEFS = [
   ["msCarrier","Carrier", f=>f.airline, true, true, "primary"],
   ["msCabin","Cabin", f=>f.cabin, false, false, "primary"],
-  ["msOnd","Route", f=>ondKey(f), true, true, "primary"],
+  ["msOnd","OND", f=>ondKey(f), true, true, "primary"],
   ["msSeason","Season", f=>f.coll_season||f.season, false, false, "primary"],
   ["msCarrierType","Carrier type", f=>f.carrier_type, false, false, "more"],
-  ["msOndType","Route type", f=>f.ond_type, false, false, "more"],
+  ["msOndType","OND type", f=>f.ond_type, false, false, "more"],
   ["msOrigin","Origin", f=>f.origin, true, true, "more"],
   ["msDestination","Destination", f=>f.destination, true, true, "more"],
   ["msOrigCountry","Origin country", f=>f.origin_country, true, false, "more"],
@@ -1400,7 +1400,7 @@ function renderPanel(){
 }
 function condTable(g){
   const heads = g.map(f=>`<th class="brand-h">
-      <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"#93A2B8"}">${escap(stdTier(f))}</span><br>
+      <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"var(--faint)"}">${escap(stdTier(f))}</span><br>
       <span class="brand-name">${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}</th>`).join("");
   const rowsHtml = Object.keys(FEATURE_META).map(fk=>{
     const [label,desc]=FEATURE_META[fk];
@@ -1414,7 +1414,7 @@ function chainBody(g){
   chains.sort((a,b)=>(CABIN_ORDER[a.cabin]??9)-(CABIN_ORDER[b.cabin]??9));
   let html = `<div class="chains">`;
   chains.forEach(c=>{
-    const col=CABIN_COLOR[c.cabin]||"#93A2B8";
+    const col=CABIN_COLOR[c.cabin]||"var(--faint)";
     html += `<div class="chain"><div class="chain-cabin" style="color:${col}"><span class="dot" style="background:${col}"></span>${escap(c.cabin)}</div>`;
     c.steps.forEach((s,i)=>{
       if(!s.entry){
@@ -1560,20 +1560,28 @@ function renderMakro(){
     if(m.mAvg!=null) band+=`<div class="avg" style="${avgMarkerStyle(X(m.mAvg), m.tk?X(m.tk.v):null)}" data-tip="Pazar ortalaması ${fmtD(m.mAvg)}"></div>`;
     if(m.tk) band+=`<div class="tkm" style="left:${X(m.tk.v)}%" data-tip="TK ortalama ${tier?stepLbl+" geçişi":"kademe geçişi"} ${fmtD(m.tk.v)}">TK</div>`;
     band+=`</div>`;
+    // TK konumu: rozetler satırın CEVABIDIR. "TK yok" gibi düz bir etiket
+    // hangi anlamda yok olduğunu söylemiyordu — pazarda hiç TK verisi mi var,
+    // yoksa TK var ama karşılaştıracak rakip mi yok? İkisi çok farklı sonuç.
     let badges="";
     if(m.tk && m.mAvg!=null){
       const d=(m.tk.v-m.mAvg)/m.mAvg*100;
-      badges += Math.abs(d)<8 ? `<span class="pos-badge par">ortalamada</span>`
-        : d>0 ? `<span class="pos-badge exp">▲ %${Math.round(d)} pahalı</span>`
-              : `<span class="pos-badge cheap">▼ %${Math.round(-d)} ucuz</span>`;
-    } else if(m.tk){ badges += `<span class="pos-badge par">rakip yok</span>`; }
-    else { badges += `<span class="pos-badge par">TK yok</span>`; }
+      const tip=`TK ${fmtD(m.tk.v)} · pazar ortalaması ${fmtD(m.mAvg)} (${m.others.length} rakip)`;
+      badges += Math.abs(d)<8
+        ? `<span class="pos-badge par" data-tip="${tip}">Pazar ortalamasında</span>`
+        : d>0 ? `<span class="pos-badge exp" data-tip="${tip}">▲ %${Math.round(d)} pahalı</span>`
+              : `<span class="pos-badge cheap" data-tip="${tip}">▼ %${Math.round(-d)} ucuz</span>`;
+    } else if(m.tk){
+      badges += `<span class="pos-badge par" data-tip="TK bu pazarda ${fmtD(m.tk.v)} geçiş uyguluyor ama kıyaslanacak rakip verisi yok">TK tek başına</span>`;
+    } else {
+      badges += `<span class="pos-badge none" data-tip="Bu pazarda ${m.n} taşıyıcı var ama TK'nın bu kabin/kademede verisi yok">TK bu pazarda yok</span>`;
+    }
     if(!tier && m.tk && m.tk.g!=null && m.avgGain!=null){
       const gd=m.tk.g-m.avgGain;
       const tip=`Bir kademe yükselirken kazandırılan ort. dahil hak:\nTK ${m.tk.g.toFixed(1)} hak · pazar ${m.avgGain.toFixed(1)} hak`;
-      badges += Math.abs(gd)<0.4 ? `<span class="pos-badge par" data-tip="${tip}">içerik pazarla aynı</span>`
-        : gd>0 ? `<span class="pos-badge rich" data-tip="${tip}">içerik zengin</span>`
-               : `<span class="pos-badge poor" data-tip="${tip}">içerik zayıf</span>`;
+      badges += Math.abs(gd)<0.4 ? `<span class="pos-badge par" data-tip="${tip}">İçerik pazarla aynı</span>`
+        : gd>0 ? `<span class="pos-badge rich" data-tip="${tip}">İçerik zengin</span>`
+               : `<span class="pos-badge poor" data-tip="${tip}">İçerik zayıf</span>`;
     }
     h+=`<div class="pos-row" data-flow="${escap(m.fl)}" data-dim="${dim}">
       <div class="pos-flow">${escap(m.fl)}<small>${m.n} taşıyıcı${m.tk?` · TK ${fmtD(m.tk.v)}`:""}${m.mAvg!=null?` · pazar ort. ${fmtD(m.mAvg)}`:""}</small></div>
@@ -1952,31 +1960,36 @@ function cmpPanel(rows, cabin, al){
   if(!mSteps.length && !tSteps.length) return {svg:`<div class="empty">Bu kabinde geçiş verisi yok.</div>`, insights:[]};
   const n=Math.max(mSteps.length, tSteps.length);
   const maxV=Math.max(...[...mSteps,...tSteps].map(s=>s.delta), 1);
-  const W=560, rowH=58, pad=104, barMax=W-pad-104, H=n*rowH+4;
+  // Sütunlar ÇAKIŞMAYACAK şekilde ayrılır: etiket | çubuk | çubuk değeri | Δ.
+  // Önceden çubuk alanı Δ sütununun altına kadar uzanabiliyordu ve uzun bir
+  // değer ("TK +$211") sağdaki Δ rozetinin ("TK +$111") üstüne biniyordu.
+  const W=560, rowH=60, padL=104, dW=86, vW=64, gap=8;
+  const barMax=W-padL-dW-vW-gap, H=n*rowH+6;
   const color=CABIN_COLOR[cabin];
+  const mono=`font-family="ui-monospace,SFMono-Regular,Menlo,monospace"`;
   let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block">`;
   const insights=[];
   for(let i=0;i<n;i++){
-    const y=i*rowH+6;
+    const y=i*rowH+8;
     const ms=mSteps[i], ts=tSteps[i];
     const label=(ms||ts).label;
-    s+=`<text x="0" y="${y+12}" font-size="11.5" font-weight="700" fill="#16233A">${escap(label)}</text>`;
+    s+=`<text x="0" y="${y+12}" font-size="12" font-weight="700" fill="${C.text}">${escap(label)}</text>`;
     if(ms){
       const w=Math.max(ms.delta/maxV*barMax,4);
-      s+=`<rect x="${pad}" y="${y}" width="${w}" height="14" rx="4" fill="${color}"><title>${al} ${escap(ms.from.brand+" → "+ms.to.brand)} · ${fmtD(ms.delta)}</title></rect>
-          <text x="${pad+w+6}" y="${y+11}" font-size="11" font-family="IBM Plex Mono" fill="#16233A">${fmtD(ms.delta)}</text>`;
-    } else s+=`<text x="${pad}" y="${y+11}" font-size="10" fill="#C6CFDC">${al}: kademe yok</text>`;
+      s+=`<rect x="${padL}" y="${y}" width="${w}" height="15" rx="5" fill="${color}"><title>${al} ${escap(ms.from.brand+" → "+ms.to.brand)} · ${fmtD(ms.delta)}</title></rect>
+          <text x="${padL+w+gap}" y="${y+12}" font-size="11.5" ${mono} fill="${C.dim}">${fmtD(ms.delta)}</text>`;
+    } else s+=`<text x="${padL}" y="${y+12}" font-size="11" fill="${C.faint}">${al}: kademe yok</text>`;
     if(ts){
       const w=Math.max(ts.delta/maxV*barMax,4);
-      s+=`<rect x="${pad}" y="${y+19}" width="${w}" height="14" rx="4" fill="#C8102E" opacity=".9"><title>TK ${escap(ts.from.brand+" → "+ts.to.brand)} · ${fmtD(ts.delta)}</title></rect>
-          <text x="${pad+w+6}" y="${y+30}" font-size="11" font-family="IBM Plex Mono" font-weight="700" fill="#C8102E">TK ${fmtD(ts.delta)}</text>`;
-    } else s+=`<text x="${pad}" y="${y+30}" font-size="10" fill="#C6CFDC">TK: kademe yok</text>`;
-    // Δ rozeti
+      s+=`<rect x="${padL}" y="${y+21}" width="${w}" height="15" rx="5" fill="${C.tk}"><title>TK ${escap(ts.from.brand+" → "+ts.to.brand)} · ${fmtD(ts.delta)}</title></rect>
+          <text x="${padL+w+gap}" y="${y+33}" font-size="11.5" ${mono} font-weight="700" fill="${C.tk}">TK ${fmtD(ts.delta)}</text>`;
+    } else s+=`<text x="${padL}" y="${y+33}" font-size="11" fill="${C.faint}">TK: kademe yok</text>`;
+    // Δ rozeti — kendi sütununda, çubuk alanının dışında
     if(ms&&ts){
       const d=Math.round(ts.delta-ms.delta);
       const win=d<0;   // TK daha ucuzsa yeşil
-      s+=`<text x="${W-4}" y="${y+21}" text-anchor="end" font-size="11" font-weight="800" font-family="IBM Plex Mono"
-        fill="${d===0?"#5B6B84":(win?"#0E9F6E":"#DC2626")}">TK ${d>0?"+$"+d:d<0?"−$"+(-d):"eşit"}</text>`;
+      s+=`<text x="${W}" y="${y+22}" text-anchor="end" font-size="11.5" font-weight="800" ${mono}
+        fill="${d===0?C.dim:(win?C.good:C.bad)}">TK ${d>0?"+$"+d:d<0?"−$"+(-d):"eşit"}</text>`;
       // içgörü cümlesi
       const mSet=new Set(ms.gains), tSet=new Set(ts.gains);
       const onlyM=[...mSet].filter(x=>!tSet.has(x)), onlyT=[...tSet].filter(x=>!mSet.has(x));
@@ -1999,64 +2012,6 @@ function renderCompare(){
     $(sel).innerHTML = svg + insights.map(i=>
       `<div class="insight"><span class="tag">${escap(i.label)}</span><span>${i.txt}</span></div>`).join("");
   });
-}
-
-/* ---- Paket Evrimi: sezonlar arası, koşullu renklendirme ---- */
-function fillEvoCarrier(){
-  const carriers=uniq(FILTERED.map(f=>f.airline));
-  const el=$("#evoCarrier"), cur=el.value;
-  el.innerHTML=carriers.map(v=>`<option>${v}</option>`).join("");
-  el.value=carriers.includes(cur)?cur:(carriers.includes("TK")?"TK":carriers[0]);
-}
-function renderEvolution(){
-  const al=$("#evoCarrier").value, host=$("#evolution");
-  const rows=FILTERED.filter(f=>f.airline===al);
-  const colls=uniq(rows.map(f=>f.coll_date));
-  if(!colls.length){ host.innerHTML=`<div class="empty">Veri yok.</div>`; return; }
-  const seasonOf=c=>(rows.find(f=>f.coll_date===c)||{}).coll_season||"";
-  const [pC,cC]=colls.length>=2?colls.slice(-2):[colls[0],colls[0]];
-  const two=colls.length>=2;
-  const cabins=uniq(rows.map(f=>f.cabin)).sort((a,b)=>(CABIN_ORDER[a]??9)-(CABIN_ORDER[b]??9));
-  let h=`<table class="evo"><tr><th>Kademe Geçişi</th>
-    <th>${pC}<span class="sub" style="display:block">${seasonOf(pC)}</span></th>
-    ${two?`<th>${cC}<span class="sub" style="display:block">${seasonOf(cC)}</span></th><th>Δ Geçiş</th>`:""}
-    <th style="text-align:left">İçerik / Paket Değişimi</th></tr>`;
-  cabins.forEach(cab=>{
-    const cp=chainsFor(rows,{cabin:cab,coll:pC})[0];
-    const cc=two?chainsFor(rows,{cabin:cab,coll:cC})[0]:cp;
-    const pSteps=cp?cp.steps.filter(s=>!s.entry):[];
-    const cSteps=cc?cc.steps.filter(s=>!s.entry):[];
-    const n=Math.max(pSteps.length,cSteps.length);
-    for(let i=0;i<n;i++){
-      const sp=pSteps[i], sc=cSteps[i];
-      const label=(sc||sp).label, fromB=(sc||sp).from.brand, toB=(sc||sp).to.brand;
-      let dCell="", note="", hot=false;
-      if(two){
-        if(sp&&sc&&sp.delta!=null&&sc.delta!=null){
-          const d=Math.round(sc.delta-sp.delta), pct=Math.round(d/Math.max(sp.delta,1)*100);
-          if(Math.abs(pct)>=5){ hot=true;
-            dCell=`<td class="${d>0?"up":"down"}">${d>0?"▲":"▼"} ${d>0?"+":""}$${Math.abs(d)} (%${pct>0?"+"+pct:pct})</td>`;
-          } else dCell=`<td class="same">≈ sabit</td>`;
-        } else if(!sp&&sc){ hot=true; dCell=`<td class="up">＋ yeni</td>`; note=`<span style="color:var(--green);font-weight:700">Yeni kademe eklendi (${escap(sc.to.brand)})</span>`; }
-        else if(sp&&!sc){ hot=true; dCell=`<td class="down">✕</td>`; note=`<span style="color:var(--red);font-weight:700">Kademe kaldırıldı</span>`; }
-        else dCell=`<td class="same">·</td>`;
-        if(sp&&sc&&!note){
-          const gp=new Set(sp.gains), gc=new Set(sc.gains);
-          const add=[...gc].filter(x=>!gp.has(x)), rem=[...gp].filter(x=>!gc.has(x));
-          if(add.length||rem.length){ hot=true;
-            note=[add.length?`<span style="color:var(--green);font-weight:700">+ ${add.join(", ")}</span>`:"",
-                  rem.length?`<span style="color:var(--red);font-weight:700">− ${rem.join(", ")}</span>`:""].filter(Boolean).join(" · ");
-          } else note=`kazanım aynı (${sc.gains.length?sc.gains.slice(0,3).join(", ")+(sc.gains.length>3?"…":""):"—"})`;
-        }
-      } else note = sp&&sp.gains.length ? "+ "+sp.gains.join(", ") : "—";
-      h+=`<tr class="${hot?"hot":""}">
-        <td>${escap(label)}<span class="sub">${escap(fromB)} → ${escap(toB)} · ${escap(cab)}${hot?" ⚠":""}</span></td>
-        <td>${sp&&sp.delta!=null?fmtD(sp.delta):"·"}</td>
-        ${two?`<td>${sc&&sc.delta!=null?fmtD(sc.delta):"·"}</td>${dCell}`:""}
-        <td class="note">${note}</td></tr>`;
-    }
-  });
-  host.innerHTML=h+"</table>";
 }
 
 /* ================================================================
@@ -2261,7 +2216,7 @@ function wireKnowHow(){
 const TAB_RENDER={
   kokpit:()=>renderKokpit(),
   panel:()=>renderPanel(),
-  analytics:()=>{fillCmpControls();fillScoFlow();fillEvoCarrier();renderHeatmap();renderScoreChart();renderCompare();renderEvolution();},
+  analytics:()=>{fillCmpControls();fillScoFlow();renderHeatmap();renderScoreChart();renderCompare();},
   archive:()=>renderArchive(),
   knowhow:()=>renderKnowHow()
 };
@@ -2269,7 +2224,7 @@ const TAB_DIRTY={};
 const TAB_CONTENT={
   kokpit:["makroMatrix","pkgIndex","scenarioBody"],
   panel:["panelCards"],
-  analytics:["heatmap","cmpEco","cmpPeco","cmpBus","evolution","scoreChart"],
+  analytics:["heatmap","cmpEco","cmpPeco","cmpBus","scoreChart"],
   archive:["archBody"]
 };
 function evictTab(name){
@@ -2375,7 +2330,6 @@ $("#ixSort").addEventListener("change",renderIndex);
 $("#cmpDim").addEventListener("change",()=>{fillCmpControls();renderCompare();});
 $("#cmpFlow").addEventListener("change",()=>{fillCmpControls();renderCompare();});
 $("#cmpCarrier").addEventListener("change",renderCompare);
-$("#evoCarrier").addEventListener("change",renderEvolution);
 $("#archAllTsv").addEventListener("click",()=>download("fpi_arsiv_tumu.tsv", toTSV(DATA.fares)));
 $("#archAllXls").addEventListener("click",()=>download("fpi_arsiv_tumu.xls", toXLS(DATA.fares), "application/vnd.ms-excel"));
 $("#loadJsonBtn").addEventListener("click",()=>$("#jsonFile").click());
