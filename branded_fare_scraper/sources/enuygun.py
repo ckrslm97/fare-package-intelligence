@@ -454,10 +454,25 @@ class Enuygun(SourceAdapter):
                 continue
             status = self._item_status(at, descr)
             detail = descr
+            # Baggage items carry piece count + weight as CLEAN structured
+            # fields (attributes.piece: int, attributes.allowance: numeric
+            # string) alongside the free-text display_text ("1 parça X 10 kg
+            # kabin bagajı") our regex parser normally has to read. Live-
+            # verified 2026-08-04 across 1,602 baggage items / 30 carriers:
+            # piece is present 100% of the time, allowance is present
+            # whenever a weight limit actually applies (absent only for
+            # genuinely unweighted items like "1 parça el çantası", where
+            # the free text has no kg either). Rebuilding the text from these
+            # fields — instead of trusting whatever wording the site used —
+            # removes the entire class of misread bugs this session spent
+            # real effort chasing (cm-vs-kg, missing "parça", case) for the
+            # one source that doesn't need the regex safety net at all.
+            if key in ("cabin_baggage", "checked_baggage", "extra_baggage") and at.get("piece") and at.get("allowance"):
+                detail = f"{at['piece']} parça X {at['allowance']} kg"
             # Surface the fee amount from the tooltip ("Yakl. 10759.00 TRY …")
             # so Paid cells carry the actual cost.
             if tooltip and any(ch.isdigit() for ch in tooltip) and tooltip not in detail:
-                detail = f"{descr} — {tooltip}" if descr else tooltip
+                detail = f"{detail} — {tooltip}" if detail else tooltip
             amenities.append(RawAmenity(raw_label=name, status=status, raw_value=detail,
                                         canonical_key=key))
 

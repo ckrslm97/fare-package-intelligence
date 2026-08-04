@@ -296,18 +296,13 @@ def main():
          'rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim)+"|"+(f.season||"");'),
         ('const f0=g[0], flowLabel=flowKey(f0,pdDim);',
          'const f0=g[0], flowLabel=flowKey(f0,pdDim)+(f0.season?(" · "+f0.season):"");'),
-        # KPI hi/lo transitions: chainsFor averages tiers across ONDs, so mixed
-        # ladder lengths can make a tier-mean step negative ("+$-378") or label
-        # a step with the SAME brand on both sides ("Business Flex → Business
-        # Flex"). Pick among positive, distinctly-labelled steps (fall back to
-        # positive-only if none qualify).
-        ('const hi = steps.length? steps.reduce((a,b)=>a.delta>b.delta?a:b) : null;\n'
-         '  const lo = steps.length? steps.reduce((a,b)=>a.delta<b.delta?a:b) : null;',
-         'const _pos = steps.filter(s=>s.delta>0);\n'
-         '  const _lbl = _pos.filter(s=>s.fromBrand!==s.toBrand);\n'
-         '  const _cand = _lbl.length? _lbl : _pos;\n'
-         '  const hi = _cand.length? _cand.reduce((a,b)=>a.delta>b.delta?a:b) : null;\n'
-         '  const lo = _cand.length? _cand.reduce((a,b)=>a.delta<b.delta?a:b) : null;'),
+        # NOTE: a patch used to sit here that hid negative / same-brand-on-both-
+        # sides transitions from the KPI strip. Its own comment named the cause
+        # correctly ("chainsFor averages tiers across ONDs, so mixed ladder
+        # lengths can make a tier-mean step negative") but only masked it in
+        # that one widget — Paket Karşılaştırma still published "+$-366
+        # Flexible → Restricted". chainsFor now averages PER-UNIT deltas, so
+        # the condition can no longer arise and the KPI strip itself is gone.
     ]
     for old, new in patches:
         if old not in html:
@@ -333,74 +328,11 @@ def main():
     # and debounce the search box.
     # renderAll differs between template revisions (v9 added the score chart);
     # patch whichever variant this template carries.
-    ra_v9_old = """function renderAll(){
-  renderKokpit();
-  renderPanel();
-  fillCmpControls();
-  fillScoFlow();
-  fillEvoCarrier();
-  renderKPIs(); renderHeatmap(); renderScoreChart(); renderCompare(); renderEvolution();
-  renderArchive();
-  renderKnowHow();
-}"""
-    ra_v9_new = """const TAB_RENDER={
-  kokpit:()=>renderKokpit(),
-  panel:()=>renderPanel(),
-  analytics:()=>{fillCmpControls();fillScoFlow();fillEvoCarrier();renderKPIs();renderHeatmap();renderScoreChart();renderCompare();renderEvolution();},
-  archive:()=>renderArchive(),
-  knowhow:()=>renderKnowHow()
-};
-const TAB_DIRTY={};
-const TAB_CONTENT={
-  kokpit:["kokpitKpi","makroMatrix","pkgIndex","scenarioBody"],
-  panel:["panelCards"],
-  analytics:["kpiGrid","heatmap","cmpEco","cmpPeco","cmpBus","evolution","scoreChart"],
-  archive:["archBody"]
-};
-function evictTab(name){
-  (TAB_CONTENT[name]||[]).forEach(id=>{const el=document.getElementById(id); if(el) el.innerHTML="";});
-  TAB_DIRTY[name]=true;
-}
-let _afT=null;
-function scheduleFilters(){ clearTimeout(_afT); _afT=setTimeout(applyFilters,120); }
-function renderTab(name){ if(TAB_RENDER[name]){ TAB_RENDER[name](); TAB_DIRTY[name]=false; } }
-function renderAll(){
-  Object.keys(TAB_RENDER).forEach(k=>TAB_DIRTY[k]=true);
-  const a=document.querySelector(".tab-btn.active");
-  renderTab(a?a.dataset.tab:"kokpit");
-}"""
-    ra_v4_old = """function renderAll(){
-  renderKokpit();
-  renderPanel();
-  fillCmpControls();
-  fillEvoCarrier();
-  renderKPIs(); renderHeatmap(); renderCompare(); renderEvolution();
-  renderArchive();
-  renderKnowHow();
-}"""
-    ra_v4_new = ra_v9_new.replace(
-        "fillCmpControls();fillScoFlow();fillEvoCarrier();renderKPIs();renderHeatmap();renderScoreChart();",
-        "fillCmpControls();fillEvoCarrier();renderKPIs();renderHeatmap();")
-    ra_pair = (ra_v9_old, ra_v9_new) if ra_v9_old in html else (ra_v4_old, ra_v4_new)
-
+    # NOTE: lazy per-tab rendering, the search/multi-select debounce and the
+    # switchTab DOM eviction used to be patched in here; they now live in the
+    # templates themselves (2026-08-04), so a template edit can no longer break
+    # the build by moving an anchor line.
     perf_patches = [
-        ra_pair,
-        ("""function switchTab(name){
-  $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
-  $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
-}""",
-         """function switchTab(name){
-  const prev=(document.querySelector(".tab-btn.active")||{}).dataset ? document.querySelector(".tab-btn.active").dataset.tab : null;
-  $$(".tab-btn").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
-  $$(".tab-page").forEach(p=>p.classList.toggle("active", p.id==="page-"+name));
-  if(prev && prev!==name) evictTab(prev);   // DOM diet: a left tab carries no nodes
-  if(TAB_DIRTY[name]) renderTab(name);
-}"""),
-        ('$("#fSearch").addEventListener("input",applyFilters);',
-         'let _fsT=null; $("#fSearch").addEventListener("input",()=>{clearTimeout(_fsT);_fsT=setTimeout(applyFilters,250);});'),
-        # every multi-select click used to re-render synchronously; coalesce them
-        ('refreshMs(id); applyFilters();',
-         'refreshMs(id); scheduleFilters();'),
         # --- Fix 6: Detay Analiz built ~600 cards (~100k DOM nodes) in one go;
         # paginate to 40-card chunks with a "Daha fazla göster" button.
         ("  Object.keys(groups).sort().forEach(k=>{",
@@ -425,20 +357,11 @@ function renderAll(){
   $$(".alert-ico").forEach(el=>el.addEventListener("click",()=>openKnowHow(el.dataset.kh, el.dataset.khtext)));
   };
   _renderChunk(40);"""),
-        # --- Fix 5: transition gains only counted rights that became "Included",
-        # so a right newly offered as PAID (e.g. TK Business Fly -> Business Prime
-        # adds Aynı Gün Erken Uçuş as a paid option) never appeared. Count any
-        # rank upgrade (absent < Paid < Included); label paid gains "(Ücretli)".
-        ("""      const gains = prev ? Object.keys(FEATURE_META).filter(fk=>{
-        const sa=((prev.rep.features||{})[fk]||{}).state, sb=((n.rep.features||{})[fk]||{}).state;
-        return sb==="Included" && sa!=="Included";
-      }).map(fk=>FEATURE_META[fk][0]) : [];""",
-         """      const gains = prev ? Object.keys(FEATURE_META).flatMap(fk=>{
-        const rk=s=>s==="Included"?2:(s==="Paid"?1:0);
-        const sa=((prev.rep.features||{})[fk]||{}).state, sb=((n.rep.features||{})[fk]||{}).state;
-        if(rk(sb)<=rk(sa)) return [];
-        return [sb==="Paid" ? FEATURE_META[fk][0]+" (Ücretli)" : FEATURE_META[fk][0]];
-      }) : [];"""),
+        # NOTE: the former "Fix 5" (count Paid as a transition gain, not just
+        # Included) used to be patched in here. It now lives in the templates'
+        # own chainsFor, which was rewritten 2026-08-04 to average PER-UNIT
+        # deltas instead of differencing tier averages — patching a snippet
+        # that no longer exists would only break the build.
     ]
     for old, new in perf_patches:
         if old not in html:
