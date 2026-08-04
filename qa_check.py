@@ -118,6 +118,43 @@ def check_ladder_monotonic(rows: list[dict]) -> list[str]:
     return problems
 
 
+def check_right_coverage(rows: list[dict]) -> list[str]:
+    """A right a carrier reports almost everywhere but misses on a few ONDs.
+
+    Rights come from fare rules, so a carrier that grants cabin baggage on 120
+    of its 127 ONDs almost certainly grants it on the other 7 too — the gap is
+    the scrape having read one flight that omitted the item, not the airline
+    withdrawing the right on those routes. This is the generalised form of the
+    2026-08-04 defect where Enuygun's flight picker chose one of the 2 TK
+    BER-AYT flights (out of 47) whose packages carry no cabin_baggage.
+
+    Only flagged when the right is present on >=85% of the carrier's ONDs and
+    absent on at least one: a right that is genuinely route-dependent (lounge
+    on long-haul only) sits well below that line and stays quiet.
+    """
+    cols = ["Cabin Baggage", "Checked Baggage", "Meal", "Seat Selection", "Lounge"]
+    by_carrier: dict[str, dict[tuple, dict[str, bool]]] = collections.defaultdict(dict)
+    for r in rows:
+        key = (r["Origin"], r["Destination"], r["Season"], r["Cabin"])
+        slot = by_carrier[r["Carrier"]].setdefault(key, {c: False for c in cols})
+        for c in cols:
+            if r.get(c, "").strip() not in ("", "Unknown"):
+                slot[c] = True
+    problems = []
+    for carrier, units in by_carrier.items():
+        if len(units) < 8:            # too few units to call anything anomalous
+            continue
+        for c in cols:
+            have = sum(1 for u in units.values() if u[c])
+            miss = len(units) - have
+            if miss and have / len(units) >= 0.85:
+                problems.append(
+                    f"RIGHT COVERAGE: {carrier} — '{c}' {have}/{len(units)} birimde var, "
+                    f"{miss} birimde HİÇ yok (kural bazlı hak; muhtemelen o birimde "
+                    f"eksik okundu)")
+    return problems
+
+
 def report_business_coverage(rows: list[dict]) -> None:
     sys.path.insert(0, str(Path(__file__).parent))
     from branded_fare_scraper.normalization import LCC_CARRIERS
@@ -176,6 +213,7 @@ def main() -> None:
     problems += check_duplicate_names(rows)
     problems += check_baggage_format(rows)
     problems += check_ladder_monotonic(rows)
+    problems += check_right_coverage(rows)
 
     report_business_coverage(rows)
     report_refund_fee_spread(out_dir)

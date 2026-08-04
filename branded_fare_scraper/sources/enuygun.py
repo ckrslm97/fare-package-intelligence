@@ -26,7 +26,8 @@ from typing import Optional
 from ..amenities import classify_status_from_text
 from ..models import (AmenityStatus, Cabin, CabinResult, Job, PriceType, RawAmenity,
                       RawBrand, RawMiles)
-from ..normalization import detect_cabin, ladder_metrics, regroup_brands_by_cabin
+from ..normalization import (LCC_CARRIERS, detect_cabin, enrich_brands,
+                             ladder_metrics, regroup_brands_by_cabin)
 from ..retry import CarrierAbsent, Forbidden, NoAvailabilityError
 from .base import SourceAdapter, register
 
@@ -176,8 +177,16 @@ class Enuygun(SourceAdapter):
 
     def cabins_for(self, job: Job) -> list[Cabin]:
         # Only cabins with a confirmed class param (Economy is the default).
-        return [c for c in (Cabin.ECONOMY, Cabin.PREMIUM_ECONOMY, Cabin.BUSINESS)
-                if CLASS_PARAM.get(c) is not None]
+        cabins = [c for c in (Cabin.ECONOMY, Cabin.PREMIUM_ECONOMY, Cabin.BUSINESS)
+                  if CLASS_PARAM.get(c) is not None]
+        # A low-cost carrier has no Business product to find, so the dedicated
+        # Business search is a page load spent to confirm a known absence. It
+        # is still fetched when a FULL-SERVICE carrier on the same OND needs it
+        # (the search cache is per OND/date/cabin, not per carrier), so this
+        # only skips work nobody else asked for.
+        if (job.carrier or "").upper() in LCC_CARRIERS:
+            cabins = [c for c in cabins if c is not Cabin.BUSINESS]
+        return cabins
 
     @classmethod
     def invalidate(cls, origin: str, destination: str, departure: date) -> None:
@@ -272,6 +281,20 @@ class Enuygun(SourceAdapter):
                     if pe:
                         best[Cabin.PREMIUM_ECONOMY] = pe
                         break
+            # A fare brand's RIGHTS come from its fare rules, so they are a
+            # property of the brand — not of the aircraft that happens to fly
+            # it. One flight's package list can still omit a right the very
+            # same brand shows on the next flight (live-verified 2026-08-04:
+            # 45 of 47 TK BER-AYT flights list cabin_baggage, 2 do not), and
+            # picking a single winning itinerary published that hole as fact.
+            # So: prices stay from the ONE winning flight — never mixed — but
+            # every brand's missing rights are filled in from the other
+            # flights of the same carrier/date that sell the same brand.
+            for cab, bs in best.items():
+                for _s, other_buckets, _f in scored[1:]:
+                    others = other_buckets.get(cab)
+                    if others:
+                        enrich_brands(bs, others)
             for cab, bs in best.items():
                 if not bs:
                     continue
