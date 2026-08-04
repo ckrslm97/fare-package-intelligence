@@ -476,6 +476,20 @@ table.raw td{padding:6px 9px;border-bottom:1px solid var(--line);white-space:now
   font-family:var(--font);overflow:hidden}
 .lg-avg{display:inline-block;width:12px;height:12px;background:var(--text);
   border:1.5px solid var(--surface);border-radius:3px;vertical-align:-2px}
+/* Bilgi Bankası — veriden çıkarılan taşıyıcı künyesi */
+.kh-facts{display:grid;grid-template-columns:minmax(140px,190px) 1fr;gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:var(--radius-sm);
+  overflow:hidden;margin-bottom:18px}
+.kh-fact{display:contents}
+.kh-fact .k{background:var(--bg-alt);padding:10px 13px;font-size:11.5px;font-weight:750;
+  color:var(--dim);letter-spacing:.2px}
+.kh-fact .v{background:var(--surface);padding:10px 13px;font-size:13px;color:var(--text);font-weight:600}
+.kh-fact .v small{color:var(--faint);font-weight:500;font-size:11.5px}
+.kh-tagx{display:inline-block;background:var(--green-soft);color:var(--green);
+  border:1px solid var(--green-line);border-radius:99px;padding:2px 9px;font-size:11px;
+  font-weight:700;margin:2px 3px 2px 0}
+.kh-notes-head{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--faint);margin:4px 0 8px}
 .pos-badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 /* Konum rozetleri satırın SONUCUDUR — bandı okumadan da "ucuz mu, pahalı mı"
    cevabını vermeleri gerekir; bu yüzden renk sadece dolgu değil, kenarlıkla
@@ -798,6 +812,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
         <div class="cmp-panel"><h4><span class="dot" style="background:var(--biz)"></span>Business</h4><div id="cmpBus"></div></div>
       </div>
     </div>
+  </section>
 
   <!-- ======================= ARŞİV ======================= -->
   <section class="tab-page" id="page-archive">
@@ -2153,8 +2168,11 @@ function renderKnowHow(){
   const visCarriers = uniq(FILTERED.map(f=>f.airline));
   const flows = new Set(FILTERED.map(f=>ondKey(f)));
   const carriers = Object.keys(KH).filter(al=>visCarriers.includes(al)).sort((a,b)=>(a==="TK"?-1:b==="TK"?1:a.localeCompare(b)));
-  if(khActive!=="__gl" && khActive!=="__meth" && (!khActive || !carriers.includes(khActive))) khActive = carriers[0]||"__gl";
   const noteVisible = n => !n.auto || !n.ond || flows.has(n.ond);
+  if(khActive!=="__gl" && khActive!=="__meth" && (!khActive || !carriers.includes(khActive))){
+    const anyNote = carriers.some(al=>KH[al].filter(noteVisible).length);
+    khActive = anyNote ? carriers[0] : "__gl";   // hiç not yoksa sözlükle aç
+  }
   list.innerHTML =
     `<div class="kh-item glossary ${khActive==="__gl"?"active":""}" data-al="__gl"><span class="n">📖 Metrik Sözlüğü</span><span class="kh-count">${GLOSSARY.length}</span></div>` +
     `<div class="kh-item glossary ${khActive==="__meth"?"active":""}" data-al="__meth"><span class="n">🧪 Metodoloji</span><span class="kh-count">10</span></div>` +
@@ -2180,17 +2198,51 @@ function renderKnowHow(){
     return;
   }
   $("#khAddRow").style.display="";
-  $("#khTitle").textContent = `${khActive} — Bilgi Bankası`;
+  const nm=(FILTERED.find(f=>f.airline===khActive)||{}).airline_name;
+  $("#khTitle").textContent = nm ? `${nm} (${khActive}) — Bilgi Bankası` : `${khActive} — Bilgi Bankası`;
   const notes=(KH[khActive]||[]).filter(noteVisible);
-  $("#khNotes").innerHTML = notes.length
-    ? notes.map(n=>`<div class="kh-note ${n.auto?"auto":""} ${n.text===khFlashText?"flash":""}">
+  // Not listesi otomatik uyarılardan beslenir ve uyarılar İKİ çekimi
+  // karşılaştırarak üretilir; tek çekimlik bir veri setinde hiç not olmaz ve
+  // sayfa bomboş açılırdı. Taşıyıcının veriden ÇIKARILAN künyesi her zaman
+  // gösterilir — bu bir yorum değil, sayılabilir olgu.
+  $("#khNotes").innerHTML = carrierFactsHTML(khActive) + (notes.length
+    ? `<div class="kh-notes-head">Notlar</div>` + notes.map(n=>`<div class="kh-note ${n.auto?"auto":""} ${n.text===khFlashText?"flash":""}">
         <span class="bullet">${n.auto?"⭐":"•"}</span><span style="flex:1">${escap(n.text)}</span>
         ${n.date?`<span class="d">${n.date}</span>`:""}</div>`).join("")
-    : `<div class="empty">Bu taşıyıcı için (seçili filtre kapsamında) not yok.</div>`;
+    : `<div class="kh-notes-head">Notlar</div><div class="empty">Henüz not yok. Otomatik notlar (yeni/kaldırılan paket, geçiş ücreti değişimi) <b>iki ayrı çekimin</b> karşılaştırılmasıyla üretilir; bu veri seti tek çekim içerdiği için otomatik not oluşmadı. Aşağıdan kendi gözlemini ekleyebilirsin.</div>`);
   if(khFlashText){
     const el=$("#khNotes .flash"); if(el) el.scrollIntoView({block:"center",behavior:"smooth"});
     khFlashText=null;
   }
+}
+/* Taşıyıcının veriden ÇIKARILAN künyesi: kapsam, merdiven derinliği, ortalama
+   geçiş ücreti ve giriş paketinde standart olarak dahil olan haklar. Hepsi
+   seçili filtre kapsamındaki kayıtlardan hesaplanır — yorum değil, sayım. */
+function carrierFactsHTML(al){
+  const rows=FILTERED.filter(f=>f.airline===al);
+  if(!rows.length) return `<div class="empty">Seçili filtre kapsamında bu taşıyıcının kaydı yok.</div>`;
+  const onds=uniq(rows.map(f=>ondKey(f)));
+  const cabins=uniq(rows.map(f=>f.cabin)).sort((a,b)=>(CABIN_ORDER[a]??9)-(CABIN_ORDER[b]??9));
+  const seasons=uniq(rows.map(f=>f.coll_season||f.season));
+  const fact=(k,v)=>`<div class="kh-fact"><span class="k">${escap(k)}</span><span class="v">${v}</span></div>`;
+  let h=`<div class="kh-facts">`;
+  h+=fact("Kapsam", `${onds.length} OND · ${rows.length.toLocaleString("en-US")} tarife satırı`);
+  h+=fact("Sezon", seasons.join(" · ")||"—");
+  cabins.forEach(cab=>{
+    const cr=rows.filter(f=>f.cabin===cab);
+    const depth=uniq(cr.map(f=>f.package_order)).length;
+    const st=avgStep(rows,{cabin:cab});
+    const brands=uniq(cr.map(f=>f.fare_brand)).slice(0,4);
+    h+=fact(cab, `${depth} kademe · ort. geçiş ${st!=null?fmtD(st):"—"}<br><small>${escap(brands.join(", "))}${uniq(cr.map(f=>f.fare_brand)).length>4?"…":""}</small>`);
+  });
+  // Giriş paketinde (en ucuz kademe) HER kayıtta dahil olan haklar
+  const entry=rows.filter(f=>f.package_order===Math.min(...rows.map(x=>x.package_order)));
+  const always=Object.keys(FEATURE_META).filter(fk=>
+    entry.length && entry.every(f=>((f.features||{})[fk]||{}).state==="Included"));
+  h+=fact("Giriş paketinde hep dahil",
+    always.length?always.map(fk=>`<span class="kh-tagx">${escap(FEATURE_META[fk][0])}</span>`).join(" ")
+                 :`<span style="color:var(--faint)">standart dahil hak yok</span>`);
+  return h+`</div>`;
 }
 function openKnowHow(airline, highlightText){
   khActive=airline; khFlashText=highlightText||null;

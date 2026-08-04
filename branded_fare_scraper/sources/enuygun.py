@@ -226,11 +226,20 @@ class Enuygun(SourceAdapter):
 
             keep_pe = search_cabin == Cabin.ECONOMY   # PE families leak into the eco ladder
             # Score every carrier flight's ladder AFTER regrouping: most cabins
-            # covered, most fares, fewest implausible (>3x) jumps, smallest worst
-            # step, most amenity items, cheapest base. Same-brand ladders differ
-            # per itinerary (e.g. AC business Latitude step $1,144 on one flight
-            # vs $284 on another) — the sane, cheap ladder is what the airline's
-            # own site shows first.
+            # covered, most fares, WIDEST RIGHT COVERAGE, fewest implausible
+            # (>3x) jumps, smallest worst step, most amenity items, cheapest
+            # base. Same-brand ladders differ per itinerary (e.g. AC business
+            # Latitude step $1,144 on one flight vs $284 on another) — the
+            # sane, cheap ladder is what the airline's own site shows first.
+            #
+            # Right coverage (how many DISTINCT rights the ladder reports) sits
+            # above the step-shape heuristics on purpose: a ladder missing a
+            # whole right is a hole in the data, while a wider price step is
+            # often just the airline's real pricing. Live-verified 2026-08-04
+            # on TK BER-AYT: 45 of 47 flights report cabin_baggage and 2 do
+            # not, and the old order picked one of those 2 — publishing "no
+            # cabin bag" for every TK package on the route while Enuygun's own
+            # page showed "1 parça X 8 kg kabin bagajı" on all of them.
             scored = []
             for f in carrier_flights:
                 base = _flight_base(f)
@@ -247,7 +256,9 @@ class Enuygun(SourceAdapter):
                 allb = [b for bs in buckets.values() for b in bs]
                 bad, worst = ladder_metrics(allb)
                 n_items = sum(len(b.amenities) for b in allb)
-                scored.append(((len(buckets), len(allb), -bad, -worst, n_items,
+                n_rights = len({a.canonical_key for b in allb for a in b.amenities
+                                if a.canonical_key})
+                scored.append(((len(buckets), len(allb), n_rights, -bad, -worst, n_items,
                                 -(base if base is not None else float("inf"))),
                                buckets, f))
             scored.sort(key=lambda t: t[0], reverse=True)
