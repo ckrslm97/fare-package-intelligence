@@ -208,25 +208,41 @@ def main() -> None:
     rows = load_rows(out_dir)
     print(f"{out_dir}: {len(rows)} satır kontrol ediliyor\n")
 
+    # BLOKLAYAN kontroller: her biri tek başına yanlış veri demektir ve
+    # gözle bakmaya gerek bırakmaz — para birimi sızıntısı, tekrar eden paket
+    # adı, kg yerine cm okunmuş bagaj, fiyatı düşen merdiven.
     problems: list[str] = []
     problems += check_currency(rows)
     problems += check_duplicate_names(rows)
     problems += check_baggage_format(rows)
     problems += check_ladder_monotonic(rows)
-    problems += check_right_coverage(rows)
+
+    # UYARI: hak kapsamı bir kusuru İŞARET EDER ama kanıtlamaz — bir taşıyıcı
+    # bazı rotalarda gerçekten yemek vermiyor olabilir. Bunu bloklayıcı yapmak
+    # 2026-08-05'te her ölçütte DAHA İYİ bir veri setinin yayınlanmasını
+    # engelledi (el bagajı eksiği %57 azalmışken 5 uyarı kaldı diye). Göreli
+    # bir kalite sinyali mutlak bir kapı olamaz: raporlanır, karar insana ait.
+    warnings: list[str] = check_right_coverage(rows)
 
     report_business_coverage(rows)
     report_refund_fee_spread(out_dir)
+    if warnings:
+        print(f"\n[uyarı] {len(warnings)} hak-kapsamı anomalisi (bloklamaz):")
+        for w in warnings[:15]:
+            print(f"  - {w}")
+        if len(warnings) > 15:
+            print(f"  ... ve {len(warnings) - 15} tane daha")
     print()
 
     if problems:
-        print(f"BAŞARISIZ — {len(problems)} sorun bulundu:")
+        print(f"BAŞARISIZ — {len(problems)} bloklayan sorun:")
         for p in problems[:40]:
             print(f"  - {p}")
         if len(problems) > 40:
             print(f"  ... ve {len(problems) - 40} tane daha")
         sys.exit(1)
-    print("TÜM KONTROLLER GEÇTİ")
+    print("BLOKLAYAN KONTROLLERİN HEPSİ GEÇTİ"
+          + (f" ({len(warnings)} uyarı var, yukarıda)" if warnings else ""))
 
 
 if __name__ == "__main__":

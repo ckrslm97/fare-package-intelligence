@@ -18,10 +18,10 @@ kazanıyor?* Tüm ekranlar nihai bilet fiyatını değil, **paketler arası geç
 
 ## Kapsam
 
-- **227 OND** (kalkış–varış çifti), **61 taşıyıcı**, **392 farklı paket**
+- **226 OND** (kalkış–varış çifti), **60 taşıyıcı**, **389 farklı paket**
 - **Economy, Business ve First** kabinleri
 - **Yaz ve Kış** sezonları için ayrı çekim
-- Toplam **6.797 tarife satırı**
+- Toplam **6.827 tarife satırı**
 
 ## Sayfalar
 
