@@ -88,8 +88,7 @@ if ./.venv/bin/python qa_check.py $OUT > $OUT/qa.txt 2>&1; then
   cat $OUT/qa.txt
   log "=== ARAYUZE GOMME ==="
   ./.venv/bin/python to_platform.py dashboard_template_modern.html $OUT docs/index.html
-  cp docs/index.html docs/modern.html
-  log "gomuldu: docs/index.html + docs/modern.html"
+  log "gomuldu: docs/index.html"
 else
   cat $OUT/qa.txt
   log "!!! QA BASARISIZ — yayindaki veriye DOKUNULMADI, yeni veri $OUT icinde duruyor"
