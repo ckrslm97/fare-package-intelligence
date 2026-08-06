@@ -54,3 +54,7 @@ output_v12/evidence/searches/
 **/evidence/
 *.png
 *.jpg
+
+# Manuel giriş deposu operatöre aittir; şablonlar repoda, girdiler değil
+manual_data/entries.csv
+manual_data/duzenle.csv

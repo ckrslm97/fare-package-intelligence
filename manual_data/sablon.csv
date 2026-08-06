@@ -1,0 +1,13 @@
+﻿# FPI manuel giriş şablonu — doldurup 'python manual.py import <dosya>' ile yükleyin
+"# Action    : upsert (ekle/değiştir, varsayılan) veya remove (çekilmiş paketi sil)"
+# Season    : Summer / Winter
+# Cabin     : Economy / Premium Economy / Business / First
+# Fiyat     : 'Price USD' mutlak fiyat VEYA 'Step USD' bir önceki kademeden fark — biri
+# Haklar    : Included / Paid / 'Not Included'. Detay için iki nokta: 'Included: 2×23kg'
+# ÖNEMLİ    : Hak hücresini BOŞ bırakırsanız aynı taşıyıcı+marka için daha önce
+"#             girdiğiniz değerden, o da yoksa çekilmiş veriden devralınır. Yani bir"
+#             markanın haklarını BİR KEZ yazın; diğer hatlarda sadece fiyat girin.
+
+Action,Carrier,Origin,Destination,Season,Cabin,Brand Order,Brand Name,Price USD,Step USD,Cabin Baggage,Checked Baggage,Seat Selection,Meal,Lounge,Priority Boarding,Fast Track,Refund,Change,No-Show Refund,No-Show Change,Same Day Earlier Flight,WiFi,Extra Baggage,Sports Equipment,Pet,Note
+upsert,TK,IST,LHR,Summer,Economy,1,Eco Fly,0,,Included: 1×8kg,Not Included,,Included,,,,,,,,,,,,,örnek satır — silin
+upsert,TK,IST,LHR,Summer,Economy,2,Extra Fly,,29,,Included: 1×23kg,,,,,,,,,,,,,,,haklar boş = Eco Fly'dan devralınır
