@@ -11,7 +11,8 @@ from .base import SourceAdapter, get_sources_for, register, registered_sources
 
 # Import adapter modules for their registration side effects (order = priority).
 from . import turkish_airlines  # noqa: F401,E402  (official, priority 1)
-from . import enuygun           # noqa: F401,E402  (OTA fallback, priority 2)
-from . import ubfly             # noqa: F401,E402  (OTA fallback, priority 3)
+from . import tripcom           # noqa: F401,E402  (primary OTA, priority 2)
+from . import ubfly             # noqa: F401,E402  (fallback + cross-check, priority 3)
+from . import enuygun           # noqa: F401,E402  (gap-filler, priority 3)
 
 __all__ = ["SourceAdapter", "get_sources_for", "register", "registered_sources"]

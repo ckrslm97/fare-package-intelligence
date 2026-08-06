@@ -1,4 +1,4 @@
-"""Ubfly (OTA aggregator) — primary OTA fallback. Priority 2.
+"""Ubfly (OTA aggregator) — OTA fallback + cross-check. Priority 3.
 
 Ubfly resells GDS/NDC content for ~all carriers and renders the full branded
 fare comparison in the DOM, pre-populated for every flight in a single search
@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 import re
+import time
 from datetime import date
 from typing import Any, Optional
 
@@ -32,7 +34,8 @@ from ..normalization import (cabin_rank, detect_cabin, effective_cabin, ff_overr
                              ladder_metrics, regroup_brands_by_cabin)
 from ..pricing import parse_price
 from ..retry import CarrierAbsent, Forbidden, NoAvailabilityError
-from .base import SourceAdapter, register
+from .base import (SourceAdapter, extraction_diff, norm_airline_name, operator_matches,
+                   register, resolve_airline_code)
 
 _LOG = logging.getLogger("bfs")
 
@@ -99,6 +102,12 @@ _EXTRACT_JS = r"""
       const fm = rowText.match(/\b([A-Z][A-Z0-9])\s?-?\s?\d{2,4}\b/);
       if (fm) rowCarrier = fm[1].toUpperCase();
     }
+    // Interline: the row prints who really OPERATES the flight under the
+    // flight number ("QR 9711 / Operating Airline British Airways").
+    let operating = '';
+    const opM = rowText.match(/Operating\s*Airline\s*[:\-]?\s*([^\n\r|]{2,40})/i)
+             || rowText.match(/Operated\s*by\s*[:\-]?\s*([^\n\r|]{2,40})/i);
+    if (opM) operating = opM[1].trim();
     // Walk following sibling rows to this flight's branded panel.
     let panel = null;
     let el = main.nextElementSibling;
@@ -123,17 +132,34 @@ _EXTRACT_JS = r"""
         iata: args[5] || '',
         ffcode: args[6] || '',
         cabin: (args[8] || args[args.length - 1] || '').toUpperCase(),
+        // Slots 0-4, 7 and 9+ are structured fields the site already hands us
+        // and nothing has ever looked at them. Keep the whole vector in the raw
+        // record so it can be mined offline instead of costing another live
+        // visit to a source that challenges us for visiting too often.
+        argv: args,
         lis: lis,
         priceText: dm ? dm[0] : ''
       };
     });
     out.push({ carrier: rowCarrier || (brands[0] && brands[0].iata) || '',
                fare_iata: (brands[0] && brands[0].iata) || '',
+               operating: operating,
                direct: direct, baseText: baseText, brands: brands });
   }
   return out;
 }
 """
+
+#: Airline-identity helpers now live in ``sources.base`` so Ubfly and Trip.com
+#: apply ONE interline rule; re-exported here for existing importers.
+_norm_airline_name = norm_airline_name
+_operator_matches = operator_matches
+
+#: Markers of an interactive bot-challenge page (detected, never bypassed).
+_CHALLENGE_RE = re.compile(
+    r"verify you are (a )?human|performing security verification|just a moment|"
+    r"attention required|checking your browser|access denied|you have been blocked|"
+    r"insan olduğunuzu doğrulayın", re.I)
 
 _BAG_RE = re.compile(r"(cabin baggage|personal item|baggage)\s*:?\s*(\d+)\s*x\s*(\d+)\s*kg", re.I)
 _RULE_RE = re.compile(r"^([A-Z][A-Z_]{2,})\s*-\s*(.+)$")
@@ -145,10 +171,11 @@ _PERCENT_RE = re.compile(r"%|percent|yüzde", re.I)
 @register
 class Ubfly(SourceAdapter):
     name = "Ubfly"
-    # Priority 2 (user decision 2026-07-28): Ubfly's per-package rule list is far
-    # richer than Enuygun's compact items, so it outranks Enuygun; Enuygun is the
-    # last resort and still enriches via the cross-source merge.
-    priority = 2
+    # Priority 3 (Round 15): Trip.com became the primary OTA (richer, airline-
+    # sourced fare cards). Ubfly stays registered as the fallback AND as the
+    # independent cross-check source; it still outranks Enuygun, whose compact
+    # items are the last resort and only enrich via the cross-source merge.
+    priority = 3
     needs_browser = True
 
     # Shared across all worker pages: one search per (from,to,date,cabin) serves
@@ -162,6 +189,46 @@ class Ubfly(SourceAdapter):
     #: When set (by the runner) every ACTUAL page search saves a full-page PNG
     #: here — collection-moment evidence; cache hits reuse the existing shot.
     evidence_dir = None
+    #: Set once the site answers with an interactive bot challenge: every later
+    #: search then returns instantly instead of burning the 45s selector wait
+    #: (the challenge cost 220-500s per unit in the pilot). Cleared per run by
+    #: ``reset_state``, so Ubfly comes back the day the challenge lifts.
+    _challenge_disabled: bool = False
+    #: Seconds to spend deciding whether a freshly-loaded page is a challenge.
+    #: Long enough for Cloudflare's non-interactive check to clear on its own:
+    #: at 5 s the probe only ever saw the interstitial and disabled the source
+    #: for the run, while the real page (482 flights) arrived by ~12 s.
+    challenge_probe_s: float = 18.0
+    #: Ubfly is a TOP-UP source only: one worker, slowly. Set from Config.
+    min_interval_s: float = 6.0
+    _gate_lock = None
+    _slot = None
+    _last_hit_at: float = 0.0
+
+    @classmethod
+    def _primitives(cls) -> None:
+        if cls._gate_lock is None:
+            cls._gate_lock = asyncio.Lock()
+        if cls._slot is None:
+            cls._slot = asyncio.Semaphore(1)      # never more than one at a time
+
+    @classmethod
+    async def _gate(cls) -> None:
+        """One slow, global cadence for Ubfly — it is a courtesy call, not a crawl."""
+        cls._primitives()
+        async with cls._gate_lock:
+            wait = (cls._last_hit_at + cls.min_interval_s * random.uniform(0.8, 1.3)) \
+                - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            cls._last_hit_at = time.monotonic()
+
+    @classmethod
+    def reset_state(cls) -> None:
+        cls._challenge_disabled = False
+        cls._gate_lock = None
+        cls._slot = None
+        cls._last_hit_at = 0.0
 
     def supports(self, carrier: str) -> bool:
         return True  # aggregator — covers any carrier that Ubfly resells
@@ -175,12 +242,19 @@ class Ubfly(SourceAdapter):
         row (row=BA, fare=QR) is a codeshare carrying the PARTNER's fare ladder —
         it must not be attributed to QR (that produced BIZPROMO/ECONSEL-style
         foreign families under QR on ex-UK routes).
+
+        ``operating`` = the airline that actually FLIES the row ("Operating
+        Airline British Airways" under the flight number). User rule: if another
+        carrier operates the flight, it is interline and must be dropped — an
+        LH-marketed, Aegean-operated row sells Aegean's product, not LH's.
         """
         rowc = (flight.get("carrier") or "").upper()
         fic = (flight.get("fare_iata") or "").upper()
         if rowc and rowc != target:
             return False
         if fic and fic != target:
+            return False
+        if not _operator_matches(flight.get("operating"), target):
             return False
         return rowc == target or fic == target
 
@@ -284,8 +358,8 @@ class Ubfly(SourceAdapter):
     # ------------------------------------------------------------------ #
     async def _search(self, page, origin: str, destination: str, departure: date,
                       cabin: Cabin) -> list[dict]:
-        if (origin, destination) in self._dead_routes:
-            return []
+        if Ubfly._challenge_disabled or (origin, destination) in self._dead_routes:
+            return []                     # challenged for this run: fail instantly
         param = CABIN_PARAM.get(cabin, "2")
         key = f"{origin}|{destination}|{departure.isoformat()}|{param}"
         if key in self._cache:
@@ -299,11 +373,63 @@ class Ubfly(SourceAdapter):
                 self._cache[key] = flights    # empty/timeout must not poison the route
             return flights
 
+    async def _challenge_present(self, page) -> bool:
+        """Is this an interactive bot-challenge page? (decided in ~5s, no bypass)
+
+        We never attempt to solve or evade a challenge — the only goal is to
+        notice it immediately so the run stops paying the 45s selector timeout
+        for a page that will never render results.
+        """
+        deadline = self.challenge_probe_s
+        saw_challenge = False
+        while deadline > 0:
+            try:
+                if await page.evaluate("() => !!document.querySelector('.domestic-brand-box, "
+                                       "tr.flight-item, form[action*=arama]')"):
+                    return False               # real site markup -> not a challenge
+                marked = await page.evaluate(
+                    "() => !!document.querySelector('#cf-chl-widget, [id^=cf-chl], "
+                    "[class*=cf-challenge], #challenge-form, "
+                    "iframe[src*=\"challenges.cloudflare.com\"]')")
+                probe = (await page.title() or "") + " " + await page.evaluate(
+                    "() => (document.body.innerText || '').slice(0, 300)")
+            except Exception:  # noqa: BLE001 - a mid-navigation evaluate can throw
+                marked, probe = False, ""
+            # Seeing the interstitial is NOT the verdict. Ubfly fronts the page
+            # with Cloudflare's non-interactive check, which clears itself in a
+            # few seconds: probing for 5 s and returning True on first sight
+            # disabled Ubfly for the whole run, while waiting 12 s by hand gave
+            # the real page with 482 flights (2026-08-02). Only a wall that is
+            # STILL there when the window closes counts as a challenge.
+            hit = _CHALLENGE_RE.search(probe)
+            if (marked or hit) and not saw_challenge:
+                # Name the evidence. "bot challenge" with nothing behind it sent
+                # this investigation to the site when the fault was local; a
+                # verdict that cannot be checked is not a diagnosis.
+                _LOG.info("Ubfly challenge signal: marker=%s match=%r probe=%r",
+                          marked, hit.group(0) if hit else None, probe[:160])
+            saw_challenge = saw_challenge or marked or bool(hit)
+            await asyncio.sleep(0.5)
+            deadline -= 0.5
+        if saw_challenge:
+            _LOG.info("Ubfly: challenge still standing after %.0fs", self.challenge_probe_s)
+        return saw_challenge
+
     async def _do_search(self, page, origin, destination, departure, param) -> list[dict]:
         ddate = departure.strftime("%d.%m.%Y")
         url = (f"{BASE_URL}?from={origin}&to={destination}&ddate={ddate}"
                f"&cabintype={param}&adult=1&flightType=2")
+        await self._gate()
         await page.goto(url, wait_until="domcontentloaded")
+        # Fast challenge check FIRST: an interactive "Verify you are human" page
+        # never resolves on its own, so waiting the full 45s selector timeout on
+        # every search (and every retry) costs minutes per unit for nothing.
+        if await self._challenge_present(page):
+            if not Ubfly._challenge_disabled:
+                _LOG.warning("Ubfly disabled for this run — bot challenge "
+                             "(no bypass attempted); other sources continue")
+            Ubfly._challenge_disabled = True
+            raise Forbidden("Ubfly Cloudflare / bot challenge")
         try:
             # Cards are pre-rendered but hidden -> wait for *attached*, not visible.
             # Cloudflare's managed challenge auto-resolves in a headful browser
@@ -331,7 +457,8 @@ class Ubfly(SourceAdapter):
             return []                                      # genuine "no results"
         await asyncio.sleep(1.0)                            # let the list settle
         try:
-            flights = await page.evaluate(_EXTRACT_JS)
+            flights = await self._extract_verified(
+                page, f"{origin}-{destination} {ddate} ct{param}")
         except Exception as e:  # noqa: BLE001
             _LOG.debug("Ubfly extract failed: %s", e)
             return []
@@ -343,6 +470,31 @@ class Ubfly(SourceAdapter):
             except Exception as e:  # noqa: BLE001 - evidence must never break the scrape
                 _LOG.debug("Ubfly evidence shot failed: %s", e)
         return flights or []
+
+    # ------------------------------------------------------------------ #
+    #: Seconds to let the table settle before re-reading a disagreeing parse.
+    verify_delay_s: float = 2.0
+
+    async def _extract_verified(self, page, tag: str = "") -> list[dict]:
+        """Parse the loaded results page TWICE and cross-check the two reads.
+
+        User rule: "yazdığın ile ekranda yazanı cross check". A payload read
+        while the results table is still re-rendering can miss rows or carry a
+        stale price, so the same extraction is run again on the same page (no
+        navigation — cheap). If the reads disagree we wait and read once more;
+        a still-disagreeing page is logged as a WARNING and the LATER read is
+        kept, since it is the more settled one.
+        """
+        first = await page.evaluate(_EXTRACT_JS) or []
+        second = await page.evaluate(_EXTRACT_JS) or []
+        if not extraction_diff(first, second):
+            return second
+        await asyncio.sleep(self.verify_delay_s)
+        third = await page.evaluate(_EXTRACT_JS) or []
+        diff = extraction_diff(second, third)
+        if diff:
+            _LOG.warning("Ubfly double-parse mismatch %s: %s", tag, "; ".join(diff[:4]))
+        return third
 
     # ------------------------------------------------------------------ #
     def _to_raw_brands(self, flight: dict, requested_cabin: Cabin) -> list[RawBrand]:

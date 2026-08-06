@@ -1,7 +1,10 @@
 """Input reading + output writing.
 
-Input: an Excel (``.xlsx``) or ``.csv`` with (at least) Carrier, Origin,
-Destination columns (case-insensitive; a few common aliases accepted).
+Input: an Excel (``.xlsx``) or ``.csv`` with (at least) a Carrier column plus
+either Origin+Destination columns or a single combined OND column ("YVR-DEL");
+matching is case-insensitive and a few common aliases are accepted. Any other
+column (PAX, RANK_CARRIER, regions, countries, ...) is carried through unchanged
+in ``Job.raw_row``; unnamed columns (e.g. an exported index) are dropped.
 
 Outputs (all under the output dir):
 * ``raw_data.jsonl``        — raw scrape result per unit
@@ -41,6 +44,14 @@ def _match(colname: str, aliases: set[str]) -> bool:
     return colname.strip().lower().replace(" ", "") in aliases
 
 
+def _cell(row: list[Any], i: int | None) -> str:
+    """Value at column ``i`` as a stripped string ('' for missing/None)."""
+    if i is None or i >= len(row):
+        return ""
+    v = row[i]
+    return "" if v is None else str(v).strip()
+
+
 def _split_ond(ond: str) -> tuple[str, str] | None:
     """Split 'LHR-SIN' (or 'LHR/SIN') into (origin, destination)."""
     parts = re.split(r"[-/_>]", str(ond).strip().upper())
@@ -51,17 +62,27 @@ def _split_ond(ond: str) -> tuple[str, str] | None:
 
 
 def _rows_to_jobs(headers: list[str], rows: Iterable[list[Any]]) -> list[Job]:
-    idx = {"carrier": None, "origin": None, "destination": None, "ond": None}
+    # Role detection is independent per column: a header is tested against every
+    # alias set, so column order never hides a role. Unnamed columns (e.g. the
+    # pandas index column exported into xlsx) take no role and are not carried
+    # into raw_row.
+    idx: dict[str, int | None] = {"carrier": None, "origin": None, "destination": None, "ond": None}
+    _ROLES = (
+        ("carrier", _CARRIER_ALIASES),
+        ("origin", _ORIGIN_ALIASES),
+        ("destination", _DEST_ALIASES),
+        ("ond", _OND_ALIASES),
+    )
+    named: list[int] = []                     # column indices with a real header
     for i, h in enumerate(headers):
-        h = str(h or "")
-        if idx["carrier"] is None and _match(h, _CARRIER_ALIASES):
-            idx["carrier"] = i
-        elif idx["origin"] is None and _match(h, _ORIGIN_ALIASES):
-            idx["origin"] = i
-        elif idx["destination"] is None and _match(h, _DEST_ALIASES):
-            idx["destination"] = i
-        elif idx["ond"] is None and _match(h, _OND_ALIASES):
-            idx["ond"] = i
+        h = str(h if h is not None else "").strip()
+        if not h or h.lower() == "none":
+            continue
+        named.append(i)
+        for role, aliases in _ROLES:
+            if idx[role] is None and _match(h, aliases):
+                idx[role] = i
+                break
 
     if idx["carrier"] is None:
         raise ValueError(f"Input is missing a Carrier column. Headers seen: {headers}")
@@ -72,15 +93,17 @@ def _rows_to_jobs(headers: list[str], rows: Iterable[list[Any]]) -> list[Job]:
     jobs: list[Job] = []
     seen: set[tuple[str, str, str]] = set()
     for row in rows:
-        if not row or all(c in (None, "") for c in row):
+        if not row or all(c is None or str(c).strip() == "" for c in row):
             continue
-        raw_row = {str(headers[i]): row[i] for i in range(min(len(headers), len(row)))}
-        carrier = str(row[idx["carrier"]]).strip()
-        if has_od and row[idx["origin"]] and row[idx["destination"]]:
-            origin = str(row[idx["origin"]]).strip().upper()
-            destination = str(row[idx["destination"]]).strip().upper()
-        elif idx["ond"] is not None:
-            split = _split_ond(row[idx["ond"]])
+        # every other column (PAX, RANK_CARRIER, regions, countries, ...) passes
+        # through untouched
+        raw_row = {str(headers[i]): row[i] for i in named if i < len(row)}
+        carrier = _cell(row, idx["carrier"])
+        if has_od and _cell(row, idx["origin"]) and _cell(row, idx["destination"]):
+            origin = _cell(row, idx["origin"]).upper()
+            destination = _cell(row, idx["destination"]).upper()
+        elif idx["ond"] is not None and _cell(row, idx["ond"]):
+            split = _split_ond(_cell(row, idx["ond"]))   # "YVR-DEL" -> ("YVR", "DEL")
             if not split:
                 continue
             origin, destination = split
@@ -205,35 +228,89 @@ def write_normalized(rows: list[BrandedFare], out_dir: Path) -> tuple[Path, Path
     return csv_path, xlsx_path
 
 
-def write_raw(units: list[UnitResult], out_dir: Path) -> Path:
-    path = out_dir / "raw_data.jsonl"
-    with path.open("w", encoding="utf-8") as f:
-        for u in units:
-            rec = {
-                "unit_key": u.unit.key(),
-                "carrier": u.unit.job.carrier,
-                "origin": u.unit.job.origin,
-                "destination": u.unit.job.destination,
-                "season": u.unit.date_plan.season.value,
-                "source": u.source,
-                "status": u.status.value,
-                "retry_count": u.retry_count,
-                "error": u.error,
-                "elapsed_s": u.elapsed,
-                "cabins": [
-                    {
-                        "cabin": c.cabin.value,
-                        "source": c.source,
-                        "departure": c.departure.isoformat() if c.departure else None,
-                        "return": c.return_date.isoformat() if c.return_date else None,
-                        "has_availability": c.has_availability,
-                        "note": c.note,
-                        "brands": [_raw_brand_to_dict(b) for b in c.brands],
-                    }
-                    for c in u.cabin_results
-                ],
+def unit_record(u: UnitResult) -> dict[str, Any]:
+    """One raw JSONL record for a finished unit."""
+    return {
+        "unit_key": u.unit.key(),
+        "carrier": u.unit.job.carrier,
+        "origin": u.unit.job.origin,
+        "destination": u.unit.job.destination,
+        "season": u.unit.date_plan.season.value,
+        "source": u.source,
+        "status": u.status.value,
+        "retry_count": u.retry_count,
+        "error": u.error,
+        "elapsed_s": u.elapsed,
+        "cabins": [
+            {
+                "cabin": c.cabin.value,
+                "source": c.source,
+                "departure": c.departure.isoformat() if c.departure else None,
+                "return": c.return_date.isoformat() if c.return_date else None,
+                "has_availability": c.has_availability,
+                "note": c.note,
+                # Itinerary identity: written even when empty so a later
+                # reprocessing can tell "source did not say" from "not stored".
+                "flight_no": c.flight_no,
+                "booking_class": c.booking_class,
+                "operating_carrier": c.operating_carrier,
+                "is_codeshare": c.is_codeshare,
+                "is_interline": c.is_interline,
+                "brands": [_raw_brand_to_dict(b) for b in c.brands],
             }
-            f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
+            for c in u.cabin_results
+        ],
+    }
+
+
+def append_raw(unit: UnitResult, out_dir: Path) -> Path:
+    """Append ONE finished unit to raw_data.jsonl, immediately.
+
+    A run that is stopped (or sleeps, or crashes) used to lose every hour of
+    scraping because the raw file was only written at the end. Each unit is now
+    durable the moment it finishes; ``write_raw`` later rewrites the file with
+    the in-memory results merged over whatever is already on disk, so a resumed
+    run never double-writes a ``unit_key``.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "raw_data.jsonl"
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(unit_record(unit), ensure_ascii=False, default=str) + "\n")
+    return path
+
+
+def write_raw(units: list[UnitResult], out_dir: Path) -> Path:
+    """Rewrite raw_data.jsonl = what is on disk, overlaid by this run's units.
+
+    Deduped on ``unit_key`` (this run wins), so the incremental appends above
+    and a resumed run's earlier records collapse into exactly one record each.
+    """
+    path = out_dir / "raw_data.jsonl"
+    records: dict[str, dict] = {}
+    order: list[str] = []
+    if path.exists():                       # keep earlier/interrupted work
+        with path.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue                # a half-written line from a hard kill
+                key = rec.get("unit_key") or f"__anon_{len(order)}"
+                if key not in records:
+                    order.append(key)
+                records[key] = rec
+    for u in units:
+        rec = unit_record(u)
+        key = rec["unit_key"]
+        if key not in records:
+            order.append(key)
+        records[key] = rec
+    with path.open("w", encoding="utf-8") as f:
+        for key in order:
+            f.write(json.dumps(records[key], ensure_ascii=False, default=str) + "\n")
     return path
 
 

@@ -30,7 +30,14 @@ def _out_dir() -> Path | None:
     if FORCED:
         p = FORCED if FORCED.is_absolute() else ROOT / FORCED
         return p if (p / "state" / "plan.json").exists() else None
-    cands = list(ROOT.glob("output_*/state/checkpoint.json"))
+    # Round 16 writes daily chunks into output_v14/day01, so look one level
+    # deeper as well. Track plan.json (written when a run STARTS) as well as
+    # the checkpoint (only written on the first success) so a fresh run shows
+    # up immediately instead of the panel sticking on the previous dataset.
+    cands = (list(ROOT.glob("output_*/state/plan.json"))
+             + list(ROOT.glob("output_*/*/state/plan.json"))
+             + list(ROOT.glob("output_*/state/checkpoint.json"))
+             + list(ROOT.glob("output_*/*/state/checkpoint.json")))
     if not cands:
         return None
     return max(cands, key=lambda p: p.stat().st_mtime).parent.parent
@@ -55,19 +62,49 @@ def _log_state(out: Path) -> dict:
         return st
     lines = text.strip().splitlines()
     st["last"] = lines[-1] if lines else ""
+    st.update(step="hazırlık", brands=0, cards=0, drawers=0, rate_limited=0,
+              ok=0, empty=0, failed=0, carrier="", route="")
     for ln in lines:
         m = re.search(r"Units: (\d+) total, (\d+) pending, (\d+) skipped", ln)
         if m:
             st["skipped"] = int(m.group(3))
             st["terminal"] = 0                    # restart count at newest header
             st["finished"] = False
-        elif re.search(r"\| (success|no_availability|failed|partial) \|", ln) \
-                and "falling back" not in ln:
+            st["step"] = "tarama"
+            st.update(brands=0, cards=0, drawers=0, rate_limited=0,
+                      ok=0, empty=0, failed=0)
+            continue
+        hit = re.search(r"\| (success|no_availability|failed|partial) \| brands=(\d+)", ln)
+        if hit and "falling back" not in ln:
             st["terminal"] += 1
+            st["brands"] += int(hit.group(2))
+            st["ok"] += hit.group(1) in ("success", "partial")
+            st["empty"] += hit.group(1) == "no_availability"
+            st["failed"] += hit.group(1) == "failed"
+            # "… | Trip.com | IST-JFK Summer | success | …" -> what just finished
+            parts = [p.strip() for p in ln.split("|")]
+            if len(parts) > 3:
+                st["route"] = parts[3]
+            continue
+        # Per-unit drawer line: opened=… parsed=… cards=… rejected=… (…)
+        d = re.search(r"drawers (\S+) (\S+) (\S+): opened=(\d+) parsed=(\d+)"
+                      r"(?: cards=(\d+))?", ln)
+        if d:
+            st["carrier"], st["route"] = d.group(1), f"{d.group(2)} {d.group(3)}"
+            st["drawers"] += int(d.group(4))
+            st["cards"] += int(d.group(6) or 0)
+            st["step"] = "paket panelleri"
+            continue
+        if "rate limit" in ln.lower():
+            st["rate_limited"] += 1
+            st["step"] = "hız sınırı — bekleniyor"
         elif "normalized rows=" in ln:
             st["finished"] = True
+            st["step"] = "bitti"
         elif re.search(r"success=\d+\s+partial=\d+", ln):
             st["summary"] = ln.split("|")[-1].strip()
+        elif "Writing outputs" in ln or "write" in ln.lower() and "output" in ln.lower():
+            st["step"] = "çıktı yazılıyor"
     return st
 
 
@@ -115,6 +152,11 @@ def snapshot() -> dict:
         "rate_per_min": round(rate, 1) if rate else None,
         "eta_min": round(eta_s / 60) if eta_s else None,
         "idle_s": round(stale_s) if stale_s is not None else None,
+        "step": ls.get("step", ""), "brands": ls.get("brands", 0),
+        "cards": ls.get("cards", 0), "drawers": ls.get("drawers", 0),
+        "rate_limited": ls.get("rate_limited", 0), "ok": ls.get("ok", 0),
+        "empty": ls.get("empty", 0), "failed": ls.get("failed", 0),
+        "carrier": ls.get("carrier", ""), "route": ls.get("route", ""),
         "last_log": last[-220:],
         "ts": time.strftime("%H:%M:%S"),
     }
@@ -148,9 +190,13 @@ h1{font-size:17px;font-weight:600;margin:0 0 4px}
 <span class="big" id="pct">—</span>
 <div class="track"><div class="fill" id="fill" style="width:0%"></div></div>
 <div class="grid">
+ <div class="kpi"><div class="l">Adım</div><div class="v" id="step">—</div></div>
  <div class="kpi"><div class="l">Birim</div><div class="v" id="units">—</div></div>
  <div class="kpi"><div class="l">Hız</div><div class="v" id="rate">—</div></div>
  <div class="kpi"><div class="l">Tahmini kalan</div><div class="v" id="eta">—</div></div>
+ <div class="kpi"><div class="l">Toplanan paket</div><div class="v" id="brands">—</div></div>
+ <div class="kpi"><div class="l">Açılan panel</div><div class="v" id="drawers">—</div></div>
+ <div class="kpi"><div class="l">Sonuç</div><div class="v" id="mix">—</div></div>
  <div class="kpi"><div class="l">Son güncelleme</div><div class="v" id="ts">—</div></div>
 </div>
 <div class="log" id="log"></div>
@@ -170,6 +216,15 @@ async function tick(){
     document.getElementById('rate').textContent = d.rate_per_min ? d.rate_per_min + '/dk' : '—';
     document.getElementById('eta').textContent =
       fin ? 'bitti' : (d.eta_min != null ? '~' + d.eta_min + ' dk' : '—');
+    const step = fin ? 'bitti' : (d.step || '—');
+    document.getElementById('step').textContent =
+      step + (d.route && !fin ? ' · ' + (d.carrier ? d.carrier + ' ' : '') + d.route : '');
+    document.getElementById('brands').textContent =
+      (d.brands || 0) + (d.cards ? ' (' + d.cards + ' kart)' : '');
+    document.getElementById('drawers').textContent = d.drawers || 0;
+    document.getElementById('mix').textContent =
+      '✓' + (d.ok || 0) + ' · ∅' + (d.empty || 0) + ' · ✗' + (d.failed || 0)
+      + (d.rate_limited ? ' · ⏸' + d.rate_limited : '');
     document.getElementById('ts').textContent = d.ts;
     document.getElementById('log').textContent = d.last_log || '';
   }catch(e){ document.getElementById('sub').textContent = 'sunucuya ulaşılamıyor'; }

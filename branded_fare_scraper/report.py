@@ -25,6 +25,43 @@ CARRIER_NAMES = {
     "BR": "EVA Air", "CI": "China Airlines", "NH": "ANA", "DL": "Delta", "CA": "Air China",
     "AA": "American Airlines", "JL": "Japan Airlines", "CZ": "China Southern",
     "TG": "Thai Airways", "SK": "SAS", "LX": "SWISS", "OS": "Austrian",
+    # Round-15 additions
+    "3F": "FlyOne Armenia", "3L": "Air Arabia Abu Dhabi", "A9": "Georgian Airways",
+    "DY": "Norwegian", "FR": "Ryanair", "H4": "HiSky", "JX": "Starlux Airlines",
+    "T5": "Turkmenistan Airlines", "WZ": "Red Wings",
+    # Round-18: carriers that were in the job list but NOT in this table, so
+    # every row they published was unrecognisable and their units were written
+    # off as "carrier not on route". Measured across the 2026-08-02/03 runs:
+    # 140 unit attempts, 0 rows — while the results page was plainly listing
+    # them (SKY express, Tarom, Transavia, Hainan Airlines, All Nippon Airways).
+    "GQ": "SKY express", "RO": "Tarom", "HV": "Transavia", "HU": "Hainan Airlines",
+    "U2": "easyJet", "DE": "Condor", "SN": "Brussels Airlines",
+    "UL": "SriLankan Airlines", "3U": "Sichuan Airlines", "OE": "Lauda Europe",
+    # Wizz sells the same brand through three AOCs. All three are listed so an
+    # exact match decides; without the plain "Wizz Air" entry a page row reading
+    # "Wizz Air" is contained in BOTH of the others and resolves to nothing.
+    "W6": "Wizz Air", "W4": "Wizz Air Malta", "W9": "Wizz Air UK",
+}
+
+#: Alternate spellings an OTA may print for a carrier. Matching only — the
+#: PUBLISHED name always comes from ``CARRIER_NAMES`` above, because the study
+#: reports the airline's own spelling and never the OTA's label.
+CARRIER_ALIASES = {
+    "NH": ("All Nippon Airways",),
+    "OZ": ("Asiana Airlines",),
+    "SK": ("Scandinavian Airlines",),
+    "KL": ("KLM Royal Dutch Airlines",),
+    "OS": ("Austrian Airlines",),
+    "MU": ("China Eastern Airlines", "Shanghai Airlines"),
+    "CZ": ("China Southern Airlines",),
+    "A3": ("Aegean Airlines",),
+    "TG": ("Thai Airways International",),
+    "AZ": ("ITA Airways", "Alitalia"),
+    "LX": ("Swiss International Air Lines",),
+    "SV": ("Saudi Arabian Airlines",),
+    "VF": ("AnadoluJet",),
+    "UL": ("Sri Lankan Airlines",),
+    "DE": ("Condor Flugdienst",),
 }
 
 AMENITY_ICON = {

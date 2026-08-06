@@ -49,6 +49,18 @@ AMEN_COLS = [AMENITY_TR[k] for k in AMENITY_KEYS]
 TAIL_COLS = ["Mil Var", "Mil", "Bonus %", "Scrape Time", "Status"]
 
 
+def used_amenity_keys(amaps) -> list[str]:
+    """Amenity keys some row actually reports (state not Unknown/blank).
+
+    User rule: "çok fazla boş içerik duruyor" — a right that is Unknown on every
+    single row is a dead column, so it is left out of the workbook. Raw data
+    keeps the full taxonomy; only this display drops it.
+    """
+    used = {k for amap in amaps for k in AMENITY_KEYS
+            if amap.get(k, ("Unknown", ""))[0] not in ("", "Unknown")}
+    return [k for k in AMENITY_KEYS if k in used]     # taxonomy order
+
+
 def main():
     out_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "output_final")
     out_xlsx = Path(sys.argv[2]) if len(sys.argv) > 2 else out_dir / "branded_fares_formatted.xlsx"
@@ -56,11 +68,10 @@ def main():
     wb = Workbook()
     ws = wb.active
     ws.title = "Branded Fares"
-    headers = BASE_COLS + AMEN_COLS + TAIL_COLS
-    ws.append(headers)
 
     scrape_time = datetime.now().replace(microsecond=0).isoformat()
-    n = 0
+    # Two passes: collect every row, then keep only the rights with real data.
+    collected: list[tuple[list, dict, list]] = []
     raw_path = out_dir / "raw_data.jsonl"
     prefs = season_pair_prefs(raw_path)      # cross-season ladder-order consensus
     for rec in iter_raw_records(raw_path):
@@ -89,27 +100,35 @@ def main():
                 raw.display_price_text or "", (absp if absp is not None else raw.price_value),
                 raw.currency or "USD", src,
             ]
-            for k in AMENITY_KEYS:
-                state, det = amap[k]
-                canon = canonical_rule_detail(k, AmenityStatus(state))
-                if canon is not None:
-                    det = canon          # one standard vocabulary for rule rights
-                row.append(f"{state} — {det}" if (state != "Unknown" and det) else state)
-            row += [
+            tail = [
                 ("Evet" if raw.miles.mileage_available else "Hayır") if raw.miles.mileage_available is not None else "",
                 raw.miles.miles_earned or "", raw.miles.bonus_percent if raw.miles.bonus_percent is not None else "",
                 scrape_time, rec.get("status", ""),
             ]
-            ws.append(row)
-            n += 1
-            # colour amenity cells
-            r_idx = ws.max_row
-            for j, k in enumerate(AMENITY_KEYS):
-                state = amap[k][0]
-                cell = ws.cell(row=r_idx, column=len(BASE_COLS) + 1 + j)
-                cell.fill = STATE_FILL[state]
-                cell.font = STATE_FONT[state]
-                cell.alignment = Alignment(horizontal="center")
+            collected.append((row, amap, tail))
+
+    amen_keys = used_amenity_keys([a for _r, a, _t in collected])
+    amen_cols = [AMENITY_TR[k] for k in amen_keys]
+    headers = BASE_COLS + amen_cols + TAIL_COLS
+    ws.append(headers)
+    for row, amap, tail in collected:
+        cells = list(row)
+        for k in amen_keys:
+            state, det = amap[k]
+            canon = canonical_rule_detail(k, AmenityStatus(state))
+            if canon is not None:
+                det = canon              # one standard vocabulary for rule rights
+            cells.append(f"{state} — {det}" if (state != "Unknown" and det) else state)
+        ws.append(cells + tail)
+        # colour amenity cells
+        r_idx = ws.max_row
+        for j, k in enumerate(amen_keys):
+            state = amap[k][0]
+            cell = ws.cell(row=r_idx, column=len(BASE_COLS) + 1 + j)
+            cell.fill = STATE_FILL[state]
+            cell.font = STATE_FONT[state]
+            cell.alignment = Alignment(horizontal="center")
+    n = len(collected)
 
     # header styling + layout
     for col in range(1, len(headers) + 1):
@@ -123,7 +142,7 @@ def main():
               "Raw Brand Name": 22, "Normalized Brand": 20, "Fare Family Code": 16,
               "Display Price": 14, "Abs Price": 13, "Currency": 7, "Source": 10}
     for i, h in enumerate(headers, 1):
-        ws.column_dimensions[get_column_letter(i)].width = widths.get(h, 13 if h in AMEN_COLS else 12)
+        ws.column_dimensions[get_column_letter(i)].width = widths.get(h, 13 if h in amen_cols else 12)
     ws.row_dimensions[1].height = 34
     # price number format
     price_col = headers.index("Abs Price") + 1
@@ -131,7 +150,9 @@ def main():
         ws.cell(row=r, column=price_col).number_format = "#,##0.00"
 
     wb.save(out_xlsx)
-    print(f"Wrote {n} rows -> {out_xlsx} ({out_xlsx.stat().st_size//1024} KB)")
+    dropped = len(AMENITY_KEYS) - len(amen_keys)
+    print(f"Wrote {n} rows -> {out_xlsx} ({out_xlsx.stat().st_size//1024} KB)"
+          f"{f' — {dropped} empty right column(s) dropped' if dropped else ''}")
 
 
 if __name__ == "__main__":

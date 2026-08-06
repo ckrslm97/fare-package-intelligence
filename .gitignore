@@ -49,3 +49,8 @@ output_v10/evidence/searches/
 output_v11/evidence/searches/
 # v12 collection-moment search shots stay local
 output_v12/evidence/searches/
+
+# Scrape evidence screenshots — regenerable, and 4.4 GB of them
+**/evidence/
+*.png
+*.jpg

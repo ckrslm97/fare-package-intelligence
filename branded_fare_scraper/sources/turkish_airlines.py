@@ -108,7 +108,17 @@ _DOM_EXTRACT_JS = r"""
 """
 
 
-@register
+# NOT REGISTERED (user, round 15: "thy sitesine gitme"). The official booking
+# flow is PerimeterX-gated and every attempt burned ~30 s on
+# net::ERR_HTTP2_PROTOCOL_ERROR before falling through to Trip.com. The class
+# stays importable/testable; re-enable by restoring the decorator.
+# NOT REGISTERED. Tested again 2026-08-02: the site serves a shell that never
+# hydrates to local Chrome (zero inputs, blank render, correct <title>) and the
+# retries then draw net::ERR_HTTP2_PROTOCOL_ERROR — 30 s burned per TK unit for
+# nothing. It DOES render through browser-act's hosted browser, but this adapter
+# needs Playwright's locator API and response-event capture, neither of which the
+# browser-act transport provides. Re-enable only alongside that port.
+# @register
 class TurkishAirlines(SourceAdapter):
     name = "Turkish Airlines"
     priority = 1
