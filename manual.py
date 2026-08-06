@@ -20,6 +20,15 @@ inherited from:
 
 Fill a right only when you are correcting or introducing it.
 
+TAKIM ERİŞİMİ (ileride)
+-----------------------
+Paneldeki Yönetim sekmesi kişi başına GitHub anahtarı kullanır, yani ekibe
+açmak için kod değişikliği GEREKMEZ: GitHub'da depoya Settings → Collaborators
+üzerinden kişiyi ekle (Write), o da kendi fine-grained anahtarını üretsin
+(bu depo, Contents: Read and write). Yetki GitHub'ın kendisinden geldiği için
+kimin ne değiştirdiği commit geçmişinde görünür ve bir kişinin erişimi tek
+başına kapatılabilir — paylaşılan tek bir parolada ikisi de mümkün değildir.
+
 MERGE RULE (chosen by the operator, 2026-08-05)
 -----------------------------------------------
 Package level. A manual row REPLACES the scraped package with the same brand
