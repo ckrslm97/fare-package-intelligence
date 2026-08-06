@@ -490,6 +490,34 @@ table.raw td{padding:6px 9px;border-bottom:1px solid var(--line);white-space:now
   font-weight:700;margin:2px 3px 2px 0}
 .kh-notes-head{font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
   color:var(--faint);margin:4px 0 8px}
+/* ---------- Yönetim (manuel giriş) ---------- */
+.ad-warn{background:var(--amber-soft);border:1px solid var(--amber-line);border-left:3px solid var(--amber);
+  border-radius:0 9px 9px 0;padding:12px 15px;font-size:13px;line-height:1.55;color:var(--text);margin-bottom:14px}
+.ad-warn code{font-family:var(--mono);font-size:12px;background:var(--bg-alt);padding:1px 5px;border-radius:4px}
+.ad-status{font-size:13px;font-weight:600;margin-top:4px}
+.ad-status.ok{color:var(--green)} .ad-status.err{color:var(--red)}
+table.ad{width:100%;border-collapse:collapse;margin-top:6px}
+table.ad th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);
+  text-align:left;padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700}
+table.ad td{padding:7px 8px;border-bottom:1px solid var(--rule-soft,var(--line));vertical-align:middle}
+table.ad tr.rm td{opacity:.45;text-decoration:line-through}
+table.ad input[type=text],table.ad input[type=number]{border:1px solid var(--line-2);border-radius:7px;
+  background:var(--surface);color:var(--text);font-size:12.5px;padding:0 8px;height:31px}
+table.ad input.num{font-family:var(--mono);text-align:right;width:104px}
+.ad-pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  padding:3px 8px;border-radius:99px;border:1px solid}
+.ad-pill.src{color:var(--dim);border-color:var(--line-2);background:var(--bg-alt)}
+.ad-pill.man{color:var(--tk);border-color:var(--tk-line);background:var(--tk-soft)}
+.ad-pill.new{color:var(--green);border-color:var(--green-line);background:var(--green-soft)}
+.ad-rights{background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;padding:13px;margin:2px 0 6px}
+.ad-rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(264px,1fr));gap:9px}
+.ad-r{display:grid;grid-template-columns:1fr 112px 1fr;gap:6px;align-items:center}
+.ad-r span{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad-r select,.ad-r input{height:29px;font-size:12px;border:1px solid var(--line-2);border-radius:7px;
+  background:var(--surface);color:var(--text);padding:0 7px}
+.ad-actions{display:flex;gap:9px;align-items:center;margin-top:15px;padding-top:14px;border-top:1px solid var(--line)}
+.ad-pend-row{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule-soft,var(--line));font-size:13px}
+.ad-pend-row .k{font-family:var(--mono);font-size:12px;color:var(--dim);min-width:230px}
 .pos-badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 /* Konum rozetleri satırın SONUCUDUR — bandı okumadan da "ucuz mu, pahalı mı"
    cevabını vermeleri gerekir; bu yüzden renk sadece dolgu değil, kenarlıkla
@@ -638,6 +666,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
     <button class="tab-btn" data-tab="analytics">Analitik Analiz</button>
     <button class="tab-btn" data-tab="archive">Arşiv</button>
     <button class="tab-btn" data-tab="knowhow">Bilgi Bankası</button>
+    <button class="tab-btn" data-tab="admin" id="adminTab" hidden>Yönetim</button>
   </nav>
   <div class="top-right">
     <button class="ghost-btn" id="loadJsonBtn">JSON Yükle</button>
@@ -862,6 +891,58 @@ footer{padding:26px 22px;color:var(--faint);font-size:11.5px;text-align:center;b
     </div>
   </section>
 
+
+  <!-- ======================= YÖNETİM — manuel giriş ======================= -->
+  <section class="tab-page" id="page-admin">
+    <div class="section-title">Manuel Giriş</div>
+
+    <div class="chart-card" id="adTokenCard">
+      <h3>GitHub erişimi</h3>
+      <div class="sub">Bu panel statik bir sayfadır; yazma yetkisi <b>senin GitHub
+        anahtarından</b> gelir. Anahtar yalnızca bu tarayıcıda saklanır, panele gömülmez ve
+        hiçbir yere gönderilmez — doğrudan GitHub'a gider. Anahtarı olmayan kaydedemez.</div>
+      <div class="ad-warn">
+        <b>Anahtarı üretirken:</b> GitHub → Settings → Developer settings →
+        Personal access tokens → <b>Fine-grained</b>. Repository access: yalnızca
+        <code>fare-package-intelligence</code>. Permissions: <b>Contents → Read and write</b>.
+        Son kullanma tarihi verin. Bu anahtar bu depoya yazabilir — parola gibi saklayın.
+      </div>
+      <div class="an-controls">
+        <div class="f-group"><label for="adRepo">Depo</label>
+          <input id="adRepo" type="text" style="min-width:280px" placeholder="kullanici/depo"></div>
+        <div class="f-group"><label for="adTok">Anahtar (token)</label>
+          <input id="adTok" type="password" style="min-width:300px" placeholder="github_pat_…"></div>
+        <div class="f-group"><label>&nbsp;</label>
+          <button class="chip-btn primary" id="adConnect">Bağlan</button></div>
+        <div class="f-group"><label>&nbsp;</label>
+          <button class="chip-btn" id="adForget" hidden>Anahtarı sil</button></div>
+      </div>
+      <div id="adStatus" class="ad-status"></div>
+    </div>
+
+    <div class="chart-card" id="adEditCard" hidden>
+      <h3>Paket düzenle</h3>
+      <div class="sub">Bir birim seçin; çekilmiş paketler gelir. Değiştirin, yeni ekleyin veya
+        silin. Bir hakkı <b>— devral —</b> bırakırsanız aynı taşıyıcı+marka için başka bir yerde
+        girdiğiniz değerden alınır; paketin adı ve fiyatı her zaman gereklidir.</div>
+      <div class="an-controls">
+        <div class="f-group"><label for="adCar">Taşıyıcı</label><input id="adCar" list="adCarL" style="width:110px"><datalist id="adCarL"></datalist></div>
+        <div class="f-group"><label for="adOnd">OND</label><input id="adOnd" list="adOndL" style="width:130px" placeholder="AAA-BBB"><datalist id="adOndL"></datalist></div>
+        <div class="f-group"><label for="adSea">Sezon</label><select id="adSea"><option>Summer</option><option>Winter</option></select></div>
+        <div class="f-group"><label for="adCab">Kabin</label><select id="adCab"><option>Economy</option><option>Premium Economy</option><option>Business</option><option>First</option></select></div>
+        <div class="f-group"><label>&nbsp;</label><button class="chip-btn primary" id="adLoad">Getir</button></div>
+      </div>
+      <div id="adBody"></div>
+    </div>
+
+    <div class="chart-card" id="adPendCard" hidden>
+      <h3>Bekleyen girişler</h3>
+      <div class="sub">Kaydettikleriniz depodaki <code>manual_data/entries.csv</code> dosyasında
+        birikir. Panele işlenmesi için çekim makinesinde
+        <code>manual.py apply</code> çalıştırılır.</div>
+      <div id="adPend"></div>
+    </div>
+  </section>
 </main>
 
 <footer>FPI · YDUS — Fare Package Intelligence · tüm değerlendirme paket geçişkenliği üzerinden okunur, nihai ücret gösterilmez · Winter/Summer sezon ortası standart çekim · <span id="genAt"></span></footer>
@@ -2477,6 +2558,265 @@ $("#themeBtn").addEventListener("click", ()=>{
   if(document.querySelector("#heatmap")) renderHeatmap();
 });
 applyThemeIcon();
+
+/* ================================================================
+   YÖNETİM — manuel paket girişi
+   Bu sayfa statiktir ve tek başına hiçbir şeye yazamaz. Yazma yetkisi
+   operatörün KENDİ GitHub anahtarından gelir: anahtar yalnızca bu tarayıcının
+   localStorage'ında durur, sayfaya gömülmez ve GitHub dışında bir yere
+   gitmez. Anahtarı olmayan Yönetim sekmesini bile göremez — bu bir gösteriş
+   kilidi değil, gerçek yetkidir: yazma isteğini GitHub reddeder.
+   Yazılan dosya manual_data/entries.csv; sütunları manual.py'den enjekte
+   edilir (MANUAL_COLS), böylece iki taraf asla ayrışmaz.
+   ================================================================ */
+const MANUAL_COLS = /*__MANUAL_COLS__*/[];
+const MANUAL_RIGHTS = /*__MANUAL_RIGHTS__*/[];
+const AD_STATES=["","Included","Paid","Not Included"];
+const AD_LBL={"":"— devral —","Included":"Dahil","Paid":"Ücretli","Not Included":"Yok"};
+const AD_PATH="manual_data/entries.csv";
+let AD={tok:"",repo:"",sha:null,rows:[],cur:null,edit:[]};
+
+const adSet=(m,cls)=>{const e=$("#adStatus");e.textContent=m;e.className="ad-status "+(cls||"");};
+const adB64=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+const adUnB64=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0)));
+
+async function adApi(path, opts){
+  const r=await fetch(`https://api.github.com/repos/${AD.repo}/${path}`,{
+    ...opts, headers:{Authorization:`Bearer ${AD.tok}`,Accept:"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",...(opts&&opts.headers||{})}});
+  return r;
+}
+function adCsvSplit(line){                       // tırnaklı CSV alanlarını ayır
+  const out=[];let cur="",q=false;
+  for(let i=0;i<line.length;i++){const c=line[i];
+    if(q){ if(c==='"'&&line[i+1]==='"'){cur+='"';i++;} else if(c==='"'){q=false;} else cur+=c; }
+    else if(c==='"')q=true; else if(c===","){out.push(cur);cur="";} else cur+=c;}
+  out.push(cur);return out;
+}
+const adCsvCell=v=>{const s=String(v??"");return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+
+async function adLoadStore(){
+  const r=await adApi(`contents/${AD_PATH}`);
+  if(r.status===404){AD.sha=null;AD.rows=[];return;}
+  if(!r.ok) throw new Error(`GitHub ${r.status}`);
+  const j=await r.json(); AD.sha=j.sha;
+  const lines=adUnB64(j.content).split(/\r?\n/).filter(l=>l.trim());
+  const head=adCsvSplit(lines[0]);
+  AD.rows=lines.slice(1).map(l=>{const c=adCsvSplit(l);const o={};
+    head.forEach((h,i)=>o[h]=c[i]??"");return o;});
+}
+async function adSaveStore(msg){
+  const body=[MANUAL_COLS.join(",")].concat(
+    AD.rows.map(r=>MANUAL_COLS.map(c=>adCsvCell(r[c])).join(","))).join("\n")+"\n";
+  const r=await adApi(`contents/${AD_PATH}`,{method:"PUT",body:JSON.stringify({
+    message:msg, content:adB64(body), ...(AD.sha?{sha:AD.sha}:{})})});
+  if(!r.ok){const t=await r.text();throw new Error(`GitHub ${r.status}: ${t.slice(0,140)}`);}
+  AD.sha=(await r.json()).content.sha;
+}
+
+async function adConnect(){
+  AD.repo=$("#adRepo").value.trim().replace(/^https?:\/\/github\.com\//,"").replace(/\.git$/,"");
+  AD.tok=$("#adTok").value.trim();
+  if(!AD.repo||!AD.tok){adSet("Depo ve anahtar gerekli.","err");return;}
+  adSet("bağlanılıyor…");
+  try{
+    const who=await adApi("");                 // depoya erişim var mı
+    if(!who.ok) throw new Error(`depoya erişilemedi (${who.status})`);
+    const info=await who.json();
+    if(!info.permissions||!info.permissions.push)
+      throw new Error("bu anahtarın yazma yetkisi yok (Contents: Read and write gerekli)");
+    await adLoadStore();
+    try{localStorage.setItem("fpi-gh",JSON.stringify({repo:AD.repo,tok:AD.tok}));}catch(e){}
+    $("#adTok").value=""; $("#adForget").hidden=false;
+    $("#adEditCard").hidden=false; $("#adPendCard").hidden=false;
+    adSet(`bağlandı: ${AD.repo} · ${AD.rows.length} bekleyen giriş`,"ok");
+    adFillLists(); adRenderPending();
+  }catch(e){adSet(String(e.message||e),"err");}
+}
+function adForget(){
+  try{localStorage.removeItem("fpi-gh");}catch(e){}
+  AD={tok:"",repo:"",sha:null,rows:[],cur:null,edit:[]};
+  $("#adEditCard").hidden=true; $("#adPendCard").hidden=true; $("#adForget").hidden=true;
+  $("#adTab") && null; adSet("anahtar silindi.","");
+}
+function adFillLists(){
+  const cars=uniq(DATA.fares.map(f=>f.airline)).sort();
+  $("#adCarL").innerHTML=cars.map(c=>`<option value="${escap(c)}">`).join("");
+  $("#adOndL").innerHTML=uniq(DATA.fares.map(f=>ondKey(f))).sort()
+    .map(o=>`<option value="${escap(o)}">`).join("");
+}
+
+function adLoadUnit(){
+  const car=$("#adCar").value.trim().toUpperCase(), ond=$("#adOnd").value.trim().toUpperCase();
+  const sea=$("#adSea").value, cab=$("#adCab").value;
+  if(!/^[A-Z]{2,3}$/.test(car)||!/^[A-Z]{3}-[A-Z]{3}$/.test(ond)){
+    adSet("Taşıyıcı 2-3 harf, OND 'AAA-BBB' olmalı.","err");return;}
+  const [o,d]=ond.split("-");
+  AD.cur={car,o,d,sea,cab};
+  const scraped=DATA.fares.filter(f=>f.airline===car&&f.origin===o&&f.destination===d
+      &&(f.coll_season||f.season)===sea&&f.cabin===cab)
+    .sort((a,b)=>a.package_order-b.package_order);
+  const pend=AD.rows.filter(r=>r.Carrier===car&&r.Origin===o&&r.Destination===d
+      &&r.Season===sea&&r.Cabin===cab);
+  const key=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const pmap=new Map(pend.map(r=>[key(r["Brand Name"]),r]));
+  AD.edit=scraped.map((f,i)=>{
+    const r=pmap.get(key(f.fare_brand)); pmap.delete(key(f.fare_brand));
+    const rights={};
+    MANUAL_RIGHTS.forEach(rn=>{const v=r&&r[rn];
+      if(v){const [st,...rest]=v.split(":");rights[rn]={state:st.trim(),detail:rest.join(":").trim()};}});
+    return {order:r&&r["Brand Order"]?+r["Brand Order"]:i+1,
+            name:r?r["Brand Name"]:f.fare_brand,
+            price:r&&r["Price USD"]!==""?+r["Price USD"]:(f.price_usd??null),
+            rights, src:r?(r.Action==="remove"?"rm":"man"):"src",
+            action:r&&r.Action==="remove"?"remove":"keep", dirty:false};
+  });
+  pmap.forEach(r=>{ const rights={};
+    MANUAL_RIGHTS.forEach(rn=>{const v=r[rn];
+      if(v){const [st,...rest]=v.split(":");rights[rn]={state:st.trim(),detail:rest.join(":").trim()};}});
+    AD.edit.push({order:+r["Brand Order"]||AD.edit.length+1,name:r["Brand Name"],
+      price:r["Price USD"]!==""?+r["Price USD"]:null,rights,src:"man",
+      action:r.Action==="remove"?"remove":"keep",dirty:false});});
+  adRenderEdit(scraped.length===0);
+}
+
+function adRenderEdit(empty){
+  const rows=AD.edit.map((p,i)=>{
+    const pill=p.src==="src"?'<span class="ad-pill src">çekilmiş</span>'
+             :p.src==="man"?'<span class="ad-pill man">manuel</span>'
+             :'<span class="ad-pill new">yeni</span>';
+    return `<tr class="${p.action==="remove"?"rm":""}">
+      <td><input class="num" style="width:52px;text-align:center" type="number" min="1"
+          value="${p.order}" data-i="${i}" data-k="order"></td>
+      <td><input type="text" style="width:100%;min-width:150px" value="${escap(p.name)}"
+          data-i="${i}" data-k="name" placeholder="paket adı"></td>
+      <td><input class="num" type="number" step="0.01" value="${p.price??""}"
+          data-i="${i}" data-k="price" placeholder="USD"></td>
+      <td>${pill}</td>
+      <td><button class="chip-btn" data-act="r" data-i="${i}">Haklar</button>
+          <button class="chip-btn" data-act="x" data-i="${i}">${p.action==="remove"?"Geri al":"Sil"}</button></td></tr>
+      <tr id="adr${i}" hidden><td colspan="5"><div class="ad-rights"><div class="ad-rgrid">
+        ${MANUAL_RIGHTS.map(rn=>{const rv=p.rights[rn]||{};
+          return `<div class="ad-r"><span title="${escap(rn)}">${escap(rn)}</span>
+            <select data-i="${i}" data-r="${escap(rn)}" data-f="state">${AD_STATES.map(st=>
+              `<option value="${st}" ${(rv.state||"")===st?"selected":""}>${AD_LBL[st]}</option>`).join("")}</select>
+            <input type="text" placeholder="detay (örn. 2×23kg)" value="${escap(rv.detail||"")}"
+              data-i="${i}" data-r="${escap(rn)}" data-f="detail"></div>`;}).join("")}
+      </div></div></td></tr>`;}).join("");
+  $("#adBody").innerHTML =
+    (empty?`<div class="ad-warn">Bu birimde çekilmiş paket yok — sıfırdan gireceksiniz.</div>`:"")+
+    `<div style="overflow-x:auto"><table class="ad"><thead><tr>
+      <th style="width:60px">Kademe</th><th>Paket adı</th><th style="width:118px">Fiyat USD</th>
+      <th style="width:104px">Durum</th><th style="width:190px">İşlem</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="5" class="empty">Paket yok.</td></tr>`}</tbody></table></div>
+     <div class="ad-actions">
+       <button class="chip-btn" id="adAdd">+ Yeni paket</button>
+       <span style="flex:1"></span>
+       <span class="result-count" id="adDirty"></span>
+       <button class="chip-btn primary" id="adSave" disabled>GitHub'a kaydet</button>
+     </div>`;
+  adMark();
+}
+function adMark(){
+  const n=AD.edit.filter(p=>p.dirty).length;
+  const b=$("#adSave"); if(b){b.disabled=!n;}
+  const d=$("#adDirty"); if(d)d.textContent=n?`${n} paket değişti`:"";
+}
+function adRenderPending(){
+  const host=$("#adPend");
+  if(!AD.rows.length){host.innerHTML=`<div class="empty">Bekleyen giriş yok.</div>`;return;}
+  host.innerHTML=AD.rows.map(r=>`<div class="ad-pend-row">
+      <span class="k">${escap(r.Carrier)} ${escap(r.Origin)}-${escap(r.Destination)} ·
+        ${escap(r.Season)} · ${escap(r.Cabin)}</span>
+      <b>${escap(r["Brand Name"])}</b>
+      <span style="color:var(--dim)">${r.Action==="remove"?"silinecek":"$"+(r["Price USD"]||"—")}</span>
+    </div>`).join("");
+}
+
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("#adBody button, #adConnect, #adForget, #adLoad");
+  if(!b)return;
+  if(b.id==="adConnect")return adConnect();
+  if(b.id==="adForget")return adForget();
+  if(b.id==="adLoad")return adLoadUnit();
+  if(b.id==="adAdd"){AD.edit.push({order:AD.edit.length+1,name:"",price:null,rights:{},
+    src:"new",action:"keep",dirty:true});adRenderEdit(false);return;}
+  if(b.id==="adSave")return adSave();
+  const i=+b.dataset.i;
+  if(b.dataset.act==="r"){const r=$("#adr"+i);r.hidden=!r.hidden;}
+  else if(b.dataset.act==="x"){AD.edit[i].action=AD.edit[i].action==="remove"?"keep":"remove";
+    AD.edit[i].dirty=true;adRenderEdit(false);}
+});
+document.addEventListener("input",e=>{
+  const t=e.target; if(!t.closest("#adBody"))return;
+  const i=+t.dataset.i; if(isNaN(i))return;
+  if(t.dataset.r){const rn=t.dataset.r;AD.edit[i].rights[rn]=AD.edit[i].rights[rn]||{};
+    AD.edit[i].rights[rn][t.dataset.f]=t.value;}
+  else if(t.dataset.k==="price")AD.edit[i].price=t.value===""?null:parseFloat(t.value);
+  else if(t.dataset.k==="order")AD.edit[i].order=parseInt(t.value)||1;
+  else AD.edit[i][t.dataset.k]=t.value;
+  AD.edit[i].dirty=true; adMark();
+});
+document.addEventListener("change",e=>{
+  const t=e.target; if(!t.closest("#adBody")||!t.dataset.r)return;
+  AD.edit[+t.dataset.i].dirty=true; adMark();
+});
+
+async function adSave(){
+  const c=AD.cur; if(!c)return;
+  const bad=AD.edit.find(p=>p.dirty&&!String(p.name).trim());
+  if(bad){adSet("Paket adı boş olamaz.","err");return;}
+  const miss=AD.edit.find(p=>p.dirty&&p.action!=="remove"&&(p.price===null||isNaN(p.price)));
+  if(miss){adSet(`"${miss.name}" için fiyat gerekli.`,"err");return;}
+  const key=n=>String(n||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  for(const p of AD.edit){
+    if(!p.dirty)continue;
+    const row={}; MANUAL_COLS.forEach(k=>row[k]="");
+    Object.assign(row,{Action:p.action==="remove"?"remove":"upsert",Carrier:c.car,
+      Origin:c.o,Destination:c.d,Season:c.sea,Cabin:c.cab,
+      "Brand Order":p.order,"Brand Name":String(p.name).trim(),
+      "Price USD":p.action==="remove"?"":(p.price??"")});
+    MANUAL_RIGHTS.forEach(rn=>{const rv=p.rights[rn]||{};
+      if(rv.state)row[rn]=rv.detail?`${rv.state}: ${rv.detail}`:rv.state;});
+    const idx=AD.rows.findIndex(r=>r.Carrier===c.car&&r.Origin===c.o&&r.Destination===c.d
+      &&r.Season===c.sea&&r.Cabin===c.cab&&key(r["Brand Name"])===key(row["Brand Name"]));
+    if(idx>=0)AD.rows[idx]=row; else AD.rows.push(row);
+  }
+  adSet("kaydediliyor…");
+  try{
+    await adSaveStore(`Manuel giriş: ${c.car} ${c.o}-${c.d} ${c.sea} ${c.cab}`);
+    AD.edit.forEach(p=>{p.dirty=false;if(p.src==="new")p.src="man";});
+    adRenderEdit(false); adRenderPending();
+    adSet(`kaydedildi · ${AD.rows.length} bekleyen giriş`,"ok");
+  }catch(err){
+    // Başka biri aynı dosyayı değiştirdiyse GitHub 409 döner; yeniden okuyup
+    // tekrar denemek, sessizce onun değişikliğini ezmekten iyidir.
+    if(String(err).includes("409")){
+      try{await adLoadStore();adSet("dosya değişmişti, yeniden okundu — tekrar kaydedin.","err");}
+      catch(e2){adSet(String(e2),"err");}
+    } else adSet(String(err.message||err),"err");
+  }
+}
+
+/* Anahtar kayıtlıysa Yönetim sekmesini aç. Anahtarı olmayan sekmeyi görmez —
+   ve görse de GitHub yazma isteğini reddeder. */
+(function adInit(){
+  let saved=null; try{saved=JSON.parse(localStorage.getItem("fpi-gh")||"null");}catch(e){}
+  const tab=$("#adminTab");
+  if(saved&&saved.tok&&saved.repo){
+    AD.repo=saved.repo;AD.tok=saved.tok;tab.hidden=false;
+    $("#adRepo").value=saved.repo; $("#adForget").hidden=false;
+    adLoadStore().then(()=>{$("#adEditCard").hidden=false;$("#adPendCard").hidden=false;
+      adSet(`bağlandı: ${AD.repo} · ${AD.rows.length} bekleyen giriş`,"ok");
+      adFillLists();adRenderPending();}).catch(e=>adSet(String(e),"err"));
+  }
+  // Anahtarı olmayan biri için sekme gizli: Ctrl+Shift+A ile açılır.
+  document.addEventListener("keydown",ev=>{
+    if(ev.ctrlKey&&ev.shiftKey&&(ev.key==="A"||ev.key==="a")){
+      tab.hidden=false; switchTab("admin"); adFillLists();
+    }});
+})();
+
 
 loadData(true);
 </script>

@@ -383,6 +383,15 @@ def main():
             if old in html:
                 html = html.replace(old, new, 1)
 
+    # The admin editor writes a CSV that manual.py has to be able to import,
+    # so the column list is injected from manual.py itself rather than retyped
+    # in the template — two copies would drift the first time a right is added.
+    from manual import COLUMNS as MANUAL_COLUMNS, RIGHT_COLS as MANUAL_RIGHTS
+    html = html.replace("/*__MANUAL_COLS__*/[]",
+                        json.dumps(MANUAL_COLUMNS, ensure_ascii=False))
+    html = html.replace("/*__MANUAL_RIGHTS__*/[]",
+                        json.dumps(MANUAL_RIGHTS, ensure_ascii=False))
+
     pat = re.compile(r"(/\*__EMBEDDED_DATA_START__\*/).*?(/\*__EMBEDDED_DATA_END__\*/)", re.DOTALL)
     new_html, n = pat.subn(lambda m: m.group(1) + embedded + m.group(2), html)
     if n != 1:
