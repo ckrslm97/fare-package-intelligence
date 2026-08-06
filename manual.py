@@ -430,11 +430,20 @@ def cmd_template() -> None:
         print(f"{csv_p} yazıldı (openpyxl yok, xlsx atlandı)")
 
 
-def cmd_export(out_dir: Path, carrier: str, ond: str, season: str) -> None:
+def cmd_export(out_dir: Path, carrier: str, ond: str, season: str,
+               missing: str = "", cabin: str = "") -> None:
+    """Dump existing packages in template shape so they are corrected, not retyped.
+
+    ``missing`` narrows to the units where a right is absent everywhere — the
+    shape a qa_check right-coverage warning takes, so closing one is: export
+    what it flagged, fill the column, import.
+    """
     raw = out_dir / "raw_data.jsonl"
     o = d = ""
     if ond:
         o, _, d = ond.upper().partition("-")
+    if missing and missing not in RIGHT_COLS:
+        raise SystemExit(f"--missing '{missing}' bilinmiyor. Seçenekler: {', '.join(RIGHT_COLS)}")
     rows = []
     for rec in iter_raw_records(raw):
         if carrier and rec.get("carrier", "").upper() != carrier.upper():
@@ -444,6 +453,14 @@ def cmd_export(out_dir: Path, carrier: str, ond: str, season: str) -> None:
         if season and (rec.get("season", "").lower() != season.lower()):
             continue
         for c in rec.get("cabins", []):
+            if cabin and c.get("cabin", "").lower() != cabin.lower():
+                continue
+            if missing:
+                key = RIGHT_BY_DISPLAY[missing]
+                has = any(a.get("canonical_key") == key
+                          for b in c.get("brands", []) for a in b.get("amenities", []))
+                if has:
+                    continue          # bu birimde hak zaten var -> düzeltme gerekmiyor
             for i, b in enumerate(c.get("brands", []), start=1):
                 r = {k: "" for k in COLUMNS}
                 r.update({"Action": "upsert", "Carrier": rec["carrier"],
@@ -517,6 +534,9 @@ def main() -> None:
     e = sub.add_parser("export"); e.add_argument("out_dir")
     e.add_argument("--carrier", default=""); e.add_argument("--ond", default="")
     e.add_argument("--season", default="")
+    e.add_argument("--cabin", default="", help="tek kabin (Economy/Business/…)")
+    e.add_argument("--missing", default="",
+                   help="yalnız bu hakkın HİÇ olmadığı birimler (örn. --missing Meal)")
     i = sub.add_parser("import"); i.add_argument("path")
     i.add_argument("--replace", action="store_true", help="mevcut girişleri sil, baştan yaz")
     a = sub.add_parser("apply"); a.add_argument("out_dir"); a.add_argument("--out", default="")
@@ -527,7 +547,8 @@ def main() -> None:
     elif args.cmd == "add":
         cmd_add()
     elif args.cmd == "export":
-        cmd_export(Path(args.out_dir), args.carrier, args.ond, args.season)
+        cmd_export(Path(args.out_dir), args.carrier, args.ond, args.season,
+                   args.missing, args.cabin)
     elif args.cmd == "validate":
         rows, errs = validate(read_store())
         for x in errs[:40]:
