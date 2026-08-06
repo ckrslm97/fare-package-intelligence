@@ -391,6 +391,14 @@ def main():
                         json.dumps(MANUAL_COLUMNS, ensure_ascii=False))
     html = html.replace("/*__MANUAL_RIGHTS__*/[]",
                         json.dumps(MANUAL_RIGHTS, ensure_ascii=False))
+    # The editor draws the SAME matrix as Detay Analiz, whose rows are keyed by
+    # platform feature keys, while the manual CSV is keyed by column name. The
+    # bridge is derived here from the one mapping that already exists, so a
+    # renamed right cannot leave the editor writing into a column nobody reads.
+    from branded_fare_scraper.amenities import AMENITY_DISPLAY as _DISP
+    featmap = {FEATURE_KEY[k]: _DISP[k] for k in FEATURE_KEY if k in _DISP}
+    html = html.replace("/*__MANUAL_FEATMAP__*/({})",
+                        json.dumps(featmap, ensure_ascii=False))
 
     pat = re.compile(r"(/\*__EMBEDDED_DATA_START__\*/).*?(/\*__EMBEDDED_DATA_END__\*/)", re.DOTALL)
     new_html, n = pat.subn(lambda m: m.group(1) + embedded + m.group(2), html)

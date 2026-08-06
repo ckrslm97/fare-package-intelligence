@@ -496,6 +496,36 @@ table.raw td{padding:6px 9px;border-bottom:1px solid var(--line);white-space:now
 .ad-warn code{font-family:var(--mono);font-size:12px;background:var(--bg-alt);padding:1px 5px;border-radius:4px}
 .ad-status{font-size:13px;font-weight:600;margin-top:4px}
 .ad-status.ok{color:var(--green)} .ad-status.err{color:var(--red)}
+/* Editör matrisi: Detay Analiz'in koşullar tablosunu miras alır, hücreleri
+   tıklanabilir olur. Görsel dil aynı kalsın diye .cond stilleri korunur. */
+.ad-legend{font-size:12.5px;color:var(--dim);background:var(--bg-alt);border:1px solid var(--line);
+  border-radius:9px;padding:10px 13px;margin:2px 0 14px;line-height:1.6}
+.ad-legend code{font-family:var(--mono);font-size:11.5px;background:var(--surface);
+  padding:1px 5px;border-radius:4px;border:1px solid var(--line-2)}
+table.ad-matrix th.brand-h{min-width:158px;vertical-align:top;padding:10px 9px}
+table.ad-matrix th.brand-h.rm{opacity:.42}
+table.ad-matrix th.brand-h.rm .ad-name{text-decoration:line-through}
+.ad-name{display:block;width:100%;margin:6px 0 5px;border:1px solid transparent;border-radius:7px;
+  background:transparent;color:var(--text);font:700 13px var(--font);padding:3px 6px;text-align:center}
+.ad-name:hover{border-color:var(--line-2);background:var(--surface)}
+.ad-name:focus{outline:none;border-color:var(--tk);background:var(--surface);
+  box-shadow:0 0 0 3px rgba(183,49,44,.13)}
+.ad-phead{display:flex;gap:5px;align-items:center;justify-content:center;margin-bottom:6px}
+.ad-price{width:88px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);
+  color:var(--text);font:600 12px var(--mono);text-align:right;padding:0 7px;height:28px}
+.ad-price:focus{outline:none;border-color:var(--tk);box-shadow:0 0 0 3px rgba(183,49,44,.13)}
+.ad-x{border:1px solid var(--line-2);background:var(--surface);color:var(--dim);border-radius:7px;
+  width:28px;height:28px;font-size:15px;line-height:1;cursor:pointer;padding:0}
+.ad-x:hover{border-color:var(--tk);color:var(--tk)}
+.ad-addcol{vertical-align:middle;text-align:center;min-width:96px}
+table.ad-matrix td{text-align:center;vertical-align:middle}
+table.ad-matrix td.rm{opacity:.42}
+.ad-cell{cursor:pointer;user-select:none;transition:transform .1s ease}
+.ad-cell:hover{transform:scale(1.16)}
+.ad-det{display:block;width:104px;margin:5px auto 0;border:1px solid var(--line-2);border-radius:6px;
+  background:var(--surface);color:var(--text);font:12px var(--mono);text-align:center;height:25px;padding:0 5px}
+.ad-det.off{opacity:.34}
+.ad-det:focus{outline:none;border-color:var(--tk);box-shadow:0 0 0 3px rgba(183,49,44,.13);opacity:1}
 table.ad{width:100%;border-collapse:collapse;margin-top:6px}
 table.ad th{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);
   text-align:left;padding:0 8px 8px;border-bottom:1px solid var(--line);font-weight:700}
@@ -2571,6 +2601,7 @@ applyThemeIcon();
    ================================================================ */
 const MANUAL_COLS = /*__MANUAL_COLS__*/[];
 const MANUAL_RIGHTS = /*__MANUAL_RIGHTS__*/[];
+const MANUAL_FEATMAP = /*__MANUAL_FEATMAP__*/({});
 const AD_STATES=["","Included","Paid","Not Included"];
 const AD_LBL={"":"— devral —","Included":"Dahil","Paid":"Ücretli","Not Included":"Yok"};
 const AD_PATH="manual_data/entries.csv";
@@ -2662,65 +2693,97 @@ function adLoadUnit(){
   const pmap=new Map(pend.map(r=>[key(r["Brand Name"]),r]));
   AD.edit=scraped.map((f,i)=>{
     const r=pmap.get(key(f.fare_brand)); pmap.delete(key(f.fare_brand));
+    // Matris ÖNCE çekilmiş gerçeği gösterir — Detay Analiz'de ne görüyorsan
+    // burada da onu görürsün — bekleyen manuel giriş varsa onun üstüne biner.
     const rights={};
+    Object.entries(f.features||{}).forEach(([fk,v])=>{
+      const rn=MANUAL_FEATMAP[fk];
+      if(rn&&v&&v.state&&v.state!=="Unknown")
+        rights[rn]={state:v.state,detail:v.detail||""};
+    });
     MANUAL_RIGHTS.forEach(rn=>{const v=r&&r[rn];
       if(v){const [st,...rest]=v.split(":");rights[rn]={state:st.trim(),detail:rest.join(":").trim()};}});
     return {order:r&&r["Brand Order"]?+r["Brand Order"]:i+1,
             name:r?r["Brand Name"]:f.fare_brand,
             price:r&&r["Price USD"]!==""?+r["Price USD"]:(f.price_usd??null),
             rights, src:r?(r.Action==="remove"?"rm":"man"):"src",
-            action:r&&r.Action==="remove"?"remove":"keep", dirty:false};
+            action:r&&r.Action==="remove"?"remove":"keep", dirty:false,
+            // Hangi hücreye DOKUNULDUĞU ayrı tutulur: kaydederken yalnız
+            // bunlar yazılır. Matrisi çekilmiş değerlerle doldurup hepsini
+            // yazmak, "boş bırak = devral" ekonomisini yok ederdi.
+            touched:new Set(),
+            base:Object.fromEntries(Object.entries(rights).map(([k,v])=>[k,{...v}]))};
   });
   pmap.forEach(r=>{ const rights={};
     MANUAL_RIGHTS.forEach(rn=>{const v=r[rn];
       if(v){const [st,...rest]=v.split(":");rights[rn]={state:st.trim(),detail:rest.join(":").trim()};}});
     AD.edit.push({order:+r["Brand Order"]||AD.edit.length+1,name:r["Brand Name"],
       price:r["Price USD"]!==""?+r["Price USD"]:null,rights,src:"man",
-      action:r.Action==="remove"?"remove":"keep",dirty:false});});
+      action:r.Action==="remove"?"remove":"keep",dirty:false,
+      touched:new Set(Object.keys(rights)),base:{}});});
   adRenderEdit(scraped.length===0);
 }
 
 function adRenderEdit(empty){
-  const rows=AD.edit.map((p,i)=>{
-    const pill=p.src==="src"?'<span class="ad-pill src">çekilmiş</span>'
-             :p.src==="man"?'<span class="ad-pill man">manuel</span>'
-             :'<span class="ad-pill new">yeni</span>';
-    return `<tr class="${p.action==="remove"?"rm":""}">
-      <td><input class="num" style="width:52px;text-align:center" type="number" min="1"
-          value="${p.order}" data-i="${i}" data-k="order"></td>
-      <td><input type="text" style="width:100%;min-width:150px" value="${escap(p.name)}"
-          data-i="${i}" data-k="name" placeholder="paket adı"></td>
-      <td><input class="num" type="number" step="0.01" value="${p.price??""}"
-          data-i="${i}" data-k="price" placeholder="USD"></td>
-      <td>${pill}</td>
-      <td><button class="chip-btn" data-act="r" data-i="${i}">Haklar</button>
-          <button class="chip-btn" data-act="x" data-i="${i}">${p.action==="remove"?"Geri al":"Sil"}</button></td></tr>
-      <tr id="adr${i}" hidden><td colspan="5"><div class="ad-rights"><div class="ad-rgrid">
-        ${MANUAL_RIGHTS.map(rn=>{const rv=p.rights[rn]||{};
-          return `<div class="ad-r"><span title="${escap(rn)}">${escap(rn)}</span>
-            <select data-i="${i}" data-r="${escap(rn)}" data-f="state">${AD_STATES.map(st=>
-              `<option value="${st}" ${(rv.state||"")===st?"selected":""}>${AD_LBL[st]}</option>`).join("")}</select>
-            <input type="text" placeholder="detay (örn. 2×23kg)" value="${escap(rv.detail||"")}"
-              data-i="${i}" data-r="${escap(rn)}" data-f="detail"></div>`;}).join("")}
-      </div></div></td></tr>`;}).join("");
+  // Detay Analiz'in koşullar matrisiyle AYNI okuma düzeni: sütun = paket,
+  // satır = hak. Düzenleme aynı yerde olunca "neye baktığım" ile "neyi
+  // değiştirdiğim" ayrı iki ekran olmuyor.
+  const cols = AD.edit.map((p,i)=>{
+    const pill = p.src==="src" ? '<span class="ad-pill src">çekilmiş</span>'
+               : p.src==="man" ? '<span class="ad-pill man">manuel</span>'
+                               : '<span class="ad-pill new">yeni</span>';
+    const tier = `${CABIN_SHORT[AD.cur.cab]||"Pkg"}-${p.order}`;
+    return `<th class="brand-h ${p.action==="remove"?"rm":""}">
+      <span class="cabin-tag" style="background:${CABIN_COLOR[AD.cur.cab]||"var(--faint)"}">${escap(tier)}</span>
+      <input class="ad-name" type="text" value="${escap(p.name)}" data-i="${i}" data-k="name"
+             placeholder="paket adı">
+      <div class="ad-phead">
+        <input class="ad-price" type="number" step="0.01" value="${p.price??""}"
+               data-i="${i}" data-k="price" placeholder="USD">
+        <button class="ad-x" data-act="x" data-i="${i}"
+                title="${p.action==="remove"?"geri al":"paketi sil"}">${p.action==="remove"?"↺":"×"}</button>
+      </div>
+      ${pill}</th>`;
+  }).join("");
+
+  const rows = Object.keys(FEATURE_META).map(fk=>{
+    const [label,desc]=FEATURE_META[fk];
+    const rn = MANUAL_FEATMAP[fk];
+    if(!rn) return "";                       // panelde var ama manuel şemada yok
+    const cells = AD.edit.map((p,i)=>{
+      const rv=p.rights[rn]||{};
+      const map={"Included":["inc","✓"],"Paid":["paid","€"],"Not Included":["no","—"]};
+      const [cls,sym]=map[rv.state]||["unk","·"];
+      const tip = rv.state ? `${rv.state}${rv.detail?" — "+rv.detail:""} · tıkla: değiştir`
+                           : "devralınacak · tıkla: Dahil yap";
+      return `<td class="${p.action==="remove"?"rm":""}">
+        <span class="st ${cls} ad-cell" data-i="${i}" data-r="${escap(rn)}"
+              data-tip="${escap(tip)}">${sym}</span>
+        <input class="ad-det ${rv.state?"":"off"}" type="text" value="${escap(rv.detail||"")}"
+               data-i="${i}" data-r="${escap(rn)}" data-f="detail" placeholder="detay"></td>`;
+    }).join("");
+    return `<tr><td class="feat"><span class="fwrap">${featIcon(fk)}<span data-tip="${escap(desc)}">${label}</span></span></td>${cells}</tr>`;
+  }).join("");
+
   $("#adBody").innerHTML =
     (empty?`<div class="ad-warn">Bu birimde çekilmiş paket yok — sıfırdan gireceksiniz.</div>`:"")+
-    `<div style="overflow-x:auto"><table class="ad"><thead><tr>
-      <th style="width:60px">Kademe</th><th>Paket adı</th><th style="width:118px">Fiyat USD</th>
-      <th style="width:104px">Durum</th><th style="width:190px">İşlem</th></tr></thead>
-      <tbody>${rows||`<tr><td colspan="5" class="empty">Paket yok.</td></tr>`}</tbody></table></div>
-     <div class="ad-actions">
-       <button class="chip-btn" id="adAdd">+ Yeni paket</button>
-       <span style="flex:1"></span>
+    `<div class="ad-legend">Hücreye tıkla: <b>·</b> devral → <b>✓</b> dahil → <b>€</b> ücretli →
+       <b>—</b> yok. Altındaki kutuya detay yazılır (örn. <code>2×23kg</code>).
+       <b>·</b> bırakılan hak, aynı taşıyıcı+marka için başka yerde girdiğin değerden devralınır.</div>`+
+    `<div style="overflow-x:auto"><table class="cond ad-matrix"><thead><tr><th></th>${cols}
+       <th class="ad-addcol"><button class="chip-btn" id="adAdd">+ paket</button></th></tr></thead>
+       <tbody>${rows}</tbody></table></div>`+
+    `<div class="ad-actions">
        <span class="result-count" id="adDirty"></span>
+       <span style="flex:1"></span>
        <button class="chip-btn primary" id="adSave" disabled>GitHub'a kaydet</button>
      </div>`;
   adMark();
 }
 function adMark(){
   const n=AD.edit.filter(p=>p.dirty).length;
-  const b=$("#adSave"); if(b){b.disabled=!n;}
-  const d=$("#adDirty"); if(d)d.textContent=n?`${n} paket değişti`:"";
+  const b=$("#adSave"); if(b)b.disabled=!n;
+  const d=$("#adDirty"); if(d)d.textContent=n?`${n} paket değişti — kaydedilmedi`:"";
 }
 function adRenderPending(){
   const host=$("#adPend");
@@ -2743,15 +2806,23 @@ document.addEventListener("click",async e=>{
     src:"new",action:"keep",dirty:true});adRenderEdit(false);return;}
   if(b.id==="adSave")return adSave();
   const i=+b.dataset.i;
-  if(b.dataset.act==="r"){const r=$("#adr"+i);r.hidden=!r.hidden;}
-  else if(b.dataset.act==="x"){AD.edit[i].action=AD.edit[i].action==="remove"?"keep":"remove";
+  if(b.dataset.act==="x"){AD.edit[i].action=AD.edit[i].action==="remove"?"keep":"remove";
     AD.edit[i].dirty=true;adRenderEdit(false);}
+});
+// Hücre tıklaması durumu döndürür: devral -> Dahil -> Ücretli -> Yok -> devral
+document.addEventListener("click",e=>{
+  const c=e.target.closest(".ad-cell"); if(!c)return;
+  const i=+c.dataset.i, rn=c.dataset.r, cyc=["","Included","Paid","Not Included"];
+  const p=AD.edit[i]; p.rights[rn]=p.rights[rn]||{};
+  p.rights[rn].state = cyc[(cyc.indexOf(p.rights[rn].state||"")+1)%cyc.length];
+  if(!p.rights[rn].state) p.rights[rn].detail="";
+  p.touched.add(rn); p.dirty=true; adRenderEdit(false);
 });
 document.addEventListener("input",e=>{
   const t=e.target; if(!t.closest("#adBody"))return;
   const i=+t.dataset.i; if(isNaN(i))return;
   if(t.dataset.r){const rn=t.dataset.r;AD.edit[i].rights[rn]=AD.edit[i].rights[rn]||{};
-    AD.edit[i].rights[rn][t.dataset.f]=t.value;}
+    AD.edit[i].rights[rn][t.dataset.f]=t.value; AD.edit[i].touched.add(rn);}
   else if(t.dataset.k==="price")AD.edit[i].price=t.value===""?null:parseFloat(t.value);
   else if(t.dataset.k==="order")AD.edit[i].order=parseInt(t.value)||1;
   else AD.edit[i][t.dataset.k]=t.value;
@@ -2776,7 +2847,13 @@ async function adSave(){
       Origin:c.o,Destination:c.d,Season:c.sea,Cabin:c.cab,
       "Brand Order":p.order,"Brand Name":String(p.name).trim(),
       "Price USD":p.action==="remove"?"":(p.price??"")});
-    MANUAL_RIGHTS.forEach(rn=>{const rv=p.rights[rn]||{};
+    // Sadece elle dokunulan hücreler yazılır; dokunulmayanlar boş kalır ve
+    // manual.py onları aynı taşıyıcı+markadan devralır — yani çekilmiş
+    // değerin ta kendisinden. Hepsini yazmak dosyayı şişirir ve bir sonraki
+    // çekimde düzelen bir hakkı elle donmuş hâlde tutardı.
+    MANUAL_RIGHTS.forEach(rn=>{
+      if(!p.touched.has(rn))return;
+      const rv=p.rights[rn]||{};
       if(rv.state)row[rn]=rv.detail?`${rv.state}: ${rv.detail}`:rv.state;});
     const idx=AD.rows.findIndex(r=>r.Carrier===c.car&&r.Origin===c.o&&r.Destination===c.d
       &&r.Season===c.sea&&r.Cabin===c.cab&&key(r["Brand Name"])===key(row["Brand Name"]));
