@@ -391,9 +391,200 @@ footer{padding:36px 0 60px;color:var(--faint);font-size:13.5px}
   </div>
 </section>
 
+<!-- 10 -->
+<section>
+  <div class="kicker">İkinci konu · Otomasyon</div>
+  <h1 style="font-size:34px">Süreç ne kadar<br>otomatikleşebilir?</h1>
+  <p class="lead">Veri bugün kişisel bilgisayarda toplanıyor ve panele elle
+  aktarılıyor. Soru şu: <strong>bu döngü insan başında beklemeden dönebilir mi
+  — ve yapay zekâ bunun neresinde durur?</strong></p>
+
+  <h3>Önemli olan kısım: iş zaten büyük ölçüde kurala döndü</h3>
+  <p>Toplama sırasında karşılaşılan arızalar başlangıçta elle fark ediliyordu.
+  Bunların her biri tespit edildikçe <strong>yazılımın kendi kuralına
+  dönüştürüldü</strong> — yani artık kimsenin bakmasına gerek yok:</p>
+
+  <table>
+    <thead><tr><th>Eskiden elle yakalanıyordu</th><th>Bugün</th></tr></thead>
+    <tbody>
+      <tr><td>Tarayıcının internet bağlantısının sessizce ölmesi</td>
+          <td class="yes">Otomatik tespit + yeniden başlatma</td></tr>
+      <tr><td>Sayfanın yanıt vermeden asılı kalması</td>
+          <td class="yes">7 dakikalık zaman aşımı, o birim atlanır</td></tr>
+      <tr><td>Tanınmayan taşıyıcı kodu → veri sessizce eksilir</td>
+          <td class="yes">Koşu <em>başlamadan</em> reddedilir</td></tr>
+      <tr><td>"Son 2 koltuk" uçuşlarının fiyatı bozması</td>
+          <td class="yes">Otomatik eleme</td></tr>
+      <tr><td>Bozuk verinin panele girmesi</td>
+          <td class="yes">Kalite kapısı: geçemezse panel değişmez</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid g3" style="margin-top:22px">
+    <div class="stat"><div class="n">5</div><div class="l">otomatik yakalanan arıza sınıfı</div></div>
+    <div class="stat"><div class="n">213</div><div class="l">otomatik test</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">komut · baştan sona koşu</div></div>
+  </div>
+
+  <div class="ok">
+    <strong>Sonuç:</strong> Rutin işleyiş için yapay zekâya <em>ihtiyaç kalmadı</em>.
+    Geriye tek bir şey kalıyor: <strong>daha önce görülmemiş bir arıza
+    çıktığında teşhis.</strong> Site tasarımını değiştirdiğinde, yeni bir hata
+    deseni belirdiğinde, kalite kontrolü bir şeyi işaretleyip "bu gerçek mi,
+    yanlış alarm mı" sorusu doğduğunda.
+  </div>
+
+  <p class="sub">Not: baştan sona tek komutluk akış yazıldı ve hazır; ilk uçtan
+  uca denemesi henüz yapılmadı. Bugün koşular parça parça başlatılıyor.</p>
+</section>
+
+<!-- 11 -->
+<section>
+  <div class="kicker">Otomasyon · kavramlar</div>
+  <h2>Yapay zekâyı "çağırmak" ne demek?</h2>
+  <p>Buradaki tek teknik incelik şu ayrımda saklı; kararın tamamı buna dayanıyor.</p>
+
+  <dl class="def">
+    <dt>API</dt>
+    <dd>Bir yazılımın başka bir yazılımı programatik olarak çağırması. Bizim
+    durumumuzda: yapay zekâ modelini kendi süreçlerimizin içinden çağırmak.
+    <strong>Kullandığın kadar ödersin</strong> — abonelik değil, üst sınır konabilir.</dd>
+
+    <dt>n8n</dt>
+    <dd>Şirkette <strong>zaten açık olan</strong> otomasyon aracı. "Şu olduğunda
+    şunu yap" akışlarını kod yazmadan kurar. Bizim için rolü: tetikleyici ve haberci.</dd>
+
+    <dt>Model</dt>
+    <dd>Yapay zekânın metni okuyup metin yazan kısmı. Akıl yürütür, kayıtları
+    yorumlar, düzeltme önerir. <strong>API'nin verdiği şey budur.</strong></dd>
+
+    <dt>Araç seti</dt>
+    <dd>Modelin dosyaları okumasını, programı çalıştırmasını, kayıtlara bakmasını
+    ve kodu değiştirmesini sağlayan katman. <strong>API bunu içermez</strong> —
+    ayrıca kurulması gerekir.</dd>
+  </dl>
+
+  <div class="flag">
+    <strong>Yaygın yanılgı:</strong> "n8n'e bir API anahtarı koyalım, gerisini
+    yapay zekâ halletsin." Bu, <em>modeli</em> getirir ama <em>araç setini</em>
+    getirmez. n8n şirket sunucusunda çalışır; orada ne veri toplama yazılımı
+    vardır, ne tarayıcı, ne de sitenin kabul ettiği internet bağlantısı.
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Her şeyin şeklini belirleyen kısıt</h3>
+    <p style="margin-bottom:0">Veri toplama <strong>normal bir internet
+    bağlantısı ve gerçek bir tarayıcı</strong> gerektiriyor. Sunucu merkezlerinden
+    gelen bağlantıları site engelliyor — bu daha önce ölçülerek doğrulandı.
+    Yani <strong>toplama işi kişisel bilgisayarda kalmak zorunda</strong>;
+    şirket sunucusuna ya da bulut servisine taşınamaz. Bu, sonraki sayfadaki
+    seçenekleri doğrudan eliyor.</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section>
+  <div class="kicker">Otomasyon · seçenekler</div>
+  <h2>Dört yol</h2>
+
+  <table>
+    <thead><tr>
+      <th>Yol</th><th>Ne yapar</th><th>Nerede çalışır</th><th>Değerlendirme</th>
+    </tr></thead>
+    <tbody>
+      <tr style="background:var(--green-soft)">
+        <td><strong>A · n8n → model</strong><br><span class="sub">rapor ve teşhis</span></td>
+        <td>Koşu kayıtlarını ve kalite çıktısını okur, Türkçe özet üretir, ekibe yollar</td>
+        <td>Şirket n8n'i</td>
+        <td class="yes">Bugün kurulabilir · çok ucuz<br><span class="sub no">teşhis eder, düzeltemez</span></td>
+      </tr>
+      <tr>
+        <td><strong>B · Tam araç seti bizde</strong></td>
+        <td>Gerçek okuma, çalıştırma, kod düzeltme</td>
+        <td>Kişisel bilgisayar</td>
+        <td>Yeterli, ama şirket n8n'i ev ağındaki bilgisayara <strong>içeri bağlanamaz</strong> — ek kurulum ister</td>
+      </tr>
+      <tr style="background:var(--green-soft)">
+        <td><strong>C · Beyin sağlayıcıda,<br>eller bizde</strong></td>
+        <td>B ile aynı yetenek; bağlantı <strong>yalnızca dışa doğru</strong></td>
+        <td>İkisi birden</td>
+        <td class="yes">Ağ sorunu yok · toplama gerçek bağlantımızda kalır</td>
+      </tr>
+      <tr>
+        <td><strong>D · Her şey sağlayıcıda</strong></td>
+        <td>Tümü bulutta</td>
+        <td>Sağlayıcı</td>
+        <td class="no">Toplama için uygun değil (site engelliyor)<br><span class="sub">analiz için kullanılabilir</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="rec">
+    <h3 style="margin-top:0">Önerim: önce A, sonra C</h3>
+    <p><strong>1. Adım — A.</strong> Bir hafta içinde kurulur, riski sıfır.
+    Gereken tek şey bir API anahtarı ve n8n'in sağlayıcıya erişmesi. Her koşu
+    bitiminde otomatik özet ve kalite yorumu düşer; kimsenin kayıtlara bakması
+    gerekmez.</p>
+    <p style="margin-bottom:0"><strong>2. Adım — C.</strong> A'nın değeri
+    görüldükten sonra "düzeltebilen" katmana geçilir. Yazma yetkisi başta
+    yalnızca çalışma dizinine verilir; panele dokunmak <strong>insan onayına
+    bağlı kalır.</strong></p>
+  </div>
+
+  <p class="sub"><strong>B atlanabilir</strong> — C aynı işi ağ kurulumu
+  derdi olmadan yapıyor. <strong>D toplama için düşünülmemeli</strong> —
+  daha önce elenmiş olan bağlantı engeli sorunu.</p>
+</section>
+
+<!-- 13 -->
+<section>
+  <div class="kicker">Otomasyon · maliyet ve karar</div>
+  <h2>Ne kadar tutar, ne onay gerekir?</h2>
+
+  <table>
+    <thead><tr><th>İş</th><th>Yaklaşık maliyet</th></tr></thead>
+    <tbody>
+      <tr><td>Koşu sonrası otomatik analiz + rapor (A)</td><td>~0,05 USD / koşu</td></tr>
+      <tr><td>Ayda ~50 koşu</td><td>~2–3 USD / ay</td></tr>
+      <tr><td>Gerçek teşhis ve düzeltme oturumu (C)</td><td>~1–5 USD / oturum</td></tr>
+      <tr><td>Ayda ~5 böyle oturum</td><td>~10–25 USD / ay</td></tr>
+      <tr style="background:var(--card)"><td><strong>Beklenen toplam</strong></td>
+          <td><strong>~15–30 USD / ay</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p class="sub">Kullandıkça ödeme modeli — sabit taahhüt yok, aylık üst sınır
+  tanımlanabilir. Rakamlar tahmindir; ilk ay gerçek kullanımla doğrulanır.
+  Karşılaştırma için: bir önceki bölümdeki yedek plan (GitHub Pro) ≈4 USD/ay.</p>
+
+  <div class="card">
+    <h3 style="margin-top:0">Karar 3 — Otomasyon</h3>
+    <p>Yapay zekâ API erişimi alınması ve n8n üzerinden bağlanması
+    <strong>onaylanıyor mu?</strong></p>
+    <p class="sub" style="margin-bottom:0">Küçük başlanır (yalnızca raporlama),
+    değeri görülürse genişletilir. Her aşamada durdurulabilir.</p>
+  </div>
+
+  <h3>BT'ye eklenecek soru</h3>
+  <div class="ask">
+    <ol start="6">
+      <li><strong>n8n sunucusu dış bir servis adresine çıkabiliyor mu?</strong><br>
+      <span class="sub">Standart bir HTTPS bağlantısı; kurumsal vekil sunucu
+      engelliyorsa istisna tanımlanması gerekir. Barındırma görüşmesiyle
+      <em>aynı toplantıda</em> sorulmalı.</span></li>
+    </ol>
+  </div>
+
+  <div class="warn">
+    <strong>Karar verilmezse ne olur:</strong> Sistem çalışmaya devam eder —
+    ancak arıza teşhisi elle yapılmaya devam eder ve koşuların başında
+    beklenmesi gerekir. Bu bir engel değil, yalnızca kazanılmamış bir verimlilik.
+  </div>
+</section>
+
 <footer>
   <div class="deck" style="padding:0">
-    FPI — Fare Package Intelligence · Yayınlama ve erişim karar notu ·
+    FPI — Fare Package Intelligence · Yayınlama, erişim ve otomasyon karar notu ·
     Teknik bulgular canlı sistem üzerinde doğrulanmıştır.
   </div>
 </footer>
