@@ -58,3 +58,15 @@ output_v12/evidence/searches/
 # Manuel giriş deposu operatöre aittir; şablonlar repoda, girdiler değil
 manual_data/entries.csv
 manual_data/duzenle.csv
+
+# koşu çıktıları ve pilot logları (operatör verisi, depoya girmez)
+output_*/
+*.out
+
+# Operatör hız ayarı — makineye özel, depoya girmez
+.enuygun_interval
+.far_lead
+
+# Düzenleme sürümü — veriyi taşır, depoya girmez
+fpi_duzenleme*.html
+FPI_DUZENLEME/

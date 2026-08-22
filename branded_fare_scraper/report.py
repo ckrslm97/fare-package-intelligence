@@ -15,6 +15,34 @@ from .amenities import AMENITY_KEYS, AMENITY_TR
 from .models import BrandedFare
 
 CARRIER_NAMES = {
+    # Added 2026-08-07 with the OGA-AVRUPA list. This table is not decoration:
+    # it is how a results row is matched to the carrier we asked for, so a code
+    # missing from here means every row that airline sells is dropped and the
+    # unit reports "carrier not on route" — a silent, confident lie about the
+    # market. Add the name BEFORE the OND goes into a run, never after.
+    "6E": "IndiGo", "AY": "Finnair", "HY": "Uzbekistan Airways",
+    "J2": "Azerbaijan Airlines", "LO": "LOT Polish Airlines",
+    "PK": "Pakistan International Airlines",
+    # Added 2026-08-09 with the LOKAL (Turkey-touching) + domestic lists. Eight
+    # of these carry the bulk of the leisure traffic on the Antalya routes, so
+    # running without them would have reported the busiest operator on the line
+    # as absent: XQ alone is ~293k pax on AYT-DUS, more than TK, PC and XC
+    # combined on that pair.
+    "XQ": "SunExpress", "XC": "Corendon Airlines", "FH": "Freebird Airlines",
+    "LS": "Jet2.com", "2S": "Southwind Airlines", "F3": "flyadeal",
+    "TU": "Tunisair", "HH": "Qanot Sharq",
+    # Caught by preflight.py on the top50_ond_c list — 9 pairs that would have
+    # collected nothing and reported the carriers as absent from their routes.
+    "BG": "Biman Bangladesh Airlines", "EO": "Pegas Fly", "EW": "Eurowings",
+    "KU": "Kuwait Airways", "SR": "Sundair", "VN": "Vietnam Airlines",
+    # The rest of the 300-OND reference list — 70 more pairs, same risk.
+    "A2": "Animawings", "BS": "US-Bangla Airlines", "BY": "TUI Airways",
+    "D7": "AirAsia X", "DV": "SCAT Airlines", "ET": "Ethiopian Airlines",
+    "FB": "Bulgaria Air", "FZ": "flydubai", "G9": "Air Arabia",
+    "HO": "Juneyao Airlines", "J9": "Jazeera Airways", "KC": "Air Astana",
+    "MF": "XiamenAir", "PR": "Philippine Airlines", "RJ": "Royal Jordanian",
+    "RK": "Ryanair UK", "V0": "Conviasa", "WY": "Oman Air",
+    "Z0": "Norse Atlantic France", "ZF": "AZUR air",
     "TK": "Turkish Airlines", "EK": "Emirates", "QR": "Qatar Airways", "LH": "Lufthansa",
     "EY": "Etihad Airways", "SV": "Saudia", "PC": "Pegasus", "BA": "British Airways",
     "AF": "Air France", "SU": "Aeroflot", "MS": "EgyptAir", "GF": "Gulf Air",
@@ -62,6 +90,12 @@ CARRIER_ALIASES = {
     "VF": ("AnadoluJet",),
     "UL": ("Sri Lankan Airlines",),
     "DE": ("Condor Flugdienst",),
+    # Spellings an OTA prints that the airline itself does not.
+    "PK": ("PIA", "Pakistan Intl Airlines", "Pakistan International"),
+    "HY": ("Uzbekistan Airways", "Uzbekistan Havo Yullari"),
+    "J2": ("AZAL", "Azerbaijan Hava Yollari"),
+    "LO": ("LOT", "Polish Airlines LOT"),
+    "6E": ("Indigo", "Interglobe Aviation"),
 }
 
 AMENITY_ICON = {

@@ -30,8 +30,10 @@ from __future__ import annotations
 
 import csv
 import collections
+import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 
@@ -155,6 +157,64 @@ def check_right_coverage(rows: list[dict]) -> list[str]:
     return problems
 
 
+def check_unknown_not_blank(rows: list[dict]) -> list[str]:
+    """Every right column must say something — "Unknown" counts, blank does not.
+
+    BLOCKING. The reference rule is that a field is never left empty, and the
+    reason is not tidiness: a blank cell renders as "no right" everywhere it is
+    read, so an extraction gap silently becomes a claim about the airline's
+    product. "Unknown" makes the gap say what it is.
+    """
+    sys.path.insert(0, str(Path(__file__).parent))
+    from branded_fare_scraper.amenities import AMENITY_DISPLAY, AMENITY_KEYS
+    cols = [AMENITY_DISPLAY[k] for k in AMENITY_KEYS]
+    blanks = collections.Counter()
+    for r in rows:
+        for c in cols:
+            if c in r and not (r.get(c) or "").strip():
+                blanks[c] += 1
+    return [f"BLANK RIGHT: '{c}' {n} satırda boş — 'Unknown' yazmalı"
+            for c, n in blanks.most_common()]
+
+
+def report_validation_layer(rows: list[dict]) -> list[str]:
+    """Confidence, agreement and the logical flags. Informational.
+
+    None of this blocks. A flag here says "a human should look", and wiring a
+    suspicion to an exit code would do exactly what the 2026-08-05 right-
+    coverage gate did: stop a strictly better dataset from being published
+    because it was honest about its own uncertainty.
+    """
+    if "Validation Status" not in (rows[0] if rows else {}):
+        print("[bilgi] Doğrulama katmanı yok (bu veri 2026-08-06 öncesi çekilmiş)")
+        return []
+
+    st = collections.Counter(r.get("Validation Status", "") for r in rows)
+    print(f"[bilgi] Doğrulama durumu: " +
+          ", ".join(f"{k or '?'} {v}" for k, v in st.most_common()))
+
+    confs = [int(r["Mean Confidence"]) for r in rows
+             if (r.get("Mean Confidence") or "").strip().isdigit()]
+    if confs:
+        low = sum(1 for c in confs if 0 < c < 70)
+        print(f"[bilgi] Ortalama güven: {sum(confs)/len(confs):.0f}/100 "
+              f"({low} satır 70'in altında)")
+
+    changes = [r for r in rows if (r.get("Product Change Flags") or "").strip()]
+    if changes:
+        print(f"[bilgi] Kontrol penceresi {len(changes)} satırda hedef sezondan "
+              f"FARKLI okudu (ürün değişikliği olabilir — hedef sezon esas alınır)")
+
+    flags = collections.Counter()
+    for r in rows:
+        for f in filter(None, (r.get("Review Flags") or "").split("; ")):
+            flags[f.split(":")[0]] += 1
+    out = []
+    for code, n in flags.most_common():
+        out.append(f"MANTIK: {code} — {n} satır")
+    return out
+
+
 def report_business_coverage(rows: list[dict]) -> None:
     sys.path.insert(0, str(Path(__file__).parent))
     from branded_fare_scraper.normalization import LCC_CARRIERS
@@ -201,6 +261,89 @@ def report_refund_fee_spread(out_dir: Path) -> None:
           f"bu Enuygun'un kaynak verisine bağlı, hata değil")
 
 
+def report_absence_kind(out_dir: Path) -> None:
+    """Split "no data" into the two very different things it can mean.
+
+    The adapter already distinguishes them — ``no flights`` (carrier is not on
+    the route at those dates) versus ``no branded packages`` (carrier IS on the
+    route, the site just sells it as one undifferentiated fare) — but both land
+    in the raw record as ``no_availability`` and read downstream as absence.
+    Competitively they are opposites: the second is a carrier we are losing
+    ladder data on, not one that is missing from the market. Measured
+    2026-08-09 on the LOKAL list, 33 of 33 empty units were the second kind,
+    Corendon alone accounting for 16 — every one of which a reader of the old
+    output would have taken for "does not fly here".
+    """
+    raw = out_dir / "raw_data.jsonl"
+    if not raw.exists():
+        return
+    flies_no_pkg: dict[str, int] = {}
+    no_flights: dict[str, int] = {}
+    for line in raw.open(encoding="utf-8"):
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if any(c.get("brands") for c in (rec.get("cabins") or [])):
+            continue
+        err = str(rec.get("error") or "")
+        car = rec.get("carrier") or "?"
+        if "no branded packages" in err:
+            flies_no_pkg[car] = flies_no_pkg.get(car, 0) + 1
+        elif "no flights" in err:
+            no_flights[car] = no_flights.get(car, 0) + 1
+    if not (flies_no_pkg or no_flights):
+        return
+    print(f"\n[bilgi] Veri gelmeyen birimler — sebep ayrımı:")
+    if flies_no_pkg:
+        tot = sum(flies_no_pkg.values())
+        top = sorted(flies_no_pkg.items(), key=lambda kv: -kv[1])[:6]
+        print(f"        UÇUYOR ama markalı paket yok: {tot} birim — "
+              + ", ".join(f"{k}×{v}" for k, v in top))
+        print("        (bunlar 'hatta yok' DEĞİL; site tek tip ücret satıyor)")
+    if no_flights:
+        tot = sum(no_flights.values())
+        top = sorted(no_flights.items(), key=lambda kv: -kv[1])[:6]
+        print(f"        Hatta uçuş yok: {tot} birim — "
+              + ", ".join(f"{k}×{v}" for k, v in top))
+
+
+def report_lead_spread(rows: list[dict]) -> list[str]:
+    """Flag OND+season buckets whose rows were priced at very different leads.
+
+    Two fares only compare if they were read a similar distance from
+    departure. Low-cost carriers do not sell as far ahead as legacy ones, so
+    when the plan asks for a deep band they fall back to near dates and land in
+    the same bucket — a 43-day price sitting beside a 300-day price, both
+    labelled the same season. Reported, never blocking: the rows are each
+    individually correct, and which of them to compare is the reader's call.
+    """
+    # normalized_data.csv carries "Departure Date", not the published
+    # lead_days, so derive it here rather than depend on the publish step —
+    # this check has to run BEFORE anything is embedded.
+    today = date.today()
+    buckets: dict[tuple, list[int]] = {}
+    for r in rows:
+        dep = (r.get("Departure Date") or "").strip()
+        if not dep:
+            continue
+        try:
+            lead = (date.fromisoformat(dep) - today).days
+        except ValueError:
+            continue
+        key = (r.get("Origin"), r.get("Destination"), r.get("Season"))
+        buckets.setdefault(key, []).append(lead)
+    wide = [(k, min(v), max(v)) for k, v in buckets.items() if max(v) - min(v) > 60]
+    if not buckets:
+        return []
+    print(f"\n[bilgi] Karşılaştırılabilirlik: {len(buckets)} OND+sezon kovası, "
+          f"{len(wide)} tanesinde satın alma ufku 60 günden fazla ayrışıyor "
+          f"(%{100 * len(wide) / len(buckets):.0f})")
+    for k, lo, hi in sorted(wide, key=lambda x: -(x[2] - x[1]))[:5]:
+        print(f"        {k[0]}-{k[1]} {k[2]}: {lo}..{hi} gün ({hi - lo} gün fark)")
+    return []
+
+
 def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit("kullanim: python qa_check.py <output_dir>")
@@ -216,6 +359,7 @@ def main() -> None:
     problems += check_duplicate_names(rows)
     problems += check_baggage_format(rows)
     problems += check_ladder_monotonic(rows)
+    problems += check_unknown_not_blank(rows)
 
     # UYARI: hak kapsamı bir kusuru İŞARET EDER ama kanıtlamaz — bir taşıyıcı
     # bazı rotalarda gerçekten yemek vermiyor olabilir. Bunu bloklayıcı yapmak
@@ -226,6 +370,9 @@ def main() -> None:
 
     report_business_coverage(rows)
     report_refund_fee_spread(out_dir)
+    report_absence_kind(out_dir)
+    warnings += report_lead_spread(rows)
+    warnings += report_validation_layer(rows)
     if warnings:
         print(f"\n[uyarı] {len(warnings)} hak-kapsamı anomalisi (bloklamaz):")
         for w in warnings[:15]:

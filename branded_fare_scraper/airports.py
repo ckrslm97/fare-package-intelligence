@@ -11,6 +11,7 @@ from __future__ import annotations
 _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "ADJ": ("AMM", "Amman", "JO", "Jordan", "Middle East"),
     "AGP": ("AGP", "Malaga", "ES", "Spain", "Europe"),
+    "ALA": ("ALA", "Almaty", "KZ", "Kazakhstan", "Asia"),
     "AMM": ("AMM", "Amman", "JO", "Jordan", "Middle East"),
     "AMS": ("AMS", "Amsterdam", "NL", "Netherlands", "Europe"),
     "AQJ": ("AQJ", "Aqaba", "JO", "Jordan", "Middle East"),
@@ -25,6 +26,8 @@ _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "BOM": ("BOM", "Mumbai", "IN", "India", "Asia"),
     "BOS": ("BOS", "Boston", "US", "USA", "N. America"),
     "BRU": ("BRU", "Brussels", "BE", "Belgium", "Europe"),
+    "BUD": ("BUD", "Budapest", "HU", "Hungary", "Europe"),
+    "BVA": ("PAR", "Paris", "FR", "France", "Europe"),
     "CAN": ("CAN", "Guangzhou", "CN", "China", "Asia"),
     "CDG": ("PAR", "Paris", "FR", "France", "Europe"),
     "CGH": ("SAO", "Sao Paulo", "BR", "Brazil", "S. America"),
@@ -49,6 +52,7 @@ _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "GRU": ("SAO", "Sao Paulo", "BR", "Brazil", "S. America"),
     "HAM": ("HAM", "Hamburg", "DE", "Germany", "Europe"),
     "HAN": ("HAN", "Hanoi", "VN", "Vietnam", "Asia"),
+    "HEL": ("HEL", "Helsinki", "FI", "Finland", "Europe"),
     "HHN": ("HHN", "Frankfurt-Hahn", "DE", "Germany", "Europe"),
     "HKG": ("HKG", "Hong Kong", "HK", "Hong Kong", "Asia"),
     "HKT": ("HKT", "Phuket", "TH", "Thailand", "Asia"),
@@ -82,6 +86,7 @@ _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "NQZ": ("NQZ", "Astana", "KZ", "Kazakhstan", "Asia"),
     "NRT": ("TYO", "Tokyo", "JP", "Japan", "Asia"),
     "ORD": ("CHI", "Chicago", "US", "USA", "N. America"),
+    "ORY": ("PAR", "Paris", "FR", "France", "Europe"),
     "OTP": ("BUH", "Bucharest", "RO", "Romania", "Europe"),
     "PEK": ("BJS", "Beijing", "CN", "China", "Asia"),
     "PKX": ("BJS", "Beijing", "CN", "China", "Asia"),
@@ -94,14 +99,17 @@ _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "SJJ": ("SJJ", "Sarajevo", "BA", "Bosnia and Herzegovina", "Europe"),
     "SKG": ("SKG", "Thessaloniki", "GR", "Greece", "Europe"),
     "SOF": ("SOF", "Sofia", "BG", "Bulgaria", "Europe"),
+    "STN": ("LON", "London", "GB", "UK", "Europe"),
     "SVO": ("MOW", "Moscow", "RU", "Russia", "Europe"),
     "SVQ": ("SVQ", "Seville", "ES", "Spain", "Europe"),
     "SYD": ("SYD", "Sydney", "AU", "Australia", "Oceania"),
+    "TAS": ("TAS", "Tashkent", "UZ", "Uzbekistan", "Asia"),
     "TBS": ("TBS", "Tbilisi", "GE", "Georgia", "Asia"),
     "TIF": ("TIF", "Taif", "SA", "Saudi Arabia", "Middle East"),
     "TPE": ("TPE", "Taipei", "TW", "Taiwan", "Asia"),
     "VAR": ("VAR", "Varna", "BG", "Bulgaria", "Europe"),
     "VCE": ("VCE", "Venice", "IT", "Italy", "Europe"),
+    "VIE": ("VIE", "Vienna", "AT", "Austria", "Europe"),
     "VKO": ("MOW", "Moscow", "RU", "Russia", "Europe"),
     "WAW": ("WAW", "Warsaw", "PL", "Poland", "Europe"),
     "YNB": ("YNB", "Yanbu", "SA", "Saudi Arabia", "Middle East"),
@@ -110,12 +118,23 @@ _TABLE: dict[str, tuple[str, str, str, str, str]] = {
     "YVR": ("YVR", "Vancouver", "CA", "Canada", "N. America"),
     "YYZ": ("YTO", "Toronto", "CA", "Canada", "N. America"),
     "ZYR": ("BRU", "Brussels", "BE", "Belgium", "Europe"),  # Brussels Midi rail
-    # Turkey (for the Local/Beyond rule and future ONDs)
+    # Turkey (for the YIC/Local/Beyond rule and future ONDs)
     "IST": ("IST", "Istanbul", "TR", "Türkiye", "Turkey"),
     "SAW": ("IST", "Istanbul", "TR", "Türkiye", "Turkey"),
     "ESB": ("ANK", "Ankara", "TR", "Türkiye", "Turkey"),
     "ADB": ("IZM", "Izmir", "TR", "Türkiye", "Turkey"),
     "AYT": ("AYT", "Antalya", "TR", "Türkiye", "Turkey"),
+    # Added 2026-08-09 for the domestic (YIC) list. IST/SAW share the city code
+    # IST, so an IST-SAW pair is intra-city, not a route — the domestic list
+    # must not contain one.
+    "TZX": ("TZX", "Trabzon", "TR", "Türkiye", "Turkey"),
+    "BJV": ("BJV", "Bodrum", "TR", "Türkiye", "Turkey"),
+    "DLM": ("DLM", "Dalaman", "TR", "Türkiye", "Turkey"),
+    "ADA": ("ADA", "Adana", "TR", "Türkiye", "Turkey"),
+    "GZT": ("GZT", "Gaziantep", "TR", "Türkiye", "Turkey"),
+    # Cologne — on the LOKAL list (AYT-CGN, ~272k pax on XQ alone) but missing
+    # from the table, so it was resolving to the "Other" region.
+    "CGN": ("CGN", "Cologne", "DE", "Germany", "Europe"),
 }
 
 _FIELDS = ("city_code", "city_name", "country_code", "country_name", "region")

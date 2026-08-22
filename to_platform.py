@@ -19,8 +19,10 @@ from pathlib import Path
 from branded_fare_scraper.airports import meta as airport_meta
 from branded_fare_scraper.amenities import canonical_rule_detail
 from branded_fare_scraper.models import AmenityStatus
-from branded_fare_scraper.normalization import (LCC_CARRIERS, clean_fare_code,
+from branded_fare_scraper.normalization import (LCC_CARRIERS, brand_match_key,
+                                                clean_fare_code,
                                                 iter_unit_ranked_by_cabin, tier_code)
+from branded_fare_scraper.publish import validation_lookup, window_diffs_for
 from branded_fare_scraper.rebuild import (cabin_result_from_dict, iter_raw_records,
                                           pair_prefs_for, season_pair_prefs)
 from branded_fare_scraper.report import CARRIER_NAMES
@@ -34,6 +36,15 @@ FEATURE_KEY = {
     "no_show_change": "no_show_change", "same_day_earlier_flight": "same_day_change",
     "wifi": "wifi", "extra_baggage": "extra_baggage",
     "sports_equipment": "sport_equipment", "pet": "pet",
+    # Added 2026-08-06 with the taxonomy. Platform keys match the canonical
+    # ones so there is nothing to remember; `prune_empty_features` still drops
+    # any of these that no carrier in the dataset actually reports, so adding
+    # them cannot put an empty row on every card.
+    "personal_item": "personal_item", "priority_baggage": "priority_baggage",
+    "extra_legroom": "extra_legroom", "priority_check_in": "priority_check_in",
+    "airport_check_in": "airport_check_in", "entertainment": "entertainment",
+    "upgrade_eligibility": "upgrade_eligibility",
+    "infant_benefits": "infant_benefits", "tier_miles": "tier_miles",
 }
 
 
@@ -118,6 +129,23 @@ def _short_detail(key: str, raw: str, status: AmenityStatus) -> str:
     return ""  # other rights: the ✓/€/— state colour already carries the meaning
 
 
+def _lead_days(dep: str | None) -> int | None:
+    """Days from today to ``dep`` (ISO date), or None when unknown.
+
+    Deliberately computed at publish time from the departure rather than
+    stored during collection: the raw files predate the field, and a run's own
+    clock is the only honest reference for "how far ahead was this bought".
+    Rows published in different runs therefore carry leads measured from their
+    own publish date, which is what a comparison inside one panel needs.
+    """
+    if not dep:
+        return None
+    try:
+        return (date.fromisoformat(dep) - date.today()).days
+    except ValueError:
+        return None
+
+
 def _features(raw):
     out = {}
     seen_rank = {}
@@ -133,6 +161,13 @@ def _features(raw):
         det = _short_detail(a.canonical_key or "", a.raw_value, a.status)
         if det:
             feat["detail"] = det
+        # Provenance travels with the cell. `detail` is the tidied display
+        # string; `src` is what the page actually said, which is the only one
+        # of the two that proves anything.
+        if getattr(a, "source_text", ""):
+            feat["src"] = a.source_text[:180]
+        if getattr(a, "confidence", 0):
+            feat["conf"] = int(a.confidence)
         out[pk] = feat
     # miles feature from mileage flag (earned count, else the bonus percentage)
     if raw.miles.mileage_available is not None:
@@ -185,6 +220,13 @@ def feature_filter_patch(keys) -> tuple[str, str]:
     return (FEATURE_META_ANCHOR,
             FEATURE_META_ANCHOR + "\n"
             "/*fpi-fix: rights with no data in this dataset are not rendered*/\n"
+            "/* …in the ANALYSIS views. The manual editor keeps the full table:\n"
+            "   pruning asks \"did the scrape find this right?\", and the editor\n"
+            "   exists precisely for the rights it did not. Handing it the\n"
+            "   pruned list would make the tool unable to record anything the\n"
+            "   source never publishes — which is most of what a human has to\n"
+            "   add. Snapshot BEFORE the deletion, hence the order here. */\n"
+            "const FEATURE_META_ALL = Object.assign({}, FEATURE_META);\n"
             f"const FPI_PRESENT_FEATURES = new Set({allowed});\n"
             "Object.keys(FEATURE_META).forEach(k=>{"
             "if(!FPI_PRESENT_FEATURES.has(k)) delete FEATURE_META[k];});")
@@ -204,12 +246,19 @@ def build_fares(out_dir: Path):
         oc, oreg = mo["country_name"], mo["region"]
         dc, dreg = md["country_name"], md["region"]
         ctype = "Low Cost" if carrier.upper() in LCC_CARRIERS else "Legacy"
-        # Local if either endpoint's country is Turkey, else Beyond.
-        ondtype = "Local" if "TR" in (mo["country_code"], md["country_code"]) else "Beyond"
+        # YIC (yurt ici) if BOTH endpoints are Turkey, Local if only one is,
+        # else Beyond. Derived from the airport table rather than tagged by
+        # hand on the input sheet, so a domestic OND added later is classified
+        # correctly without anyone remembering to label it.
+        _tr = [mo["country_code"] == "TR", md["country_code"] == "TR"]
+        ondtype = "YIC" if all(_tr) else ("Local" if any(_tr) else "Beyond")
         cabins = [cabin_result_from_dict(c) for c in rec.get("cabins", [])]
+        vblock = rec.get("validation")
+        vindex = validation_lookup(vblock)
         # One ladder per effective cabin for the unit (no duplicate PE rows).
         for eff_cab, raw, nb, order, absp, c in iter_unit_ranked_by_cabin(
                 cabins, carrier=carrier, pair_prefs_by_cabin=ppc):
+            ventry = vindex.get((eff_cab.value, brand_match_key(raw.raw_brand_name)), {})
             dep = c.departure.isoformat() if c.departure else None
             src = c.source or rec.get("source", "")   # per-cabin source from raw
             cur = (raw.currency or "USD").upper()
@@ -229,6 +278,17 @@ def build_fares(out_dir: Path):
                 "std_tier": tier_code(eff_cab, order), "package_order": order + 1,
                 "price": price, "price_usd": price_usd,
                 "currency": cur, "travel_date": dep,
+                # Days between collection and departure. Two rows in the same
+                # OND+season bucket are only comparable if this is close: a
+                # fare read 43 days out is structurally dearer than the same
+                # product read 300 days out. It was already implicit in
+                # travel_date, but nothing surfaced it, so a deep-band legacy
+                # price and a near-band low-cost price sat side by side looking
+                # like a like-for-like comparison. Measured 2026-08-09: 52% of
+                # OND+season groups mix departure dates, and low-cost carriers
+                # are the ones that fall back, because they do not sell as far
+                # ahead as legacy carriers do.
+                "lead_days": _lead_days(dep),
                 "features": _features(raw),
                 # Identity of the itinerary the ladder was read from. Was hard
                 # -coded None because no source recorded it; Enuygun does, and
@@ -238,6 +298,16 @@ def build_fares(out_dir: Path):
                 "operating_carrier": c.operating_carrier or None,
                 "is_codeshare": c.is_codeshare,
                 "is_interline": c.is_interline,
+                # --- validation layer. Present so a reader can weigh a number
+                # instead of only reading it; absent keys mean the run that
+                # produced this data predates the layer, not that it passed.
+                "window_role": c.window_role,
+                "validation": ventry.get("status") or None,
+                "observations": ventry.get("observations") or None,
+                "confidence": ventry.get("mean_confidence") or None,
+                "contested": ventry.get("contested") or None,
+                "product_change": window_diffs_for(
+                    vblock, eff_cab.value, raw.raw_brand_name) or None,
             })
     return fares
 
