@@ -70,3 +70,6 @@ output_*/
 # Düzenleme sürümü — veriyi taşır, depoya girmez
 fpi_duzenleme*.html
 FPI_DUZENLEME/
+
+# jsdum duman testi bagimliligi (yerel)
+node_modules/

@@ -1161,6 +1161,11 @@ let FILTERED = [];
 const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const fmtD = v => v==null ? "—" : "+$" + Math.round(v).toLocaleString("en-US");   // geçiş farkı
+/* Mutlak fiyat. Düzenleme sütun başlığı bunu kullanıyor; önceden var
+   sanılan money() diye bir yardımcı YOKTU ve çağrısı condTable'ı düzenleme
+   modunda patlatıp bütün sayfayı boş bırakıyordu — hata konsolda kalıyor,
+   ekranda yalnızca boşluk görünüyordu. */
+const fmtUSD = v => (v==null || isNaN(v)) ? "—" : "$" + Math.round(v).toLocaleString("en-US");
 /* TEK renk kaynağı. Daha önce aynı anlam birden çok yerde farklı hex ile
    çizilirdi (TK üç ayrı kırmızıyla: #C8102E, #E11D48, #DC2626) ve SVG'lerde
    sabit koyu lacivert metinler karanlık temada okunmuyordu. Artık her renk
@@ -1918,7 +1923,7 @@ function condTable(g, ed){
       <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"var(--faint)"}">${escap(stdTier(f))}</span>
       ${edAdd?`<button class="fx-del" data-fld="del" data-pi="${i}" title="Bu paketi sil">✕</button>`:""}<br>
       <span class="brand-name${edName?" fx-ed":""}"${edName?` data-fld="name" data-pi="${i}"`:""}>${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}
-      ${ed?`<div class="price-ed${edPrice?" fx-ed":""}"${edPrice?` data-fld="price" data-pi="${i}"`:""}>${f.price_usd!=null?money(f.price_usd,"USD"):"—"}</div>`:""}</th>`;
+      ${ed?`<div class="price-ed${edPrice?" fx-ed":""}"${edPrice?` data-fld="price" data-pi="${i}"`:""}>${fmtUSD(f.price_usd)}</div>`:""}</th>`;
   }).join("");
   const addCol = edAdd ? `<th class="fx-addcol"><button class="chip-btn" data-fld="add">+ paket</button></th>` : "";
   const rowsHtml = Object.keys(FEATURE_META).map(fk=>{
