@@ -459,6 +459,21 @@ table.arch tr:hover td{background:var(--bg-alt)}
 .fx-stat.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-dark)}
 .fx-hint{font-size:12.6px;color:var(--dim);background:var(--bg-alt);border:1px solid var(--line);
   border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:14px}
+.fx-scope{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.fx-scope-lbl{font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--faint)}
+.fx-scope button{border:1px solid var(--line);background:var(--bg-alt);color:var(--dim);
+  border-radius:99px;padding:4px 12px;font-size:12.5px;font-weight:700;cursor:pointer;
+  transition:background .12s ease,color .12s ease,border-color .12s ease}
+.fx-scope button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.fx-scope button.on::before{content:"✓ "}
+/* Düzenlenebilir alanlar görünür olmalı ama matrisi bağırmadan: kesikli alt
+   çizgi açık, hover'da dolu vurgu. */
+.fx-ed{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.fx-ed:hover{background:var(--blue-soft);border-radius:5px}
+.fx-del{border:0;background:none;color:var(--red);font-weight:800;cursor:pointer;
+  font-size:12px;padding:0 4px;opacity:.6}
+.fx-del:hover{opacity:1}
+.fx-addcol{text-align:center;vertical-align:middle}
 /* Düzenlenebilir hücre: tıklanabilir olduğu görünmeli ama matrisin okunurluğunu
    bozmamalı — bu yüzden sadece hover'da beliriyor. */
 .editable .cond td .st{cursor:pointer;border-radius:6px;padding:1px 5px;margin:-1px -5px}
@@ -1009,9 +1024,13 @@ footer{padding:26px 22px;color:var(--faint);font-size:13.2px;text-align:center;b
         <button class="chip-btn" id="fxRevert">↺ Tümünü geri al</button>
       </div>
     </div>
-    <div class="fx-hint">Hücreye tıkla: <b>✓ dahil → € ücretli → — yok → · bilinmiyor</b>.
-      Ayrıntıya (kg, ücret) veya paket adına/fiyatına çift tıkla. Değişiklik anında veriye işlenir;
-      orijinal el değmeden durur.</div>
+    <div class="fx-scope">
+      <span class="fx-scope-lbl">Değiştirebileceklerim:</span>
+      <span id="fxScope"></span>
+    </div>
+    <div class="fx-hint">Açık alanlar <b>altı çizili</b> görünür. Hücreye tıkla:
+      <b>✓ dahil → € ücretli → — yok → · bilinmiyor</b>. Ayrıntı (kg, ücret) için çift tıkla.
+      Değişiklik anında veriye işlenir; orijinal el değmeden durur.</div>
     <div id="fxCards"></div>
   </section>
 
@@ -1826,17 +1845,23 @@ function scoreBadge(sc, extra=""){
   const [bg,fg]=scoreColor(sc);
   return `<span class="score-badge" style="background:${bg};color:${fg}" data-tip="Paket içerik skoru (0-100): dahil ve ücretli hakların ağırlıklı toplamı${extra}">Score ${sc}</span>`;
 }
-function cardHead(f0, flowLabel, alerts, ondCount){
+function cardHead(f0, flowLabel, alerts, ondCount, ed){
   const tk = f0.airline==="TK";
-  const alertHtml = alerts.slice(0,4).map(a=>
-    `<span class="alert-ico" data-tip="${escap(a.text)}" data-kh="${a.airline}" data-khtext="${escap(a.text)}">${a.icon}</span>`).join("");
-  return `<div class="card-head">
-    <span class="carrier-name ${tk?"tk":""}">${escap(f0.airline_name||f0.airline)} <span style="color:var(--faint);font-weight:600">(${f0.airline})</span></span>
+  const alertHtml = alerts.slice(0,4).push ? alerts.slice(0,4).map(a=>
+    `<span class="alert-ico" data-tip="${escap(a.text)}" data-kh="${a.airline}" data-khtext="${escap(a.text)}">${a.icon}</span>`).join("") : "";
+  /* Düzenleme yetkisi ALAN BAZINDA: kullanıcı neyi değiştirebileceğini kendi
+     seçer. Kapalı bir alan hiç tıklanabilir görünmez — yanlışlıkla taşıyıcı
+     değiştirmek, bir hakkı düzeltmekten çok daha pahalı bir hatadır. */
+  const edCar  = ed && fxCan("carrier");
+  const edOnd  = ed && fxCan("ond");
+  const unit   = ed ? escap(edUnitOf(f0)) : "";
+  return `<div class="card-head"${ed?` data-unit="${unit}"`:""}>
+    <span class="carrier-name ${tk?"tk":""}${edCar?" fx-ed":""}"${edCar?` data-hfld="carrier"`:""}>${escap(f0.airline_name||f0.airline)} <span style="color:var(--faint);font-weight:600">(${f0.airline})</span></span>
     ${alertHtml}
-    <span class="route-badge">${escap(flowLabel)}</span>
+    <span class="route-badge${edOnd?" fx-ed":""}"${edOnd?` data-hfld="ond"`:""}>${escap(flowLabel)}</span>
     ${ondCount>1?`<span class="mchip region" data-tip="Bu kırılımda ${ondCount} OND ortalaması okunur">${ondCount} OND ort.</span>`:""}
     <div class="meta-chips">
-      ${pdDim==="ond"?`<span class="mchip region">${escap(f0.origin_country)} → ${escap(f0.dest_country)}</span>`:""}
+      ${(ed?fxDim:pdDim)==="ond"?`<span class="mchip region">${escap(f0.origin_country)} → ${escap(f0.dest_country)}</span>`:""}
       <span class="mchip ${f0.ond_type==="Local"?"local":"beyond"}">${f0.ond_type}</span>
       <span class="mchip ${f0.carrier_type==="Low Cost"?"lcc":"legacy"}">${f0.carrier_type}</span>
       <span class="mchip region" data-tip="CollDate · ${escap(f0.coll_season||"")} sezonu · sorgu tarihi ${escap(f0.query_date||"")}">📅 ${f0.coll_date} ${f0.coll_season||""}</span>
@@ -1874,7 +1899,7 @@ function renderPanel(ed){
     const body = md==="cond"
       ? `<div class="card-body">${condTable(condRows, ed)}</div>`
       : `<div class="card-body">${chainBody(g)}</div>`;
-    card.innerHTML = cardHead(f0, flowLabel, cardAlerts, onds.length) + body;
+    card.innerHTML = cardHead(f0, flowLabel, cardAlerts, onds.length, ed) + body;
     host.appendChild(card);
   });
   $$(".alert-ico").forEach(el=>el.addEventListener("click",()=>openKnowHow(el.dataset.kh, el.dataset.khtext)));
@@ -1884,21 +1909,26 @@ function renderPanel(ed){
    Düzeltme zamanla farklı şeyler gösterirdi. Fark yalnızca data-* öznitelikleri
    ve elle değiştirilmiş hücrelerin işareti. */
 function condTable(g, ed){
+  const edName = ed && fxCan("pkg"), edPrice = ed && fxCan("price");
+  const edCont = ed && fxCan("content"), edAdd = ed && fxCan("addpkg");
   const heads = g.map((f,i)=>{
     const ov=edOverOf(f);
     const man = ov && (ov.name!==undefined||ov.price!==undefined) ? " man" : "";
     return `<th class="brand-h${man}"${ed?` data-pi="${i}"`:""}>
-      <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"var(--faint)"}">${escap(stdTier(f))}</span><br>
-      <span class="brand-name"${ed?` data-fld="name" data-pi="${i}"`:""}>${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}
-      ${ed?`<div class="price-ed" data-fld="price" data-pi="${i}">${f.price_usd!=null?money(f.price_usd,"USD"):"—"}</div>`:""}</th>`;
+      <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"var(--faint)"}">${escap(stdTier(f))}</span>
+      ${edAdd?`<button class="fx-del" data-fld="del" data-pi="${i}" title="Bu paketi sil">✕</button>`:""}<br>
+      <span class="brand-name${edName?" fx-ed":""}"${edName?` data-fld="name" data-pi="${i}"`:""}>${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}
+      ${ed?`<div class="price-ed${edPrice?" fx-ed":""}"${edPrice?` data-fld="price" data-pi="${i}"`:""}>${f.price_usd!=null?money(f.price_usd,"USD"):"—"}</div>`:""}</th>`;
   }).join("");
+  const addCol = edAdd ? `<th class="fx-addcol"><button class="chip-btn" data-fld="add">+ paket</button></th>` : "";
   const rowsHtml = Object.keys(FEATURE_META).map(fk=>{
     const [label,desc]=FEATURE_META[fk];
     return `<tr><td class="feat"><span class="fwrap">${featIcon(fk)}<span data-tip="${escap(desc)}">${label}</span></span></td>` +
-      g.map((f,i)=>`<td>${stateCell((f.features||{})[fk], ed?{pi:i, rk:fk, man:edCellIsManual(f,fk)}:null)}</td>`).join("") + `</tr>`;
+      g.map((f,i)=>`<td>${stateCell((f.features||{})[fk], edCont?{pi:i, rk:fk, man:edCellIsManual(f,fk)}:null)}</td>`).join("") +
+      (edAdd?`<td></td>`:"") + `</tr>`;
   }).join("");
   return `<table class="cond"${ed?` data-unit="${escap(edUnitOf(g[0]))}"`:""}>`+
-         `<thead><tr><th></th>${heads}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+         `<thead><tr><th></th>${heads}${addCol}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
 }
 function chainBody(g){
   const chains = chainsFor(g);
@@ -3461,6 +3491,18 @@ function edApply(){
         if(ov.name!=null) f.fare_brand=ov.name;
         if(ov.price!=null){ f.price=ov.price; f.price_usd=ov.price; f.currency="USD"; }
         if(ov.order!=null) f.package_order=ov.order;
+        /* Birim taşıma: taşıyıcı ya da OND değiştiyse künye alanları da
+           yeniden türetilir, yoksa satır yeni OND'de eski ülke/bölge/tipiyle
+           kalır ve filtreler onu yanlış kovaya koyar. */
+        if(ov.airline){ f.airline=ov.airline;
+          f.airline_name=(typeof CARRIER_NAMES!=="undefined" && CARRIER_NAMES[ov.airline]) || ov.airline; }
+        if(ov.origin||ov.destination){
+          if(ov.origin) f.origin=ov.origin;
+          if(ov.destination) f.destination=ov.destination;
+          const oi=AIRPORT_INFO[f.origin], di=AIRPORT_INFO[f.destination];
+          if(oi){ f.origin_country=oi[0]; f.origin_region=oi[1]; f.region=oi[1]; }
+          if(di){ f.dest_country=di[0];   f.dest_region=di[1]; }
+        }
         if(ov.rights) Object.entries(ov.rights).forEach(([rk,rv])=>{
           f.features=f.features||{};
           if(rv&&rv.state) f.features[rk]={state:rv.state, detail:rv.detail||"", src:"elle giriş", conf:100};
@@ -3548,6 +3590,35 @@ function edRevertAll(){
    Buradaki kod yalnız ETKİLEŞİMİ ekler — hangi hücreye tıklanınca ne olacağı. */
 let fxMode = "cond";
 let fxDim  = "ond";
+
+/* ---- Düzenleme yetkisi (kapsam) ----
+   Her alan ayrı açılır. Varsayılan olarak yalnız içerik ve paket adı/fiyatı
+   açık: gündelik düzeltme bunlar. Taşıyıcı ve OND kapalı başlar çünkü onları
+   değiştirmek satırı BAŞKA bir birime taşır — yanlışlıkla yapılırsa bir hak
+   düzeltmesinden çok daha pahalı bir hatadır. Seçim tarayıcıda saklanır. */
+const FX_SCOPES = [
+  {id:"content", label:"İçerik (haklar)"},
+  {id:"pkg",     label:"Paket adı"},
+  {id:"price",   label:"Fiyat"},
+  {id:"addpkg",  label:"Paket ekle / sil"},
+  {id:"carrier", label:"Taşıyıcı"},
+  {id:"ond",     label:"OND"},
+];
+const FX_SCOPE_LS = "fpi-fix-scope";
+let FX_SCOPE = new Set(["content","pkg","price"]);
+function fxCan(id){ return FX_SCOPE.has(id); }
+function fxScopeLoad(){
+  try{ const r=localStorage.getItem(FX_SCOPE_LS);
+    if(r){ const a=JSON.parse(r); if(Array.isArray(a)) FX_SCOPE=new Set(a); } }catch(e){}
+}
+function fxScopeSave(){
+  try{ localStorage.setItem(FX_SCOPE_LS, JSON.stringify([...FX_SCOPE])); }catch(e){}
+}
+function fxRenderScope(){
+  const el=$("#fxScope"); if(!el) return;
+  el.innerHTML = FX_SCOPES.map(s=>
+    `<button data-sc="${s.id}" class="${fxCan(s.id)?"on":""}">${escap(s.label)}</button>`).join("");
+}
 
 function fillFxCabin(){
   const sel=$("#fxCabin"); if(!sel) return;
@@ -3641,6 +3712,38 @@ function fxEditField(f, fld){
   edOverPrune(f); fxCommit();
 }
 
+/* OND / taşıyıcı değişikliği satırı BAŞKA bir birime taşır: anahtarın kendisi
+   değişir, yani eski üst üste yazma kaydı artık o satıra denk gelmez. Bu
+   yüzden kayıt yeni anahtar altında kurulur ve taşınan alanlar açıkça yazılır. */
+function fxMoveUnit(f, fld){
+  if(fld==="carrier"){
+    const v=prompt("Taşıyıcı kodu (örn. TK, LH):", f.airline||""); if(v===null) return;
+    const car=v.trim().toUpperCase(); if(!car) return;
+    const ov=edOverEnsure(f); ov.airline=car;
+  } else {
+    const v=prompt("OND (AAA-BBB):", `${f.origin}-${f.destination}`); if(v===null) return;
+    const p=v.trim().toUpperCase().split(/[-\s]+/);
+    if(p.length<2||p[0].length!==3||p[1].length!==3){ alert("AAA-BBB biçiminde yaz."); return; }
+    const ov=edOverEnsure(f); ov.origin=p[0]; ov.destination=p[1];
+  }
+  edPersist(); edApply(); renderAll(); fxStat();
+}
+function fxDeletePkg(f){
+  if(!confirm(`"${f.fare_brand}" paketi silinecek. Emin misin?`)) return;
+  const ov=edOverEnsure(f); ov.__removed=true;
+  edPersist(); edApply(); renderAll(); fxStat();
+}
+function fxAddPkg(uk){
+  const {car,o,d,sea,cab}=edUnitParse(uk);
+  const name=prompt("Yeni paket adı:"); if(name===null||!name.trim()) return;
+  const pv=prompt("Fiyat (USD):"); if(pv===null) return;
+  const price=parseFloat(String(pv).replace(",",".")); if(isNaN(price)){ alert("Geçerli bir sayı gir."); return; }
+  const n=(DATA.fares||[]).filter(x=>edUnitOf(x)===uk).length;
+  ED_OVER[uk]=ED_OVER[uk]||{};
+  ED_OVER[uk][edPkgKey(name)]={name:name.trim(), price:price, order:n+1, rights:{}};
+  edPersist(); edApply(); renderAll(); fxStat();
+}
+
 function fxStat(){
   const n=edCount(), el=$("#fxStat"); if(!el) return;
   el.textContent = n ? `${n} paket elle değiştirildi` : "değişiklik yok";
@@ -3656,13 +3759,36 @@ function fxBind(){
   $("#fxDim").addEventListener("change",e=>{ fxDim=e.target.value; renderFix(); });
   $("#fxCabin").addEventListener("change", renderFix);
 
+  $("#fxScope").addEventListener("click",e=>{
+    const b=e.target.closest("[data-sc]"); if(!b) return;
+    const id=b.dataset.sc;
+    FX_SCOPE.has(id)?FX_SCOPE.delete(id):FX_SCOPE.add(id);
+    fxScopeSave(); fxRenderScope(); renderFix();
+  });
+
   $("#fxCards").addEventListener("click",e=>{
+    /* Kart başlığı: taşıyıcı / OND (birim taşıma) */
+    const head=e.target.closest(".card-head[data-unit]");
+    if(head){
+      const hf=e.target.closest("[data-hfld]");
+      if(hf){
+        const uk=head.dataset.unit;
+        const f=(DATA.fares||[]).find(x=>edUnitOf(x)===uk);
+        if(f) fxMoveUnit(f, hf.dataset.hfld);
+        return;
+      }
+    }
     const tbl=e.target.closest("table.cond[data-unit]"); if(!tbl) return;
+    const add=e.target.closest('[data-fld="add"]');
+    if(add){ fxAddPkg(tbl.dataset.unit); return; }
     const rows=fxRowsFor(tbl);
     const st=e.target.closest(".st[data-rk]");
     if(st){ const f=rows[Number(st.dataset.pi)]; if(f) fxCycle(f, st.dataset.rk); return; }
     const fld=e.target.closest("[data-fld]");
-    if(fld){ const f=rows[Number(fld.dataset.pi)]; if(f) fxEditField(f, fld.dataset.fld); return; }
+    if(fld){
+      const f=rows[Number(fld.dataset.pi)]; if(!f) return;
+      if(fld.dataset.fld==="del") fxDeletePkg(f); else fxEditField(f, fld.dataset.fld);
+    }
   });
   /* Çift tık ayrıntıyı düzenler — tek tık zaten durumu döndürüyor. */
   $("#fxCards").addEventListener("dblclick",e=>{
@@ -3682,11 +3808,15 @@ function fxBind(){
 
 function edInit(){
   ED_ORIG = JSON.parse(JSON.stringify(DATA.fares));
-  edLoad();
+  edLoad(); fxScopeLoad();
   if(edCount()){ edApply(); renderAll(); }   // saklanmış düzeltmeleri geri yükle
-  const tab=$("#fixTab"); if(tab) tab.hidden=false;
-  fxBind(); renderFix();
-  switchTab("fix");                          // düzeltme sürümü buraya açılır
+  /* Düzenleme sürümü TEK SAYFA: Detay Analiz'in düzenlenebilir hâli. Diğer
+     sekmeler gizlenir — bu dosyanın işi analiz değil düzeltme, ve iki işi bir
+     arada sunmak hangi ekranın veriyi değiştirdiğini belirsizleştirirdi. */
+  const tab=$("#fixTab"); if(tab){ tab.hidden=false; tab.textContent="Detay Analiz — Düzenleme"; }
+  $$(".tab-btn").forEach(b=>{ if(b.dataset.tab!=="fix") b.hidden=true; });
+  fxRenderScope(); fxBind(); renderFix();
+  switchTab("fix");
 }
 
 /* Anahtar kayıtlıysa Yönetim sekmesini aç. Anahtarı olmayan sekmeyi görmez —
