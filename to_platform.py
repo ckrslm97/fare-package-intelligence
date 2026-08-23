@@ -360,12 +360,13 @@ def main():
 
     # --- Fix 1: the detail view grouped by carrier|OND only, so both travel
     # seasons became duplicate columns. Split cards by season and label them.
+    # Yayın anında string değiştirerek şablona yama atmak KIRILGAN: şablondaki
+    # o satır bir kez düzenlendiğinde tutamaç kaçar ve yayın "patch anchor not
+    # found" ile düşer (2026-08-23'te bilfiil oldu). Sezona göre gruplama ve
+    # kart etiketi bu yüzden ŞABLONUN İÇİNE alındı; burada yalnızca veriye
+    # bağlı olan, yani şablona sabitlenmesi mümkün olmayan yama kaldı.
     patches = [
         feature_filter_patch(present),
-        ('rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim);',
-         'rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim)+"|"+(f.season||"");'),
-        ('const f0=g[0], flowLabel=flowKey(f0,pdDim);',
-         'const f0=g[0], flowLabel=flowKey(f0,pdDim)+(f0.season?(" · "+f0.season):"");'),
         # NOTE: a patch used to sit here that hid negative / same-brand-on-both-
         # sides transitions from the KPI strip. Its own comment named the cause
         # correctly ("chainsFor averages tiers across ONDs, so mixed ladder

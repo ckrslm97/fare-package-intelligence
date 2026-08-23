@@ -450,68 +450,25 @@ table.arch tr:hover td{background:var(--bg-alt)}
 .gl-term span{font-size:14.4px;color:var(--dim);line-height:1.55}
 
 /* ---------- Modal ---------- */
-/* ================= DÜZELTME SAYFASI ================= */
-.fx-wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:start}
-@media(max-width:1100px){.fx-wrap{grid-template-columns:1fr}}
-.fx-list{background:var(--surface);border:1px solid var(--line);border-radius:14px;
-  overflow:hidden;position:sticky;top:12px;max-height:calc(100vh - 120px);display:flex;flex-direction:column}
-.fx-list-head{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
-.fx-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
-.fx-filters button{border:1px solid var(--line);background:var(--bg-alt);color:var(--dim);
-  border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}
-.fx-filters button.on{background:var(--blue);border-color:var(--blue);color:#fff}
-.fx-filters button .n{opacity:.75;font-family:var(--mono);margin-left:4px}
-.fx-search{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;
-  background:var(--bg-alt);color:var(--ink);padding:0 10px;font-size:13.5px}
-.fx-count{font-size:11.5px;color:var(--faint);margin-top:8px;text-transform:uppercase;letter-spacing:.5px}
-.fx-items{overflow:auto;flex:1}
-.fx-item{padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:9px;align-items:flex-start}
-.fx-item:hover{background:var(--bg-alt)}
-.fx-item.on{background:var(--blue-soft);box-shadow:inset 3px 0 0 var(--blue)}
-.fx-item .sev{font-family:var(--mono);font-weight:800;font-size:12px;min-width:22px;text-align:right;color:var(--red)}
-.fx-item .sev.lo{color:var(--amber)} .fx-item .sev.done{color:var(--green)}
-.fx-item .u{font-size:13.2px;font-weight:700;line-height:1.3}
-.fx-item .w{font-size:11.5px;color:var(--faint);margin-top:2px;line-height:1.35}
-.fx-main{min-width:0;display:flex;flex-direction:column;gap:14px}
-.fx-empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;
-  padding:44px 26px;text-align:center;color:var(--dim)}
-.fx-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
-  flex-wrap:wrap;margin-bottom:10px}
-.fx-title{font-size:19px;font-weight:800}
-.fx-sub{font-size:13px;color:var(--dim);margin-top:3px}
-.fx-flags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
-.fx-flag{font-size:11.8px;font-weight:700;border-radius:99px;padding:3px 10px;
-  background:var(--amber-soft,#fdf3e0);color:var(--amber,#a56a00)}
-.fx-flag.red{background:var(--red-soft,#fdeceb);color:var(--red,#b7312c)}
-.fx-matrix-wrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
-.fx-matrix{border-collapse:collapse;width:100%;font-size:13.4px}
-.fx-matrix th,.fx-matrix td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
-.fx-matrix thead th{position:sticky;top:0;background:var(--surface);z-index:2}
-.fx-matrix .rname{font-weight:650;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1}
-.fx-matrix .rname small{display:block;font-weight:500;color:var(--faint);font-size:11px}
-.fx-pkg-name{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);
-  font-weight:800;font-size:14px;border-radius:6px;padding:3px 5px}
-.fx-pkg-price{width:100%;border:1px solid transparent;background:transparent;color:var(--dim);
-  font-family:var(--mono);font-size:12.5px;border-radius:6px;padding:2px 5px;margin-top:2px}
-.fx-pkg-name:hover,.fx-pkg-price:hover,.fx-pkg-name:focus,.fx-pkg-price:focus{
-  border-color:var(--line);background:var(--bg-alt);outline:none}
-.fx-cell{cursor:pointer;border-radius:7px;padding:4px 7px;transition:background .12s ease}
-.fx-cell:hover{background:var(--bg-alt)}
-.fx-st{font-weight:800;font-size:14px}
-.fx-st.inc{color:var(--green,#0f7a5a)} .fx-st.paid{color:var(--amber,#a56a00)}
-.fx-st.no{color:var(--faint)} .fx-st.unk{color:var(--faint);opacity:.6}
-.fx-det{font-size:11.6px;color:var(--dim);margin-top:1px}
-.fx-src{font-size:10.6px;color:var(--faint);margin-top:2px;font-style:italic;
-  max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fx-cell.edited{box-shadow:inset 0 0 0 1px var(--blue);background:var(--blue-soft)}
-.fx-conf{font-family:var(--mono);font-size:10px;opacity:.7}
-.fx-log-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-.fx-log-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.fx-log{max-height:230px;overflow:auto;font-size:12.6px}
-.fx-log .row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
-.fx-log .row:last-child{border-bottom:0}
-.fx-log .k{font-family:var(--mono);color:var(--dim)}
-.fx-log .undo{border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;font-size:12px}
+/* ================= DÜZELTME SAYFASI =================
+   Görünüm Detay Analiz'in aynısı; buradaki kurallar yalnızca düzenlenebilirlik
+   işaretleri: neyin tıklanabildiği ve neyin elle değiştirildiği. */
+.fx-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+.fx-stat{font-size:12.5px;font-weight:700;color:var(--dim);
+  background:var(--bg-alt);border:1px solid var(--line);border-radius:99px;padding:4px 11px}
+.fx-stat.on{background:var(--blue-soft);border-color:var(--blue);color:var(--blue-dark)}
+.fx-hint{font-size:12.6px;color:var(--dim);background:var(--bg-alt);border:1px solid var(--line);
+  border-left:3px solid var(--blue);border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:14px}
+/* Düzenlenebilir hücre: tıklanabilir olduğu görünmeli ama matrisin okunurluğunu
+   bozmamalı — bu yüzden sadece hover'da beliriyor. */
+.editable .cond td .st{cursor:pointer;border-radius:6px;padding:1px 5px;margin:-1px -5px}
+.editable .cond td .st:hover{background:var(--blue-soft);box-shadow:inset 0 0 0 1px var(--blue)}
+.editable .cond .brand-name,.editable .cond .price-ed{cursor:text;border-radius:5px;padding:0 3px}
+.editable .cond .brand-name:hover,.editable .cond .price-ed:hover{background:var(--blue-soft)}
+.st.man{box-shadow:inset 0 0 0 1px var(--blue);background:var(--blue-soft);border-radius:6px}
+.brand-h.man .brand-name{color:var(--blue-dark);text-decoration:underline dotted}
+.fx-edit-in{width:98%;border:1px solid var(--blue);border-radius:5px;background:var(--surface);
+  color:var(--ink);font:inherit;padding:1px 4px}
 
 /* ---- Skor ağırlıkları ---- */
 .score-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);
@@ -1024,62 +981,38 @@ footer{padding:26px 22px;color:var(--faint);font-size:13.2px;text-align:center;b
 
 
   <!-- ======================= YÖNETİM — manuel giriş ======================= -->
-  <!-- ============ DÜZELTME — yalnızca EDITOR_MODE'da ============
-       Panelin kopyası değil: hata AVLAMAK için tasarlandı. Solda ne
-       düzeltilmesi gerektiğini söyleyen iş listesi, sağda merdiveni kanıtıyla
-       birlikte gösteren editör. Düzeltirken scraper'ın okuduğu ham metni
-       görmek belirleyici — "yemek yok" yazan bir hücrenin gerçekten yanlış
-       olup olmadığı ancak kaynağa bakınca anlaşılır. -->
+  <!-- ============ DÜZELTME — yalnızca EDITOR_MODE ============
+       Detay Analiz'in TA KENDİSİ, düzenlenebilir hâliyle. Ayrı bir çizici
+       yazılmadı: aynı renderPanel/condTable/stateCell çağrılıyor, sadece
+       "editable" bayrağıyla. İki ayrı çizici olsaydı biri düzeltilip öteki
+       unutulur ve iki sayfa zamanla farklı şeyler gösterirdi. -->
   <section class="tab-page" id="page-fix">
-    <div class="fx-wrap">
-      <aside class="fx-list">
-        <div class="fx-list-head">
-          <div class="section-title" style="margin:0 0 8px">İş listesi</div>
-          <div class="fx-filters" id="fxFilters"></div>
-          <input id="fxSearch" class="fx-search" placeholder="taşıyıcı / OND ara…">
-          <div class="fx-count" id="fxCount">—</div>
-        </div>
-        <div class="fx-items" id="fxItems"></div>
-      </aside>
-
-      <main class="fx-main">
-        <div class="fx-empty" id="fxEmpty">
-          <div style="font-size:34px;margin-bottom:8px">🛠</div>
-          <b>Soldan bir birim seç</b>
-          <div class="sub" style="margin-top:6px">Liste, düzeltilmesi en çok gereken birimleri
-            üste alır: çekişmeli paketler, ürün değişikliği şüphesi, düşük güven,
-            tek gözlem ve Business'ta beklenip bulunamayan haklar.</div>
-        </div>
-        <div id="fxEditor" hidden>
-          <div class="fx-head">
-            <div>
-              <div class="fx-title" id="fxTitle">—</div>
-              <div class="fx-sub" id="fxSub">—</div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="chip-btn" id="fxAddPkg">+ paket</button>
-              <button class="chip-btn" id="fxUndoUnit">↺ bu birimi geri al</button>
-            </div>
-          </div>
-          <div class="fx-flags" id="fxFlags"></div>
-          <div class="fx-matrix-wrap"><table class="fx-matrix" id="fxMatrix"></table></div>
-        </div>
-
-        <div class="fx-log-card">
-          <div class="fx-log-head">
-            <b id="fxLogTitle">Değişiklik günlüğü</b>
-            <span style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="chip-btn primary" id="fxDlHtml">⬇ Panel (HTML)</button>
-              <button class="chip-btn" id="fxDlJson">⬇ Veri (JSON)</button>
-              <button class="chip-btn" id="fxDlOrig">⬇ Orijinal yedek</button>
-              <button class="chip-btn" id="fxDlCsv">⬇ Değişiklikler (CSV)</button>
-              <button class="chip-btn" id="fxRevert">↺ Tümünü geri al</button>
-            </span>
-          </div>
-          <div class="fx-log" id="fxLog"></div>
-        </div>
-      </main>
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+      <div class="mode-switch">
+        <button id="fxModeCond" class="active">Koşullar</button>
+        <button id="fxModePrice">Geçişkenlik</button>
+      </div>
+      <div class="f-group"><label for="fxDim">Breakdown</label>
+        <select id="fxDim">
+          <option value="ond">OND</option>
+          <option value="country">Country → Country</option>
+          <option value="region">Region → Region</option>
+        </select></div>
+      <div class="f-group"><label for="fxCabin">Cabin</label>
+        <select id="fxCabin"><option value="">All cabins</option></select></div>
+      <div class="fx-bar">
+        <span class="fx-stat" id="fxStat">değişiklik yok</span>
+        <button class="chip-btn primary" id="fxDlHtml">⬇ Panel (HTML)</button>
+        <button class="chip-btn" id="fxDlJson">⬇ Veri (JSON)</button>
+        <button class="chip-btn" id="fxDlOrig">⬇ Orijinal yedek</button>
+        <button class="chip-btn" id="fxDlCsv">⬇ Değişiklikler (CSV)</button>
+        <button class="chip-btn" id="fxRevert">↺ Tümünü geri al</button>
+      </div>
     </div>
+    <div class="fx-hint">Hücreye tıkla: <b>✓ dahil → € ücretli → — yok → · bilinmiyor</b>.
+      Ayrıntıya (kg, ücret) veya paket adına/fiyatına çift tıkla. Değişiklik anında veriye işlenir;
+      orijinal el değmeden durur.</div>
+    <div id="fxCards"></div>
   </section>
 
   <section class="tab-page" id="page-admin">
@@ -1858,20 +1791,24 @@ function fillPdCabin(){
     cabins.map(c=>`<option value="${escap(c)}">${escap(c)}</option>`).join("");
   sel.value = cabins.includes(cur) ? cur : "";
 }
-function panelData(){
-  const cab = $("#pdCabin") ? $("#pdCabin").value : "";
+function panelData(ed){
+  const selId = ed ? "#fxCabin" : "#pdCabin";
+  const dim   = ed ? fxDim : pdDim;
+  const cab = $(selId) ? $(selId).value : "";
   const base = cab ? FILTERED.filter(f=>f.cabin===cab) : FILTERED;
   if(FSEL["msCollDate"].size) return base;
   const groups={};
-  base.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim); (groups[k]=groups[k]||[]).push(f); });
+  base.forEach(f=>{ const k=f.airline+"|"+flowKey(f,dim); (groups[k]=groups[k]||[]).push(f); });
   const out=[];
   Object.values(groups).forEach(g=>{
     const last=latestColl(g); out.push(...g.filter(f=>f.coll_date===last));
   });
   return out;
 }
-function stateCell(feat){
-  if(!feat) return `<span class="st unk">·</span>`;
+function stateCell(feat, ed){
+  const at = ed ? ` data-pi="${ed.pi}" data-rk="${ed.rk}"` : "";
+  const mn = ed && ed.man ? " man" : "";
+  if(!feat) return `<span class="st unk${mn}"${at}>·</span>`;
   const map={"Included":["inc","✓"],"Paid":["paid","€"],"Not Included":["no","—"],"Unknown":["unk","·"]};
   const [cls,sym]=map[feat.state]||map.Unknown;
   let tip = feat.detail ? `${feat.state} — ${feat.detail}` : feat.state;
@@ -1883,7 +1820,7 @@ function stateCell(feat){
   if(feat.agree) tip += ` · ${feat.agree} tarih uyuştu`;
   const dt = feat.detail ? `<span class="dt">${escap(feat.detail)}</span>` : "";
   const low = (feat.conf!=null && feat.conf>0 && feat.conf<70) ? " lowconf" : "";
-  return `<span class="st ${cls}${low}" data-tip="${escap(tip)}">${sym}${dt}</span>`;
+  return `<span class="st ${cls}${low}${mn}" data-tip="${escap(tip)}"${at}>${sym}${dt}</span>`;
 }
 function scoreBadge(sc, extra=""){
   const [bg,fg]=scoreColor(sc);
@@ -1905,42 +1842,63 @@ function cardHead(f0, flowLabel, alerts, ondCount){
       <span class="mchip region" data-tip="CollDate · ${escap(f0.coll_season||"")} sezonu · sorgu tarihi ${escap(f0.query_date||"")}">📅 ${f0.coll_date} ${f0.coll_season||""}</span>
     </div></div>`;
 }
-function renderPanel(){
-  fillPdCabin();
-  const host=$("#panelCards"); host.innerHTML="";
-  const rows = panelData();
+/* Tek çizici, iki sayfa. Düzeltme sayfası bunu ed=true ile çağırır ve kendi
+   kırılım/kabin seçimlerini kullanır; kartların, matrisin, skor rozetinin
+   görünümü BİREBİR aynıdır çünkü aynı koddan çıkar. */
+function renderPanel(ed){
+  const host = ed ? $("#fxCards") : $("#panelCards");
+  const dim  = ed ? fxDim : pdDim;
+  const md   = ed ? fxMode : mode;
+  if(ed) fillFxCabin(); else fillPdCabin();
+  host.innerHTML="";
+  host.classList.toggle("editable", !!ed);
+  const rows = panelData(ed);
   if(!rows.length){ host.innerHTML = `<div class="empty">Filtrelere uyan kayıt yok.</div>`; return; }
-  if(mode==="price"){
+  if(md==="price"){
     host.insertAdjacentHTML("beforeend", fareSummaryHTML(rows));
   }
   const groups={};
-  rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,pdDim); (groups[k]=groups[k]||[]).push(f); });
+  /* Sezon anahtarın parçası: olmasaydı Yaz ve Kış aynı karta düşer ve iki
+     sezon birbirinin kopyası gibi görünen sütunlar olurdu. (Eskiden bu
+     to_platform.py'de yayın anında string değiştirerek yapılıyordu; şablon
+     her düzenlendiğinde "patch anchor not found" ile yayını düşürüyordu.) */
+  rows.forEach(f=>{ const k=f.airline+"|"+flowKey(f,dim)+"|"+(f.season||""); (groups[k]=groups[k]||[]).push(f); });
   Object.keys(groups).sort().forEach(k=>{
     const g = groups[k].slice().sort((a,b)=>(CABIN_ORDER[a.cabin]??9)-(CABIN_ORDER[b.cabin]??9)||a.package_order-b.package_order);
-    const f0=g[0], flowLabel=flowKey(f0,pdDim);
+    const f0=g[0], flowLabel=flowKey(f0,dim)+(f0.season?(" · "+f0.season):"");
     const onds=uniq(g.map(f=>ondKey(f)));
     const condRows = g.filter(f=>ondKey(f)===onds[0]);   // haklar marka bazında sabit: temsilci OND
-    const cardAlerts = pdDim==="ond" ? alertsFor(f0.airline, onds[0])
-                                     : ALERTS.filter(a=>a.airline===f0.airline && onds.includes(a.ond));
+    const cardAlerts = dim==="ond" ? alertsFor(f0.airline, onds[0])
+                                   : ALERTS.filter(a=>a.airline===f0.airline && onds.includes(a.ond));
     const card=document.createElement("div"); card.className="card";
-    const body = mode==="cond"
-      ? `<div class="card-body">${condTable(condRows)}</div>`
+    const body = md==="cond"
+      ? `<div class="card-body">${condTable(condRows, ed)}</div>`
       : `<div class="card-body">${chainBody(g)}</div>`;
     card.innerHTML = cardHead(f0, flowLabel, cardAlerts, onds.length) + body;
     host.appendChild(card);
   });
   $$(".alert-ico").forEach(el=>el.addEventListener("click",()=>openKnowHow(el.dataset.kh, el.dataset.khtext)));
 }
-function condTable(g){
-  const heads = g.map(f=>`<th class="brand-h">
+/* ed=true iken aynı tablo düzenlenebilir işaretlerle çizilir. AYRI BİR ÇİZİCİ
+   YAZILMADI: iki tablo olsaydı biri düzeltilip öteki unutulur, Detay Analiz ile
+   Düzeltme zamanla farklı şeyler gösterirdi. Fark yalnızca data-* öznitelikleri
+   ve elle değiştirilmiş hücrelerin işareti. */
+function condTable(g, ed){
+  const heads = g.map((f,i)=>{
+    const ov=edOverOf(f);
+    const man = ov && (ov.name!==undefined||ov.price!==undefined) ? " man" : "";
+    return `<th class="brand-h${man}"${ed?` data-pi="${i}"`:""}>
       <span class="cabin-tag" style="background:${CABIN_COLOR[f.cabin]||"var(--faint)"}">${escap(stdTier(f))}</span><br>
-      <span class="brand-name">${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}</th>`).join("");
+      <span class="brand-name"${ed?` data-fld="name" data-pi="${i}"`:""}>${escap(f.fare_brand)}</span><br>${scoreBadge(pkgScore(f))}
+      ${ed?`<div class="price-ed" data-fld="price" data-pi="${i}">${f.price_usd!=null?money(f.price_usd,"USD"):"—"}</div>`:""}</th>`;
+  }).join("");
   const rowsHtml = Object.keys(FEATURE_META).map(fk=>{
     const [label,desc]=FEATURE_META[fk];
     return `<tr><td class="feat"><span class="fwrap">${featIcon(fk)}<span data-tip="${escap(desc)}">${label}</span></span></td>` +
-      g.map(f=>`<td>${stateCell((f.features||{})[fk])}</td>`).join("") + `</tr>`;
+      g.map((f,i)=>`<td>${stateCell((f.features||{})[fk], ed?{pi:i, rk:fk, man:edCellIsManual(f,fk)}:null)}</td>`).join("") + `</tr>`;
   }).join("");
-  return `<table class="cond"><thead><tr><th></th>${heads}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
+  return `<table class="cond"${ed?` data-unit="${escap(edUnitOf(g[0]))}"`:""}>`+
+         `<thead><tr><th></th>${heads}</tr></thead><tbody>${rowsHtml}</tbody></table>`;
 }
 function chainBody(g){
   const chains = chainsFor(g);
@@ -2806,7 +2764,7 @@ const TAB_RENDER={
   knowhow:()=>renderKnowHow(),
   /* Düzeltme sayfası yalnız düzenleme sürümünde var; yayın panelinde bu dal
      hiç çalışmaz (EDITOR_MODE false ve sekme gizli). */
-  fix:()=>{ if(!EDITOR_MODE) return; fxBuild(); if(FX.sel) fxOpen(FX.sel); fxRenderLog(); }
+  fix:()=>{ if(EDITOR_MODE) renderFix(); }
 };
 const TAB_DIRTY={};
 const TAB_CONTENT={
@@ -3493,7 +3451,7 @@ function edApply(){
   if(!ED_ORIG) return;
   DATA.fares = JSON.parse(JSON.stringify(ED_ORIG));
   Object.entries(ED_OVER).forEach(([uk,pkgs])=>{
-    const [car,o,d,sea,cab]=uk.split("|");
+    const {car,o,d,sea,cab}=edUnitParse(uk);
     Object.entries(pkgs||{}).forEach(([pk,ov])=>{
       const i=DATA.fares.findIndex(f=>f.airline===car&&f.origin===o&&f.destination===d
         &&(f.coll_season||f.season)===sea&&f.cabin===cab&&edPkgKey(f.fare_brand)===pk);
@@ -3565,7 +3523,7 @@ function edExportCsv(){
   const rows=[head.join(",")];
   const q=v=>{const s=String(v??""); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   Object.entries(ED_OVER).forEach(([uk,pkgs])=>{
-    const [car,o,d,sea,cab]=uk.split("|");
+    const {car,o,d,sea,cab}=edUnitParse(uk);
     Object.values(pkgs||{}).forEach(ov=>{
       const r=[ov.__removed?"remove":"upsert",car,o,d,sea,cab,ov.order??"",ov.name??"",ov.price??""];
       Object.keys(FEATURE_META).forEach(k=>{
@@ -3584,217 +3542,142 @@ function edRevertAll(){
 }
 
 /* ==================================================================
-   DÜZELTME SAYFASI
+   DÜZELTME SAYFASI — Detay Analiz'in düzenlenebilir hâli
    ==================================================================
-   İş listesi verinin KENDİ kalite sinyallerinden türer; ayrı bir kural
-   dosyası yok. Doğrulama katmanı zaten "bu paket çekişmeli", "bu okuma tek
-   gözleme dayanıyor", "kontrol penceresi farklı okudu" diyor — düzeltme
-   sayfası bunları bir iş listesine çevirir. Böylece hangi birimin elden
-   geçmesi gerektiğini insan aramaz, veri söyler. */
-const FX_BIZ_EXPECT = ["checked_baggage","baggage_cabin","lounge","priority_check_in","meal"];
-const FX_RULES = [
-  {id:"contested", label:"Çekişmeli",      w:3, test:r=>!!r.contested},
-  {id:"change",    label:"Ürün değişikliği",w:2, test:r=>!!r.product_change},
-  {id:"lowconf",   label:"Düşük güven",    w:2, test:r=>typeof r.confidence==="number"&&r.confidence<90},
-  {id:"single",    label:"Tek gözlem",     w:1, test:r=>typeof r.observations==="number"&&r.observations<=1},
-  {id:"nofeat",    label:"Hak okunmamış",  w:3, test:r=>!Object.keys(r.features||{}).length},
-  {id:"bizmiss",   label:"Business eksik", w:2, test:r=>r.cabin==="Business" &&
-      FX_BIZ_EXPECT.some(k=>!["Included","Paid"].includes(((r.features||{})[k]||{}).state))},
-];
-let FX = {sel:null, filt:new Set(), q:"", items:[]};
+   Ayrı çizici yok: renderPanel/condTable/stateCell ed=true ile çağrılıyor.
+   Buradaki kod yalnız ETKİLEŞİMİ ekler — hangi hücreye tıklanınca ne olacağı. */
+let fxMode = "cond";
+let fxDim  = "ond";
 
-const fxKeyOf = r => [r.airline,r.origin,r.destination,r.cabin,(r.coll_season||r.season)].join("|");
-
-function fxBuild(){
-  const by=new Map();
-  (DATA.fares||[]).forEach(r=>{
-    const k=fxKeyOf(r);
-    let it=by.get(k);
-    if(!it){ it={key:k, r0:r, sev:0, tags:new Set(), rows:0}; by.set(k,it); }
-    it.rows++;
-    FX_RULES.forEach(rule=>{ if(rule.test(r)){ it.sev+=rule.w; it.tags.add(rule.id); } });
-  });
-  FX.items=[...by.values()].filter(i=>i.sev>0).sort((a,b)=>b.sev-a.sev||a.key.localeCompare(b.key));
-  fxRenderFilters(); fxRenderList();
-}
-function fxRenderFilters(){
-  const cnt={}; FX_RULES.forEach(r=>cnt[r.id]=0);
-  FX.items.forEach(i=>i.tags.forEach(t=>cnt[t]++));
-  $("#fxFilters").innerHTML = FX_RULES.map(r=>
-    `<button data-f="${r.id}" class="${FX.filt.has(r.id)?"on":""}">${escap(r.label)}<span class="n">${cnt[r.id]||0}</span></button>`
-  ).join("");
-}
-function fxVisible(){
-  const q=FX.q.trim().toLowerCase();
-  return FX.items.filter(i=>{
-    if(FX.filt.size && ![...FX.filt].some(t=>i.tags.has(t))) return false;
-    if(q && !i.key.toLowerCase().includes(q)) return false;
-    return true;
-  });
-}
-function fxRenderList(){
-  const vis=fxVisible();
-  const done=k=>Object.keys(ED_OVER[k]||{}).length>0;
-  $("#fxCount").textContent = `${vis.length} birim gösteriliyor · ${FX.items.length} toplam sorunlu`;
-  $("#fxItems").innerHTML = vis.slice(0,400).map(i=>{
-    const [car,o,d,cab,sea]=i.key.split("|");
-    const tags=[...i.tags].map(t=>(FX_RULES.find(r=>r.id===t)||{}).label).filter(Boolean).join(" · ");
-    const cls = done(i.key)?"done":(i.sev>=6?"":"lo");
-    return `<div class="fx-item ${FX.sel===i.key?"on":""}" data-k="${escap(i.key)}">
-      <span class="sev ${cls}">${done(i.key)?"✓":i.sev}</span>
-      <span style="min-width:0">
-        <span class="u">${escap(car)} ${escap(o)}-${escap(d)}</span>
-        <span class="w">${escap(cab)} · ${escap(sea)} · ${i.rows} paket<br>${escap(tags)}</span>
-      </span></div>`;
-  }).join("") || `<div style="padding:18px;color:var(--faint);font-size:13px">Bu filtreyle birim yok.</div>`;
+function fillFxCabin(){
+  const sel=$("#fxCabin"); if(!sel) return;
+  const cur=sel.value;
+  const cabins=uniq(FILTERED.map(f=>f.cabin)).sort((a,b)=>(CABIN_ORDER[a]??9)-(CABIN_ORDER[b]??9));
+  sel.innerHTML = `<option value="">All cabins</option>` +
+    cabins.map(c=>`<option value="${escap(c)}">${escap(c)}</option>`).join("");
+  sel.value = cabins.includes(cur) ? cur : "";
 }
 
-/* ---- merdiven editörü ---- */
+/* Bir satırın hangi birime ve pakete ait olduğu; üst üste yazma kaydının anahtarı */
+/* Birim anahtarının sırası TEK YERDE tanımlı ve çözümü de burada. Daha önce
+   anahtar "…|kabin|sezon" diye kuruluyor ama iki ayrı yerde "…|sezon|kabin"
+   diye çözülüyordu; kabin ile sezon yer değiştirdiği için eşleşme hiç tutmadı
+   ve yapılan düzeltme veriye HİÇ işlenmedi — üstelik sessizce, çünkü kayıt
+   tutuluyor ama uygulanmıyordu. Kurma ve çözme yan yana durursa bu bir daha
+   ayrışamaz. */
+const edUnitOf = f => f ? [f.airline,f.origin,f.destination,(f.coll_season||f.season),f.cabin].join("|") : "";
+const edUnitParse = uk => { const [car,o,d,sea,cab]=String(uk).split("|"); return {car,o,d,sea,cab}; };
+function edOverOf(f){ return ((ED_OVER[edUnitOf(f)]||{})[edPkgKey(f.fare_brand)])||null; }
+function edCellIsManual(f, rk){ const o=edOverOf(f); return !!(o && o.rights && o.rights[rk]); }
+
 const FX_CYCLE=["Included","Paid","Not Included",""];
-const FX_LBL={"Included":"✓","Paid":"€","Not Included":"—","":"?"};
-const FX_CLS={"Included":"inc","Paid":"paid","Not Included":"no","":"unk"};
 
-function fxOpen(key){
-  FX.sel=key; fxRenderList();
-  const [car,o,d,cab,sea]=key.split("|");
-  const pkgs=(DATA.fares||[]).filter(r=>fxKeyOf(r)===key)
+/* Üst üste yazma kaydını hazırlar; yoksa paketin MEVCUT hâliyle oluşturur ki
+   tek bir hücre değiştirildiğinde ad/fiyat kaybolmasın. */
+function edOverEnsure(f){
+  const uk=edUnitOf(f), pk=edPkgKey(f.fare_brand);
+  ED_OVER[uk]=ED_OVER[uk]||{};
+  if(!ED_OVER[uk][pk]) ED_OVER[uk][pk]={name:f.fare_brand, price:(f.price_usd??f.price), order:f.package_order, rights:{}};
+  ED_OVER[uk][pk].rights=ED_OVER[uk][pk].rights||{};
+  return ED_OVER[uk][pk];
+}
+/* Hiçbir şey değişmemişse kaydı sil: boş kayıtlar günlüğü ve CSV'yi şişirir
+   ve "değiştirildi" işaretini yalancı çıkarır. */
+function edOverPrune(f){
+  const uk=edUnitOf(f), pk=edPkgKey(f.fare_brand), ov=(ED_OVER[uk]||{})[pk];
+  if(!ov || ov.__removed) return;
+  /* Karşılaştırma ORİJİNALE göre yapılmalı, ekrandaki satıra göre değil:
+     ekrandaki satır zaten üst üste yazılmış hâlidir, ona bakınca "değişmiş"
+     sonucu hep doğru çıkar ve eski değeri elle geri yazan kullanıcı hayalet
+     bir kayıtla kalırdı (günlükte görünür, CSV'ye yazılır, ama hiçbir şeyi
+     değiştirmez). */
+  const orig=(ED_ORIG||[]).find(r=>edUnitOf(r)===uk && edPkgKey(r.fare_brand)===pk);
+  if(!orig) return;                       // orijinalde yoksa bu yeni bir pakettir
+  const noRights=!ov.rights||!Object.keys(ov.rights).length;
+  if(noRights && ov.name===orig.fare_brand && ov.price===(orig.price_usd??orig.price)){
+    delete ED_OVER[uk][pk];
+    if(!Object.keys(ED_OVER[uk]).length) delete ED_OVER[uk];
+  }
+}
+function fxCommit(){ edPersist(); edApply(); renderAll(); fxStat(); }
+
+function fxRowsFor(tableEl){
+  /* Tablodaki sütun sırası condRows ile aynı; aynı hesabı burada tekrar
+     üretmek yerine birim anahtarından okunur. */
+  const uk=tableEl.dataset.unit||"";
+  const {car,o,d,sea,cab}=edUnitParse(uk);
+  return (DATA.fares||[]).filter(f=>f.airline===car&&f.cabin===cab&&(f.coll_season||f.season)===sea
+      && flowKey(f,fxDim)===flowKey({origin:o,destination:d,origin_country:"",dest_country:"",
+                                     origin_region:"",dest_region:""},"ond"))
+    .filter(f=>f.origin===o&&f.destination===d)
     .sort((a,b)=>(a.package_order||0)-(b.package_order||0));
-  $("#fxEmpty").hidden=true; $("#fxEditor").hidden=false;
-  $("#fxTitle").textContent=`${car} · ${o}-${d}`;
-  $("#fxSub").textContent=`${cab} · ${sea} · ${pkgs.length} paket · kaynak: ${(pkgs[0]||{}).source||"—"}`;
-
-  const it=FX.items.find(x=>x.key===key);
-  $("#fxFlags").innerHTML = it ? [...it.tags].map(t=>{
-    const r=FX_RULES.find(x=>x.id===t)||{};
-    return `<span class="fx-flag ${r.w>=3?"red":""}">${escap(r.label||t)}</span>`;
-  }).join("") : "";
-
-  const head=`<thead><tr><th class="rname" style="min-width:190px">Hak</th>`+
-    pkgs.map((p,i)=>`<th data-col="${i}">
-      <input class="fx-pkg-name" data-pk="${i}" data-fld="name" value="${escap(p.fare_brand||"")}">
-      <input class="fx-pkg-price" data-pk="${i}" data-fld="price" value="${p.price_usd??p.price??""}" placeholder="USD">
-    </th>`).join("")+`</tr></thead>`;
-
-  const body=Object.entries(FEATURE_META).map(([k,meta])=>{
-    const cells=pkgs.map((p,i)=>{
-      const ft=(p.features||{})[k]||{};
-      const st=ft.state||"";
-      const edited=!!(((ED_OVER[key]||{})[edPkgKey(p.fare_brand)]||{}).rights||{})[k];
-      return `<td><div class="fx-cell ${edited?"edited":""}" data-pk="${i}" data-rk="${k}">
-        <span class="fx-st ${FX_CLS[st]||"unk"}">${FX_LBL[st]||"?"}</span>
-        ${ft.detail?`<span class="fx-det">${escap(ft.detail)}</span>`:""}
-        ${ft.src?`<div class="fx-src" title="${escap(ft.src)}">“${escap(ft.src)}”${
-          ft.conf!=null?` <span class="fx-conf">${ft.conf}</span>`:""}</div>`:""}
-      </div></td>`;
-    }).join("");
-    return `<tr><td class="rname">${escap(meta[0])}<small>${escap(meta[1]||"")}</small></td>${cells}</tr>`;
-  }).join("");
-
-  $("#fxMatrix").innerHTML=head+`<tbody>${body}</tbody>`;
-  $("#fxMatrix").dataset.key=key;
-  FX._pkgs=pkgs;
 }
 
-/* Hücreye tıkla → durum döner. Kayıt ANINDA: "kaydet" düğmesi olsaydı
-   düzeltme akışı her hücrede kesilirdi; geri alma günlükten tek tıkla. */
-function fxCycleCell(pkIdx, rk){
-  const key=FX.sel; if(!key) return;
-  const p=FX._pkgs[pkIdx]; if(!p) return;
-  const cur=((p.features||{})[rk]||{}).state||"";
+function fxCycle(f, rk){
+  const cur=((f.features||{})[rk]||{}).state||"";
   const nxt=FX_CYCLE[(FX_CYCLE.indexOf(cur)+1)%FX_CYCLE.length];
-  const pk=edPkgKey(p.fare_brand);
-  ED_OVER[key]=ED_OVER[key]||{};
-  const ov=ED_OVER[key][pk]=ED_OVER[key][pk]||{name:p.fare_brand, price:p.price_usd??p.price, order:p.package_order, rights:{}};
-  ov.rights=ov.rights||{};
-  if(nxt==="") delete ov.rights[rk]; else ov.rights[rk]={state:nxt, detail:((p.features||{})[rk]||{}).detail||""};
-  if(!Object.keys(ov.rights).length && ov.name===p.fare_brand &&
-     (ov.price===(p.price_usd??p.price))) delete ED_OVER[key][pk];
-  if(!Object.keys(ED_OVER[key]).length) delete ED_OVER[key];
-  edPersist(); edApply(); renderAll();
-  fxOpen(key); fxRenderLog(); edStatusLine();
+  const ov=edOverEnsure(f);
+  if(nxt==="") delete ov.rights[rk];
+  else ov.rights[rk]={state:nxt, detail:((f.features||{})[rk]||{}).detail||""};
+  edOverPrune(f); fxCommit();
 }
-function fxSetField(pkIdx, fld, val){
-  const key=FX.sel; if(!key) return;
-  const p=FX._pkgs[pkIdx]; if(!p) return;
-  const pk=edPkgKey(p.fare_brand);
-  ED_OVER[key]=ED_OVER[key]||{};
-  const ov=ED_OVER[key][pk]=ED_OVER[key][pk]||{name:p.fare_brand, price:p.price_usd??p.price, order:p.package_order, rights:{}};
-  if(fld==="name"){ const v=String(val).trim(); if(!v) return; ov.name=v; }
-  else { const n=parseFloat(String(val).replace(",",".")); if(isNaN(n)) return; ov.price=n; }
-  edPersist(); edApply(); renderAll(); fxOpen(key); fxRenderLog(); edStatusLine();
+function fxEditDetail(f, rk){
+  const cur=((f.features||{})[rk]||{});
+  const v=prompt(`${FEATURE_META[rk][0]} — ayrıntı (örn. 1×30kg, Cezasız, ~80 USD):`, cur.detail||"");
+  if(v===null) return;
+  const ov=edOverEnsure(f);
+  ov.rights[rk]={state:cur.state||"Included", detail:v.trim()};
+  edOverPrune(f); fxCommit();
 }
-function fxAddPkg(){
-  const key=FX.sel; if(!key) return;
-  const name=prompt("Yeni paket adı:"); if(!name||!name.trim()) return;
-  const price=parseFloat(String(prompt("Fiyat (USD):")||"").replace(",","."));
-  if(isNaN(price)){ alert("Fiyat gerekli."); return; }
-  ED_OVER[key]=ED_OVER[key]||{};
-  ED_OVER[key][edPkgKey(name)]={name:name.trim(), price:price,
-    order:(FX._pkgs.length+1), rights:{}};
-  edPersist(); edApply(); renderAll(); fxBuild(); fxOpen(key); fxRenderLog(); edStatusLine();
+function fxEditField(f, fld){
+  if(fld==="name"){
+    const v=prompt("Paket adı:", f.fare_brand||""); if(v===null||!v.trim()) return;
+    edOverEnsure(f).name=v.trim();
+  } else {
+    const v=prompt("Fiyat (USD):", (f.price_usd??f.price??"")); if(v===null) return;
+    const n=parseFloat(String(v).replace(",",".")); if(isNaN(n)){ alert("Geçerli bir sayı gir."); return; }
+    edOverEnsure(f).price=n;
+  }
+  edOverPrune(f); fxCommit();
 }
-function fxUndoUnit(){
-  const key=FX.sel; if(!key||!ED_OVER[key]) return;
-  if(!confirm("Bu birimdeki tüm elle değişiklikler geri alınacak. Emin misin?")) return;
-  delete ED_OVER[key];
-  edPersist(); edApply(); renderAll(); fxBuild(); fxOpen(key); fxRenderLog(); edStatusLine();
+
+function fxStat(){
+  const n=edCount(), el=$("#fxStat"); if(!el) return;
+  el.textContent = n ? `${n} paket elle değiştirildi` : "değişiklik yok";
+  el.classList.toggle("on", !!n);
 }
-function fxRenderLog(){
-  const rows=[];
-  Object.entries(ED_OVER).forEach(([k,pkgs])=>{
-    const [car,o,d,cab,sea]=k.split("|");
-    Object.entries(pkgs||{}).forEach(([pk,ov])=>{
-      const bits=[];
-      if(ov.__removed) bits.push("silindi");
-      else{
-        if(ov.rights&&Object.keys(ov.rights).length) bits.push(`${Object.keys(ov.rights).length} hak`);
-        bits.push(`${ov.name} · ${ov.price??"—"} USD`);
-      }
-      rows.push(`<div class="row">
-        <span><span class="k">${escap(car)} ${escap(o)}-${escap(d)} ${escap(cab)} ${escap(sea)}</span> — ${escap(bits.join(" · "))}</span>
-        <button class="undo" data-uk="${escap(k)}" data-upk="${escap(pk)}">geri al</button></div>`);
-    });
-  });
-  $("#fxLogTitle").textContent = `Değişiklik günlüğü (${rows.length})`;
-  $("#fxLog").innerHTML = rows.join("") ||
-    `<div style="color:var(--faint);padding:6px 0">Henüz değişiklik yok. Orijinal veri olduğu gibi duruyor.</div>`;
-}
+function renderFix(){ renderPanel(true); fxStat(); }
 
 function fxBind(){
-  $("#fxFilters").addEventListener("click",e=>{
-    const b=e.target.closest("[data-f]"); if(!b) return;
-    const f=b.dataset.f; FX.filt.has(f)?FX.filt.delete(f):FX.filt.add(f);
-    fxRenderFilters(); fxRenderList();
+  $("#fxModeCond").addEventListener("click",()=>{ fxMode="cond";
+    $("#fxModeCond").classList.add("active"); $("#fxModePrice").classList.remove("active"); renderFix(); });
+  $("#fxModePrice").addEventListener("click",()=>{ fxMode="price";
+    $("#fxModePrice").classList.add("active"); $("#fxModeCond").classList.remove("active"); renderFix(); });
+  $("#fxDim").addEventListener("change",e=>{ fxDim=e.target.value; renderFix(); });
+  $("#fxCabin").addEventListener("change", renderFix);
+
+  $("#fxCards").addEventListener("click",e=>{
+    const tbl=e.target.closest("table.cond[data-unit]"); if(!tbl) return;
+    const rows=fxRowsFor(tbl);
+    const st=e.target.closest(".st[data-rk]");
+    if(st){ const f=rows[Number(st.dataset.pi)]; if(f) fxCycle(f, st.dataset.rk); return; }
+    const fld=e.target.closest("[data-fld]");
+    if(fld){ const f=rows[Number(fld.dataset.pi)]; if(f) fxEditField(f, fld.dataset.fld); return; }
   });
-  $("#fxSearch").addEventListener("input",e=>{ FX.q=e.target.value; fxRenderList(); });
-  $("#fxItems").addEventListener("click",e=>{
-    const it=e.target.closest("[data-k]"); if(!it) return; fxOpen(it.dataset.k);
+  /* Çift tık ayrıntıyı düzenler — tek tık zaten durumu döndürüyor. */
+  $("#fxCards").addEventListener("dblclick",e=>{
+    const st=e.target.closest(".st[data-rk]"); if(!st) return;
+    const tbl=e.target.closest("table.cond[data-unit]"); if(!tbl) return;
+    const f=fxRowsFor(tbl)[Number(st.dataset.pi)]; if(f) fxEditDetail(f, st.dataset.rk);
   });
-  $("#fxMatrix").addEventListener("click",e=>{
-    const c=e.target.closest(".fx-cell"); if(!c) return;
-    fxCycleCell(Number(c.dataset.pk), c.dataset.rk);
-  });
-  $("#fxMatrix").addEventListener("change",e=>{
-    const i=e.target.closest("input[data-pk]"); if(!i) return;
-    fxSetField(Number(i.dataset.pk), i.dataset.fld, i.value);
-  });
-  $("#fxAddPkg").addEventListener("click", fxAddPkg);
-  $("#fxUndoUnit").addEventListener("click", fxUndoUnit);
-  $("#fxLog").addEventListener("click",e=>{
-    const b=e.target.closest("[data-uk]"); if(!b) return;
-    const k=b.dataset.uk, pk=b.dataset.upk;
-    if(ED_OVER[k]){ delete ED_OVER[k][pk]; if(!Object.keys(ED_OVER[k]).length) delete ED_OVER[k]; }
-    edPersist(); edApply(); renderAll(); fxBuild();
-    if(FX.sel) fxOpen(FX.sel);
-    fxRenderLog(); edStatusLine();
-  });
+
   $("#fxDlHtml").addEventListener("click", edExportHtml);
-  $("#fxDlJson").addEventListener("click", ()=>{
-    edDownloadBlob(`fpi_veri_${edStamp()}.json`, JSON.stringify(edPayload(DATA.fares)), "application/json"); });
-  $("#fxDlOrig").addEventListener("click", ()=>{
-    edDownloadBlob(`fpi_veri_ORIJINAL_${edStamp()}.json`, JSON.stringify(edPayload(ED_ORIG)), "application/json"); });
+  $("#fxDlJson").addEventListener("click", ()=>
+    edDownloadBlob(`fpi_veri_${edStamp()}.json`, JSON.stringify(edPayload(DATA.fares)), "application/json"));
+  $("#fxDlOrig").addEventListener("click", ()=>
+    edDownloadBlob(`fpi_veri_ORIJINAL_${edStamp()}.json`, JSON.stringify(edPayload(ED_ORIG)), "application/json"));
   $("#fxDlCsv").addEventListener("click", edExportCsv);
-  $("#fxRevert").addEventListener("click", ()=>{ edRevertAll(); fxBuild(); fxRenderLog(); });
+  $("#fxRevert").addEventListener("click", ()=>{ edRevertAll(); fxStat(); });
 }
 
 function edInit(){
@@ -3802,7 +3685,7 @@ function edInit(){
   edLoad();
   if(edCount()){ edApply(); renderAll(); }   // saklanmış düzeltmeleri geri yükle
   const tab=$("#fixTab"); if(tab) tab.hidden=false;
-  fxBind(); fxBuild(); fxRenderLog();
+  fxBind(); renderFix();
   switchTab("fix");                          // düzeltme sürümü buraya açılır
 }
 
