@@ -450,6 +450,69 @@ table.arch tr:hover td{background:var(--bg-alt)}
 .gl-term span{font-size:14.4px;color:var(--dim);line-height:1.55}
 
 /* ---------- Modal ---------- */
+/* ================= DÜZELTME SAYFASI ================= */
+.fx-wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:start}
+@media(max-width:1100px){.fx-wrap{grid-template-columns:1fr}}
+.fx-list{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;position:sticky;top:12px;max-height:calc(100vh - 120px);display:flex;flex-direction:column}
+.fx-list-head{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.fx-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
+.fx-filters button{border:1px solid var(--line);background:var(--bg-alt);color:var(--dim);
+  border-radius:99px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.fx-filters button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.fx-filters button .n{opacity:.75;font-family:var(--mono);margin-left:4px}
+.fx-search{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg-alt);color:var(--ink);padding:0 10px;font-size:13.5px}
+.fx-count{font-size:11.5px;color:var(--faint);margin-top:8px;text-transform:uppercase;letter-spacing:.5px}
+.fx-items{overflow:auto;flex:1}
+.fx-item{padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:9px;align-items:flex-start}
+.fx-item:hover{background:var(--bg-alt)}
+.fx-item.on{background:var(--blue-soft);box-shadow:inset 3px 0 0 var(--blue)}
+.fx-item .sev{font-family:var(--mono);font-weight:800;font-size:12px;min-width:22px;text-align:right;color:var(--red)}
+.fx-item .sev.lo{color:var(--amber)} .fx-item .sev.done{color:var(--green)}
+.fx-item .u{font-size:13.2px;font-weight:700;line-height:1.3}
+.fx-item .w{font-size:11.5px;color:var(--faint);margin-top:2px;line-height:1.35}
+.fx-main{min-width:0;display:flex;flex-direction:column;gap:14px}
+.fx-empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;
+  padding:44px 26px;text-align:center;color:var(--dim)}
+.fx-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  flex-wrap:wrap;margin-bottom:10px}
+.fx-title{font-size:19px;font-weight:800}
+.fx-sub{font-size:13px;color:var(--dim);margin-top:3px}
+.fx-flags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.fx-flag{font-size:11.8px;font-weight:700;border-radius:99px;padding:3px 10px;
+  background:var(--amber-soft,#fdf3e0);color:var(--amber,#a56a00)}
+.fx-flag.red{background:var(--red-soft,#fdeceb);color:var(--red,#b7312c)}
+.fx-matrix-wrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.fx-matrix{border-collapse:collapse;width:100%;font-size:13.4px}
+.fx-matrix th,.fx-matrix td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.fx-matrix thead th{position:sticky;top:0;background:var(--surface);z-index:2}
+.fx-matrix .rname{font-weight:650;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1}
+.fx-matrix .rname small{display:block;font-weight:500;color:var(--faint);font-size:11px}
+.fx-pkg-name{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);
+  font-weight:800;font-size:14px;border-radius:6px;padding:3px 5px}
+.fx-pkg-price{width:100%;border:1px solid transparent;background:transparent;color:var(--dim);
+  font-family:var(--mono);font-size:12.5px;border-radius:6px;padding:2px 5px;margin-top:2px}
+.fx-pkg-name:hover,.fx-pkg-price:hover,.fx-pkg-name:focus,.fx-pkg-price:focus{
+  border-color:var(--line);background:var(--bg-alt);outline:none}
+.fx-cell{cursor:pointer;border-radius:7px;padding:4px 7px;transition:background .12s ease}
+.fx-cell:hover{background:var(--bg-alt)}
+.fx-st{font-weight:800;font-size:14px}
+.fx-st.inc{color:var(--green,#0f7a5a)} .fx-st.paid{color:var(--amber,#a56a00)}
+.fx-st.no{color:var(--faint)} .fx-st.unk{color:var(--faint);opacity:.6}
+.fx-det{font-size:11.6px;color:var(--dim);margin-top:1px}
+.fx-src{font-size:10.6px;color:var(--faint);margin-top:2px;font-style:italic;
+  max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fx-cell.edited{box-shadow:inset 0 0 0 1px var(--blue);background:var(--blue-soft)}
+.fx-conf{font-family:var(--mono);font-size:10px;opacity:.7}
+.fx-log-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.fx-log-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.fx-log{max-height:230px;overflow:auto;font-size:12.6px}
+.fx-log .row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+.fx-log .row:last-child{border-bottom:0}
+.fx-log .k{font-family:var(--mono);color:var(--dim)}
+.fx-log .undo{border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer;font-size:12px}
+
 /* ---- Skor ağırlıkları ---- */
 .score-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);
   margin-left:6px;vertical-align:middle}
@@ -459,12 +522,26 @@ table.arch tr:hover td{background:var(--bg-alt)}
   background:var(--bg-alt);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
 .sw-row .nm{font-size:14px;font-weight:650;line-height:1.25}
 .sw-row .ds{font-size:11.5px;color:var(--faint);margin-top:2px}
-.sw-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:0 0 auto}
-.sw-seg button{border:0;background:var(--surface);color:var(--dim);font-size:12px;font-weight:700;
-  padding:5px 9px;cursor:pointer;transition:background .12s ease,color .12s ease}
-.sw-seg button+button{border-left:1px solid var(--line)}
-.sw-seg button.on{background:var(--blue);color:#fff}
-.sw-seg button.on[data-w="0"]{background:var(--faint)}
+.sw-ctl{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.sw-ctl input[type=range]{width:104px;accent-color:var(--blue);cursor:pointer}
+.sw-val{font-family:var(--mono);font-weight:800;font-size:13px;min-width:22px;text-align:right;color:var(--blue)}
+.sw-row.off{opacity:.45}
+.sw-row.off .sw-val{color:var(--faint)}
+.sw-band{font-size:10.5px;color:var(--faint);letter-spacing:.4px;text-transform:uppercase;
+  min-width:58px;text-align:right}
+/* İkinci kontrol şeridi: durum katsayıları + nicel puanlama */
+.sw-tune{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:12px 20px;
+  border-bottom:1px solid var(--line);background:var(--bg-alt)}
+.sw-tune .grp{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--dim);font-weight:650}
+.sw-tune input[type=range]{width:92px;accent-color:var(--blue)}
+.sw-tune .num{font-family:var(--mono);font-weight:800;color:var(--blue);min-width:38px}
+.sw-sw{position:relative;display:inline-block;width:38px;height:21px;flex:0 0 auto}
+.sw-sw input{opacity:0;width:0;height:0}
+.sw-sw span{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.15s;cursor:pointer}
+.sw-sw span:before{content:"";position:absolute;height:15px;width:15px;left:3px;top:3px;
+  background:#fff;border-radius:50%;transition:.15s}
+.sw-sw input:checked+span{background:var(--blue)}
+.sw-sw input:checked+span:before{transform:translateX(17px)}
 .sw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:12px 20px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
 .modal-bg{position:fixed;inset:0;background:rgba(6,10,20,.55);backdrop-filter:blur(3px);z-index:90;display:none;
@@ -718,6 +795,7 @@ footer{padding:26px 22px;color:var(--faint);font-size:13.2px;text-align:center;b
     <button class="tab-btn" data-tab="analytics">Analitik Analiz</button>
     <button class="tab-btn" data-tab="archive">Arşiv</button>
     <button class="tab-btn" data-tab="knowhow">Bilgi Bankası</button>
+    <button class="tab-btn" data-tab="fix" id="fixTab" hidden>🛠 Düzeltme</button>
     <button class="tab-btn" data-tab="admin" id="adminTab" hidden>Yönetim</button>
   </nav>
   <div class="top-right">
@@ -946,37 +1024,66 @@ footer{padding:26px 22px;color:var(--faint);font-size:13.2px;text-align:center;b
 
 
   <!-- ======================= YÖNETİM — manuel giriş ======================= -->
+  <!-- ============ DÜZELTME — yalnızca EDITOR_MODE'da ============
+       Panelin kopyası değil: hata AVLAMAK için tasarlandı. Solda ne
+       düzeltilmesi gerektiğini söyleyen iş listesi, sağda merdiveni kanıtıyla
+       birlikte gösteren editör. Düzeltirken scraper'ın okuduğu ham metni
+       görmek belirleyici — "yemek yok" yazan bir hücrenin gerçekten yanlış
+       olup olmadığı ancak kaynağa bakınca anlaşılır. -->
+  <section class="tab-page" id="page-fix">
+    <div class="fx-wrap">
+      <aside class="fx-list">
+        <div class="fx-list-head">
+          <div class="section-title" style="margin:0 0 8px">İş listesi</div>
+          <div class="fx-filters" id="fxFilters"></div>
+          <input id="fxSearch" class="fx-search" placeholder="taşıyıcı / OND ara…">
+          <div class="fx-count" id="fxCount">—</div>
+        </div>
+        <div class="fx-items" id="fxItems"></div>
+      </aside>
+
+      <main class="fx-main">
+        <div class="fx-empty" id="fxEmpty">
+          <div style="font-size:34px;margin-bottom:8px">🛠</div>
+          <b>Soldan bir birim seç</b>
+          <div class="sub" style="margin-top:6px">Liste, düzeltilmesi en çok gereken birimleri
+            üste alır: çekişmeli paketler, ürün değişikliği şüphesi, düşük güven,
+            tek gözlem ve Business'ta beklenip bulunamayan haklar.</div>
+        </div>
+        <div id="fxEditor" hidden>
+          <div class="fx-head">
+            <div>
+              <div class="fx-title" id="fxTitle">—</div>
+              <div class="fx-sub" id="fxSub">—</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="chip-btn" id="fxAddPkg">+ paket</button>
+              <button class="chip-btn" id="fxUndoUnit">↺ bu birimi geri al</button>
+            </div>
+          </div>
+          <div class="fx-flags" id="fxFlags"></div>
+          <div class="fx-matrix-wrap"><table class="fx-matrix" id="fxMatrix"></table></div>
+        </div>
+
+        <div class="fx-log-card">
+          <div class="fx-log-head">
+            <b id="fxLogTitle">Değişiklik günlüğü</b>
+            <span style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="chip-btn primary" id="fxDlHtml">⬇ Panel (HTML)</button>
+              <button class="chip-btn" id="fxDlJson">⬇ Veri (JSON)</button>
+              <button class="chip-btn" id="fxDlOrig">⬇ Orijinal yedek</button>
+              <button class="chip-btn" id="fxDlCsv">⬇ Değişiklikler (CSV)</button>
+              <button class="chip-btn" id="fxRevert">↺ Tümünü geri al</button>
+            </span>
+          </div>
+          <div class="fx-log" id="fxLog"></div>
+        </div>
+      </main>
+    </div>
+  </section>
+
   <section class="tab-page" id="page-admin">
     <div class="section-title" id="adSectionTitle">Manuel Giriş</div>
-
-    <!-- Yalnızca DÜZENLEME sürümünde görünür (EDITOR_MODE). Yayın panelinde
-         gizli kalır ve içindeki hiçbir düğme bağlanmaz. -->
-    <div class="chart-card" id="edCard" hidden>
-      <h3>Veri düzenleme — doğrudan</h3>
-      <div class="sub">Bu sürüm veriye <b>doğrudan</b> yazar: aşağıdan yaptığın değişiklik
-        anında panelin tamamına yansır (skorlar, grafikler, karşılaştırmalar dahil) ve
-        tarayıcında saklanır — sayfayı kapatsan da durur. GitHub, anahtar, internet gerekmez.
-        <b>Orijinal veri hiç kaybolmaz</b>: istediğin an geri alabilir, istediğin an
-        yedeğini indirebilirsin.</div>
-      <div id="edStatus" class="ad-status"></div>
-      <div class="an-controls" style="margin-top:4px">
-        <div class="f-group"><label>&nbsp;</label>
-          <button class="chip-btn primary" id="edDlHtml">⬇ Güncel paneli indir (HTML)</button></div>
-        <div class="f-group"><label>&nbsp;</label>
-          <button class="chip-btn" id="edDlJson">⬇ Güncel veri (JSON)</button></div>
-        <div class="f-group"><label>&nbsp;</label>
-          <button class="chip-btn" id="edDlOrig">⬇ Orijinal veri (yedek)</button></div>
-        <div class="f-group"><label>&nbsp;</label>
-          <button class="chip-btn" id="edDlCsv">⬇ Değişiklikler (CSV)</button></div>
-        <div class="f-group"><label>&nbsp;</label>
-          <button class="chip-btn" id="edRevert">↺ Tüm değişiklikleri geri al</button></div>
-      </div>
-      <div class="ad-warn" style="margin-top:10px">
-        <b>Paylaşırken:</b> indirdiğin HTML tek dosyadır, verinin tamamını içinde taşır ve
-        çift tıklayınca açılır — sunucu, kurulum, internet gerekmez. Bu düzenleme sürümünü
-        yalnızca veriyi değiştirmesini istediğin kişilere ver; yayın paneli değişmez.
-      </div>
-    </div>
 
     <div class="chart-card" id="adTokenCard">
       <h3>GitHub erişimi</h3>
@@ -1036,11 +1143,21 @@ footer{padding:26px 22px;color:var(--faint);font-size:13.2px;text-align:center;b
       <button class="ghost-btn" id="swClose">Kapat ✕</button>
     </div>
     <div class="sw-presets" id="swPresets"></div>
+    <div class="sw-tune">
+      <span class="grp" data-tip="Hakkın pakete DAHİL olması kaç puan saysın">Dahil
+        <input type="range" id="swInc" min="0" max="100" step="5"><span class="num" id="swIncV">100%</span></span>
+      <span class="grp" data-tip="Hakka ücret karşılığı erişilebilmesi kaç puan saysın. Hiç sunulmamasından iyidir ama dahil olmanın gerisindedir.">Ücretli
+        <input type="range" id="swPaid" min="0" max="100" step="5"><span class="num" id="swPaidV">40%</span></span>
+      <span class="grp" data-tip="Açıkken hakkın VARLIĞI değil MİKTARI puanlanır: bagajda kg, esneklikte ceza tutarı. 1×20kg ile 2×32kg artık aynı puanı almaz.">
+        <label class="sw-sw"><input type="checkbox" id="swQ"><span></span></label> Nicel puanlama</span>
+      <span class="grp" id="swQrefWrap" hidden>referans
+        <input type="range" id="swQref" min="10" max="60" step="5"><span class="num" id="swQrefV">30kg</span></span>
+    </div>
     <div class="modal-body"><div class="sw-grid" id="swGrid"></div></div>
     <div class="sw-foot">
       <span id="swInfo">—</span>
       <span style="display:flex;gap:8px">
-        <button class="chip-btn" id="swReset">Sıfırla (hepsi eşit)</button>
+        <button class="chip-btn" id="swReset">Varsayılana dön</button>
         <button class="chip-btn primary" id="swApply">Uygula</button>
       </span>
     </div>
@@ -1229,21 +1346,100 @@ function stdTier(f){ return f.std_tier || (CABIN_SHORT[f.cabin]+"-"+f.package_or
    okunamamış haklardan dolayı cezalandırmaz ama sunulmayan haktan dolayı
    cezalandırır — ikisi de doğru davranış, çünkü okunamayan hak zaten
    features içinde hiç görünmez ve "Not Included" ile aynı yere düşer. */
-const SCORE_SCALE = {0:"yok say", 1:"normal", 2:"önemli", 3:"kritik"};
+/* Ağırlık ölçeği 0-10. Önceki 0-3 çok kabaydı: "önemli" ile "kritik" arasında
+   tek kademe vardı ve iki hakkı birbirinden hafifçe ayırmanın yolu yoktu.
+   0 = yok say (paydadan da düşer), 5 = varsayılan/normal, 10 = azami. */
+const SCORE_WMAX = 10;
+const SCORE_WDEF = 5;
+const SCORE_BANDS = [[0,"yok say"],[1,"çok düşük"],[3,"düşük"],[5,"normal"],
+                     [7,"yüksek"],[9,"kritik"]];
+function scoreBandLabel(w){
+  let out="normal";
+  for(const [t,l] of SCORE_BANDS){ if(w>=t) out=l; }
+  return w<=0 ? "yok say" : out;
+}
+
+/* Durum katsayıları — artık sabit değil. "Ücretli"nin ne kadar saydığı bir
+   yargı: bir hakka para vererek erişebilmek hiç sunulmamasından iyidir ama
+   dahil olmanın gerisindedir; bu mesafenin ne olduğu kullanıcıya ait. */
+const SCORE_COEF_DEF = {inc:1.0, paid:0.4};
+let SCORE_COEF = Object.assign({}, SCORE_COEF_DEF);
+
+/* Nicel puanlama: hakkın VARLIĞI değil MİKTARI puanlanır.
+   Veri buna elverişli (ölçüldü 2026-08-10): checked_baggage %100, change %100,
+   baggage_cabin %90, refund %84 oranında sayısal ayrıntı taşıyor. Kapalıyken
+   1×20kg ile 2×32kg aynı puanı alır — ki bu, paketleri ayıran en somut farkı
+   görmezden gelmek olur. Varsayılan KAPALI: açıldığında skorlar değişeceği
+   için bu bilinçli bir tercih olmalı, sürpriz değil. */
+const SCORE_QREF_DEF = {checked:30, cabin:8, feeFloor:0.15};
+let SCORE_Q = false;
+let SCORE_QREF = Object.assign({}, SCORE_QREF_DEF);
+
+const _KG_RE  = /(\d+(?:[.,]\d+)?)\s*[×x*]\s*(\d+(?:[.,]\d+)?)\s*kg/i;
+const _KG1_RE = /(\d+(?:[.,]\d+)?)\s*kg/i;
+const _FEE_RE = /(\d[\d.,]*)\s*(?:USD|TRY|EUR|\$|€)/i;
+const _num = s => parseFloat(String(s).replace(",", ".")) || 0;
+
+/* Bagaj: parça × kg toplamı, referansa oranlanır. Referansın üstü 1.0'da
+   kesilir — 3×32kg, 30kg'lık bir hakkın üç katı değeri taşımaz. */
+function qBaggageFactor(detail, ref){
+  const d=String(detail||"");
+  let m=_KG_RE.exec(d);
+  let kg = m ? _num(m[1])*_num(m[2]) : ((m=_KG1_RE.exec(d)) ? _num(m[1]) : 0);
+  if(!kg) return 1;                       // okunamadıysa cezalandırma
+  return Math.max(0.05, Math.min(1, kg/ref));
+}
+/* Esneklik: ücretsizse tam, ücretliyse ücret/bilet oranında düşer. Taban
+   feeFloor: pahalı da olsa değiştirebilmek, hiç değiştirememekten iyidir. */
+function qFlexFactor(detail, priceUsd){
+  const d=String(detail||"");
+  if(/cezas[ıi]z|kesintisiz|[üu]cretsiz|free/i.test(d)) return 1;
+  const m=_FEE_RE.exec(d);
+  if(!m || !priceUsd || priceUsd<=0) return 1;
+  const fee=_num(m[1].replace(/\./g,""));
+  if(!fee) return 1;
+  return Math.max(SCORE_QREF.feeFloor, 1 - fee/priceUsd);
+}
+function qFactor(key, feat, f){
+  if(!SCORE_Q) return 1;
+  const d=feat.detail||"";
+  if(key==="checked_baggage"||key==="extra_baggage") return qBaggageFactor(d, SCORE_QREF.checked);
+  if(key==="baggage_cabin"||key==="personal_item")   return qBaggageFactor(d, SCORE_QREF.cabin);
+  if(key==="change"||key==="refund"||key==="no_show_refund"||key==="no_show_change"
+     ||key==="same_day_change")                      return qFlexFactor(d, f.price_usd||f.price);
+  return 1;
+}
+/* Hazır profiller 0-10 ölçeğinde. Vurgulanan haklar 9-10, ikincil olanlar 7;
+   adı geçmeyen her hak varsayılan 5'te kalır — yani profil "şunlar önemli"
+   der, "geri kalanı önemsiz" demez. */
 const SCORE_PRESETS = {
   "esit":      {label:"Eşit ağırlık", w:{}},
   "bagaj":     {label:"Bagaj odaklı",
-                w:{checked_baggage:3, baggage_cabin:3, extra_baggage:2,
-                   priority_baggage:2, personal_item:2, sport_equipment:2}},
+                w:{checked_baggage:10, baggage_cabin:9, extra_baggage:7,
+                   priority_baggage:7, personal_item:7, sport_equipment:7,
+                   lounge:2, entertainment:2, wifi:2}},
   "esneklik":  {label:"Esneklik odaklı",
-                w:{refund:3, change:3, same_day_change:2, no_show_refund:2,
-                   no_show_change:2, upgrade_eligibility:2}},
+                w:{refund:10, change:10, same_day_change:8, no_show_refund:8,
+                   no_show_change:7, upgrade_eligibility:7,
+                   sport_equipment:2, pet:2, entertainment:2}},
   "konfor":    {label:"Konfor odaklı",
-                w:{seat_selection:3, extra_legroom:3, meal:2, lounge:2,
-                   entertainment:2, wifi:2, priority_boarding:2}},
+                w:{seat_selection:10, extra_legroom:10, meal:8, lounge:8,
+                   entertainment:7, wifi:7, priority_boarding:7,
+                   extra_baggage:2, sport_equipment:2, pet:2}},
   "sadakat":   {label:"Sadakat odaklı",
-                w:{miles:3, tier_miles:3, upgrade_eligibility:2, lounge:2,
-                   priority_check_in:2, fast_track:2}},
+                w:{miles:10, tier_miles:10, upgrade_eligibility:8, lounge:8,
+                   priority_check_in:7, fast_track:7, priority_boarding:7,
+                   pet:2, sport_equipment:2}},
+  "isyolcusu": {label:"İş yolcusu",
+                w:{change:10, refund:9, same_day_change:9, lounge:9,
+                   priority_check_in:8, fast_track:8, wifi:8, seat_selection:8,
+                   extra_legroom:7, tier_miles:7, priority_boarding:7,
+                   pet:0, sport_equipment:0, infant_benefits:0}},
+  "tatilci":   {label:"Tatil yolcusu",
+                w:{checked_baggage:10, extra_baggage:8, baggage_cabin:8,
+                   meal:8, entertainment:7, seat_selection:7,
+                   sport_equipment:7, infant_benefits:7,
+                   change:3, refund:3, tier_miles:2, fast_track:2}},
   /* Projenin ilk gün Bilgi Bankası'nda belgelediği şema. Ölçek 0-3 değil
      0-13 ama formül aynı (ağırlıklı toplam / ağırlık toplamı), o yüzden
      doğrudan kullanılabiliyor. Tabloda olmayan 9 yeni hak 1 ağırlıkla sayılır:
@@ -1253,33 +1449,53 @@ const SCORE_PRESETS = {
 const SCORE_LS_KEY = "fpi-score-weights";
 let SCORE_W = {};                     /* boş = hepsi 1 (eşit) */
 
-function scoreWeight(k){ const v=SCORE_W[k]; return (v===undefined||v===null)?1:v; }
-function scoreIsCustom(){ return Object.keys(SCORE_W).some(k=>scoreWeight(k)!==1); }
+function scoreWeight(k){ const v=SCORE_W[k]; return (v===undefined||v===null)?SCORE_WDEF:v; }
+function scoreIsCustom(){
+  return Object.keys(SCORE_W).some(k=>scoreWeight(k)!==SCORE_WDEF)
+      || SCORE_COEF.inc!==SCORE_COEF_DEF.inc || SCORE_COEF.paid!==SCORE_COEF_DEF.paid
+      || SCORE_Q;
+}
 
 function scoreLoadWeights(){
   try{
     const raw=localStorage.getItem(SCORE_LS_KEY);
-    if(raw){ const o=JSON.parse(raw); if(o&&typeof o==="object") SCORE_W=o; }
+    if(raw){
+      const o=JSON.parse(raw)||{};
+      /* Eski kayıt biçimi düz {hak:ağırlık} idi; yenisi bölümlü. İkisini de
+         okuyabilmek gerekiyor, yoksa güncellemeden sonra herkesin ayarı
+         sessizce sıfırlanırdı. Eski 0-3 ölçeği 0-10'a taşınır. */
+      if(o.w || o.coef || o.q!==undefined){
+        SCORE_W    = o.w    || {};
+        SCORE_COEF = Object.assign({}, SCORE_COEF_DEF, o.coef||{});
+        SCORE_Q    = !!o.q;
+        SCORE_QREF = Object.assign({}, SCORE_QREF_DEF, o.qref||{});
+      } else {
+        SCORE_W = {};
+        Object.entries(o).forEach(([k,v])=>{ SCORE_W[k] = Math.round(Number(v)*(SCORE_WMAX/3)); });
+      }
+    }
   }catch(e){ SCORE_W={}; }
 }
 function scoreSaveWeights(){
-  try{ localStorage.setItem(SCORE_LS_KEY, JSON.stringify(SCORE_W)); }catch(e){}
+  try{ localStorage.setItem(SCORE_LS_KEY,
+    JSON.stringify({w:SCORE_W, coef:SCORE_COEF, q:SCORE_Q, qref:SCORE_QREF})); }catch(e){}
 }
 
 function pkgScore(f){
-  /* Üretici tarafından yazılmış sabit skor VARSA bile, kullanıcı ağırlık
-     verdiyse onu değil kullanıcının skorunu göster; yoksa hazır olanı kullan. */
+  /* Üretici tarafından yazılmış sabit skor VARSA bile, kullanıcı ayar
+     yaptıysa onu değil kullanıcının skorunu göster; yoksa hazır olanı kullan. */
   if(typeof f.score === "number" && !scoreIsCustom()) return f.score;
   let num=0, den=0;
   for(const k of Object.keys(FEATURE_META)){
     const w=scoreWeight(k);
     if(w<=0) continue;                       // yok sayılan hak paydaya da girmez
     den+=w;
-    const s=((f.features||{})[k]||{}).state;
-    if(s==="Included")   num+=w;
-    else if(s==="Paid")  num+=0.4*w;
+    const ft=(f.features||{})[k]||{};
+    const s=ft.state;
+    if(s==="Included")   num += w * SCORE_COEF.inc  * qFactor(k, ft, f);
+    else if(s==="Paid")  num += w * SCORE_COEF.paid * qFactor(k, ft, f);
   }
-  return den ? Math.round(num/den*100) : 0;
+  return den ? Math.max(0, Math.min(100, Math.round(num/den*100))) : 0;
 }
 function pkgTopIncludes(f, n=6){
   return Object.keys(FEATURE_META)
@@ -2587,7 +2803,10 @@ const TAB_RENDER={
   panel:()=>renderPanel(),
   analytics:()=>{fillCmpControls();fillScoFlow();renderHeatmap();renderScoreChart();renderCompare();},
   archive:()=>renderArchive(),
-  knowhow:()=>renderKnowHow()
+  knowhow:()=>renderKnowHow(),
+  /* Düzeltme sayfası yalnız düzenleme sürümünde var; yayın panelinde bu dal
+     hiç çalışmaz (EDITOR_MODE false ve sekme gizli). */
+  fix:()=>{ if(!EDITOR_MODE) return; fxBuild(); if(FX.sel) fxOpen(FX.sel); fxRenderLog(); }
 };
 const TAB_DIRTY={};
 const TAB_CONTENT={
@@ -2715,18 +2934,19 @@ $("#jsonFile").addEventListener("change",e=>{
    baş başa bırakırdı. Kapatmak taslağı atar, uygulamaz. */
 let SW_DRAFT = {};
 
-function swWeightOf(k){ const v=SW_DRAFT[k]; return (v===undefined||v===null)?1:v; }
+function swWeightOf(k){ const v=SW_DRAFT[k]; return (v===undefined||v===null)?SCORE_WDEF:v; }
 
-/* Belgelenen tablo 0-13 ölçeğinde, arayüz 0-3. Eşik tabanlı eşleştirme
-   sıralamayı korur (13/12 → kritik, 8/6 → önemli, 5..1 → normal, 0 → yok say)
-   ve tablo ileride değişirse kendiliğinden uyar. Ölçek daraldığı için skorlar
-   belgelenen formülle birebir aynı çıkmaz; amaç ÖNCELİK SIRASINI taşımak. */
+/* Belgelenen tablo 0-13 ölçeğinde, arayüz 0-10. Ölçek artık neredeyse birebir
+   olduğu için oransal ölçekleme yeterli — eşik tablosuna gerek kalmadı, ve
+   tablo ileride değişirse kendiliğinden uyar. */
 function swFromDoc(){
+  const vals=Object.values(SCORE_W_DOC).filter(v=>v>0);
+  const mx=Math.max(...vals, 1);
   const out={};
   Object.entries(SCORE_W_DOC).forEach(([k,w])=>{
-    out[k] = w<=0 ? 0 : (w>=10 ? 3 : (w>=6 ? 2 : 1));
+    out[k] = w<=0 ? 0 : Math.max(1, Math.round(w/mx*SCORE_WMAX));
   });
-  return out;                       // tabloda olmayan haklar: varsayılan 1
+  return out;                       // tabloda olmayan haklar: varsayılan 5
 }
 
 function swRenderPresets(){
@@ -2734,14 +2954,23 @@ function swRenderPresets(){
     `<button class="chip-btn" data-preset="${id}">${escap(p.label)}</button>`).join("")
     + `<span style="flex:1"></span>`;
 }
+/* Nicel puanlamanın gerçekten işlediği haklar işaretlenir: veride sayısal
+   ayrıntı taşımayan bir hakta anahtarın açık olması hiçbir şey değiştirmez ve
+   kullanıcıyı yanıltır. */
+const SW_QKEYS = new Set(["checked_baggage","extra_baggage","baggage_cabin","personal_item",
+                          "change","refund","no_show_refund","no_show_change","same_day_change"]);
 function swRenderGrid(){
   $("#swGrid").innerHTML = Object.entries(FEATURE_META).map(([k,meta])=>{
     const w=swWeightOf(k);
-    const seg=[0,1,2,3].map(v=>
-      `<button data-k="${k}" data-w="${v}" class="${v===w?"on":""}" title="${SCORE_SCALE[v]}">${v===0?"✕":v}</button>`).join("");
-    return `<div class="sw-row">
-      <span><span class="nm">${escap(meta[0])}</span><span class="ds">${escap(meta[1]||"")}</span></span>
-      <span class="sw-seg">${seg}</span></div>`;
+    const q = SW_DRAFT.__q && SW_QKEYS.has(k)
+      ? ` <span style="color:var(--blue);font-weight:800" title="Bu hak nicel puanlanıyor">◈</span>` : "";
+    return `<div class="sw-row${w<=0?" off":""}" data-row="${k}">
+      <span style="min-width:0"><span class="nm">${escap(meta[0])}${q}</span><span class="ds">${escap(meta[1]||"")}</span></span>
+      <span class="sw-ctl">
+        <span class="sw-band" data-band="${k}">${escap(scoreBandLabel(w))}</span>
+        <input type="range" min="0" max="${SCORE_WMAX}" step="1" value="${w}" data-k="${k}">
+        <span class="sw-val" data-val="${k}">${w}</span>
+      </span></div>`;
   }).join("");
   swRenderInfo();
 }
@@ -2749,20 +2978,38 @@ function swRenderInfo(){
   const on=Object.keys(FEATURE_META).filter(k=>swWeightOf(k)>0);
   const den=on.reduce((s,k)=>s+swWeightOf(k),0);
   const off=Object.keys(FEATURE_META).length-on.length;
-  $("#swInfo").textContent =
-    `${on.length} hak sayılıyor · toplam ağırlık ${den}` + (off?` · ${off} hak yok sayıldı`:"");
+  const bits=[`${on.length} hak sayılıyor`, `toplam ağırlık ${den}`];
+  if(off) bits.push(`${off} hak yok sayıldı`);
+  bits.push(`Dahil %${Math.round((SW_DRAFT.__inc??SCORE_COEF_DEF.inc)*100)} · Ücretli %${Math.round((SW_DRAFT.__paid??SCORE_COEF_DEF.paid)*100)}`);
+  if(SW_DRAFT.__q) bits.push(`nicel puanlama açık (${SW_DRAFT.__qref||SCORE_QREF_DEF.checked}kg referans)`);
+  $("#swInfo").textContent = bits.join(" · ");
+}
+function swRenderTune(){
+  const inc=SW_DRAFT.__inc??SCORE_COEF_DEF.inc, paid=SW_DRAFT.__paid??SCORE_COEF_DEF.paid;
+  const qref=SW_DRAFT.__qref??SCORE_QREF_DEF.checked;
+  $("#swInc").value=Math.round(inc*100);   $("#swIncV").textContent=Math.round(inc*100)+"%";
+  $("#swPaid").value=Math.round(paid*100); $("#swPaidV").textContent=Math.round(paid*100)+"%";
+  $("#swQ").checked=!!SW_DRAFT.__q;
+  $("#swQrefWrap").hidden=!SW_DRAFT.__q;
+  $("#swQref").value=qref; $("#swQrefV").textContent=qref+"kg";
 }
 function swOpen(){
   SW_DRAFT = JSON.parse(JSON.stringify(SCORE_W||{}));
-  swRenderPresets(); swRenderGrid();
+  SW_DRAFT.__inc=SCORE_COEF.inc; SW_DRAFT.__paid=SCORE_COEF.paid;
+  SW_DRAFT.__q=SCORE_Q;          SW_DRAFT.__qref=SCORE_QREF.checked;
+  swRenderPresets(); swRenderTune(); swRenderGrid();
   $("#swBg").classList.add("open");
 }
 function swApply(){
-  /* Sadece 1'den farklı olanları sakla: varsayılan büyüdüğünde eski kayıt
-     ağırlığı sessizce sabitlemesin. */
+  /* Sadece varsayılandan farklı olanları sakla: varsayılan ileride değişirse
+     eski kayıt ağırlığı sessizce eski değerde dondurmasın. */
   const out={};
-  Object.keys(FEATURE_META).forEach(k=>{ const w=swWeightOf(k); if(w!==1) out[k]=w; });
-  SCORE_W=out; scoreSaveWeights();
+  Object.keys(FEATURE_META).forEach(k=>{ const w=swWeightOf(k); if(w!==SCORE_WDEF) out[k]=w; });
+  SCORE_W=out;
+  SCORE_COEF={inc:SW_DRAFT.__inc??SCORE_COEF_DEF.inc, paid:SW_DRAFT.__paid??SCORE_COEF_DEF.paid};
+  SCORE_Q=!!SW_DRAFT.__q;
+  SCORE_QREF=Object.assign({}, SCORE_QREF_DEF, {checked:SW_DRAFT.__qref??SCORE_QREF_DEF.checked});
+  scoreSaveWeights();
   $("#scoreDot").hidden = !scoreIsCustom();
   $("#swBg").classList.remove("open");
   renderAll();                        // skor her ekranda türetiliyor: hepsi yeniden
@@ -2771,19 +3018,46 @@ $("#scoreBtn").addEventListener("click", swOpen);
 $("#swClose").addEventListener("click",()=>$("#swBg").classList.remove("open"));
 $("#swBg").addEventListener("click",e=>{ if(e.target.id==="swBg") $("#swBg").classList.remove("open"); });
 $("#swApply").addEventListener("click", swApply);
-$("#swReset").addEventListener("click",()=>{ SW_DRAFT={}; swRenderGrid(); });
+$("#swReset").addEventListener("click",()=>{
+  SW_DRAFT={__inc:SCORE_COEF_DEF.inc, __paid:SCORE_COEF_DEF.paid,
+            __q:false, __qref:SCORE_QREF_DEF.checked};
+  swRenderTune(); swRenderGrid();
+});
 $("#swPresets").addEventListener("click",e=>{
   const b=e.target.closest("[data-preset]"); if(!b) return;
   const p=SCORE_PRESETS[b.dataset.preset]; if(!p) return;
-  SW_DRAFT = p.fromDoc ? swFromDoc() : JSON.parse(JSON.stringify(p.w||{}));
+  /* Profil AĞIRLIKLARI değiştirir; durum katsayıları ve nicel puanlama
+     kullanıcının ayarı olarak kalır — profil seçmek onları sıfırlamamalı. */
+  const keep={__inc:SW_DRAFT.__inc, __paid:SW_DRAFT.__paid, __q:SW_DRAFT.__q, __qref:SW_DRAFT.__qref};
+  SW_DRAFT = Object.assign(p.fromDoc ? swFromDoc() : JSON.parse(JSON.stringify(p.w||{})), keep);
   swRenderGrid();
 });
-$("#swGrid").addEventListener("click",e=>{
-  const b=e.target.closest("button[data-k]"); if(!b) return;
-  SW_DRAFT[b.dataset.k]=Number(b.dataset.w);
-  b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+/* Sürükleme sırasında SADECE o satır güncellenir. Bütün ızgarayı yeniden
+   çizmek, DOM değiştiği için tutamacı elden kaçırırdı. */
+$("#swGrid").addEventListener("input",e=>{
+  const r=e.target.closest("input[type=range][data-k]"); if(!r) return;
+  const k=r.dataset.k, w=Number(r.value);
+  SW_DRAFT[k]=w;
+  const row=$(`.sw-row[data-row="${k}"]`);
+  if(row){
+    row.classList.toggle("off", w<=0);
+    row.querySelector(`[data-val="${k}"]`).textContent=w;
+    row.querySelector(`[data-band="${k}"]`).textContent=scoreBandLabel(w);
+  }
   swRenderInfo();
 });
+$("#swInc").addEventListener("input",e=>{
+  SW_DRAFT.__inc=Number(e.target.value)/100;
+  $("#swIncV").textContent=e.target.value+"%"; swRenderInfo(); });
+$("#swPaid").addEventListener("input",e=>{
+  SW_DRAFT.__paid=Number(e.target.value)/100;
+  $("#swPaidV").textContent=e.target.value+"%"; swRenderInfo(); });
+$("#swQ").addEventListener("change",e=>{
+  SW_DRAFT.__q=e.target.checked; $("#swQrefWrap").hidden=!e.target.checked;
+  swRenderGrid(); });
+$("#swQref").addEventListener("input",e=>{
+  SW_DRAFT.__qref=Number(e.target.value);
+  $("#swQrefV").textContent=e.target.value+"kg"; swRenderInfo(); });
 scoreLoadWeights();
 $("#scoreDot").hidden = !scoreIsCustom();
 
@@ -3309,27 +3583,227 @@ function edRevertAll(){
   ED_OVER={}; edPersist(); edApply(); renderAll(); edStatusLine();
 }
 
+/* ==================================================================
+   DÜZELTME SAYFASI
+   ==================================================================
+   İş listesi verinin KENDİ kalite sinyallerinden türer; ayrı bir kural
+   dosyası yok. Doğrulama katmanı zaten "bu paket çekişmeli", "bu okuma tek
+   gözleme dayanıyor", "kontrol penceresi farklı okudu" diyor — düzeltme
+   sayfası bunları bir iş listesine çevirir. Böylece hangi birimin elden
+   geçmesi gerektiğini insan aramaz, veri söyler. */
+const FX_BIZ_EXPECT = ["checked_baggage","baggage_cabin","lounge","priority_check_in","meal"];
+const FX_RULES = [
+  {id:"contested", label:"Çekişmeli",      w:3, test:r=>!!r.contested},
+  {id:"change",    label:"Ürün değişikliği",w:2, test:r=>!!r.product_change},
+  {id:"lowconf",   label:"Düşük güven",    w:2, test:r=>typeof r.confidence==="number"&&r.confidence<90},
+  {id:"single",    label:"Tek gözlem",     w:1, test:r=>typeof r.observations==="number"&&r.observations<=1},
+  {id:"nofeat",    label:"Hak okunmamış",  w:3, test:r=>!Object.keys(r.features||{}).length},
+  {id:"bizmiss",   label:"Business eksik", w:2, test:r=>r.cabin==="Business" &&
+      FX_BIZ_EXPECT.some(k=>!["Included","Paid"].includes(((r.features||{})[k]||{}).state))},
+];
+let FX = {sel:null, filt:new Set(), q:"", items:[]};
+
+const fxKeyOf = r => [r.airline,r.origin,r.destination,r.cabin,(r.coll_season||r.season)].join("|");
+
+function fxBuild(){
+  const by=new Map();
+  (DATA.fares||[]).forEach(r=>{
+    const k=fxKeyOf(r);
+    let it=by.get(k);
+    if(!it){ it={key:k, r0:r, sev:0, tags:new Set(), rows:0}; by.set(k,it); }
+    it.rows++;
+    FX_RULES.forEach(rule=>{ if(rule.test(r)){ it.sev+=rule.w; it.tags.add(rule.id); } });
+  });
+  FX.items=[...by.values()].filter(i=>i.sev>0).sort((a,b)=>b.sev-a.sev||a.key.localeCompare(b.key));
+  fxRenderFilters(); fxRenderList();
+}
+function fxRenderFilters(){
+  const cnt={}; FX_RULES.forEach(r=>cnt[r.id]=0);
+  FX.items.forEach(i=>i.tags.forEach(t=>cnt[t]++));
+  $("#fxFilters").innerHTML = FX_RULES.map(r=>
+    `<button data-f="${r.id}" class="${FX.filt.has(r.id)?"on":""}">${escap(r.label)}<span class="n">${cnt[r.id]||0}</span></button>`
+  ).join("");
+}
+function fxVisible(){
+  const q=FX.q.trim().toLowerCase();
+  return FX.items.filter(i=>{
+    if(FX.filt.size && ![...FX.filt].some(t=>i.tags.has(t))) return false;
+    if(q && !i.key.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+function fxRenderList(){
+  const vis=fxVisible();
+  const done=k=>Object.keys(ED_OVER[k]||{}).length>0;
+  $("#fxCount").textContent = `${vis.length} birim gösteriliyor · ${FX.items.length} toplam sorunlu`;
+  $("#fxItems").innerHTML = vis.slice(0,400).map(i=>{
+    const [car,o,d,cab,sea]=i.key.split("|");
+    const tags=[...i.tags].map(t=>(FX_RULES.find(r=>r.id===t)||{}).label).filter(Boolean).join(" · ");
+    const cls = done(i.key)?"done":(i.sev>=6?"":"lo");
+    return `<div class="fx-item ${FX.sel===i.key?"on":""}" data-k="${escap(i.key)}">
+      <span class="sev ${cls}">${done(i.key)?"✓":i.sev}</span>
+      <span style="min-width:0">
+        <span class="u">${escap(car)} ${escap(o)}-${escap(d)}</span>
+        <span class="w">${escap(cab)} · ${escap(sea)} · ${i.rows} paket<br>${escap(tags)}</span>
+      </span></div>`;
+  }).join("") || `<div style="padding:18px;color:var(--faint);font-size:13px">Bu filtreyle birim yok.</div>`;
+}
+
+/* ---- merdiven editörü ---- */
+const FX_CYCLE=["Included","Paid","Not Included",""];
+const FX_LBL={"Included":"✓","Paid":"€","Not Included":"—","":"?"};
+const FX_CLS={"Included":"inc","Paid":"paid","Not Included":"no","":"unk"};
+
+function fxOpen(key){
+  FX.sel=key; fxRenderList();
+  const [car,o,d,cab,sea]=key.split("|");
+  const pkgs=(DATA.fares||[]).filter(r=>fxKeyOf(r)===key)
+    .sort((a,b)=>(a.package_order||0)-(b.package_order||0));
+  $("#fxEmpty").hidden=true; $("#fxEditor").hidden=false;
+  $("#fxTitle").textContent=`${car} · ${o}-${d}`;
+  $("#fxSub").textContent=`${cab} · ${sea} · ${pkgs.length} paket · kaynak: ${(pkgs[0]||{}).source||"—"}`;
+
+  const it=FX.items.find(x=>x.key===key);
+  $("#fxFlags").innerHTML = it ? [...it.tags].map(t=>{
+    const r=FX_RULES.find(x=>x.id===t)||{};
+    return `<span class="fx-flag ${r.w>=3?"red":""}">${escap(r.label||t)}</span>`;
+  }).join("") : "";
+
+  const head=`<thead><tr><th class="rname" style="min-width:190px">Hak</th>`+
+    pkgs.map((p,i)=>`<th data-col="${i}">
+      <input class="fx-pkg-name" data-pk="${i}" data-fld="name" value="${escap(p.fare_brand||"")}">
+      <input class="fx-pkg-price" data-pk="${i}" data-fld="price" value="${p.price_usd??p.price??""}" placeholder="USD">
+    </th>`).join("")+`</tr></thead>`;
+
+  const body=Object.entries(FEATURE_META).map(([k,meta])=>{
+    const cells=pkgs.map((p,i)=>{
+      const ft=(p.features||{})[k]||{};
+      const st=ft.state||"";
+      const edited=!!(((ED_OVER[key]||{})[edPkgKey(p.fare_brand)]||{}).rights||{})[k];
+      return `<td><div class="fx-cell ${edited?"edited":""}" data-pk="${i}" data-rk="${k}">
+        <span class="fx-st ${FX_CLS[st]||"unk"}">${FX_LBL[st]||"?"}</span>
+        ${ft.detail?`<span class="fx-det">${escap(ft.detail)}</span>`:""}
+        ${ft.src?`<div class="fx-src" title="${escap(ft.src)}">“${escap(ft.src)}”${
+          ft.conf!=null?` <span class="fx-conf">${ft.conf}</span>`:""}</div>`:""}
+      </div></td>`;
+    }).join("");
+    return `<tr><td class="rname">${escap(meta[0])}<small>${escap(meta[1]||"")}</small></td>${cells}</tr>`;
+  }).join("");
+
+  $("#fxMatrix").innerHTML=head+`<tbody>${body}</tbody>`;
+  $("#fxMatrix").dataset.key=key;
+  FX._pkgs=pkgs;
+}
+
+/* Hücreye tıkla → durum döner. Kayıt ANINDA: "kaydet" düğmesi olsaydı
+   düzeltme akışı her hücrede kesilirdi; geri alma günlükten tek tıkla. */
+function fxCycleCell(pkIdx, rk){
+  const key=FX.sel; if(!key) return;
+  const p=FX._pkgs[pkIdx]; if(!p) return;
+  const cur=((p.features||{})[rk]||{}).state||"";
+  const nxt=FX_CYCLE[(FX_CYCLE.indexOf(cur)+1)%FX_CYCLE.length];
+  const pk=edPkgKey(p.fare_brand);
+  ED_OVER[key]=ED_OVER[key]||{};
+  const ov=ED_OVER[key][pk]=ED_OVER[key][pk]||{name:p.fare_brand, price:p.price_usd??p.price, order:p.package_order, rights:{}};
+  ov.rights=ov.rights||{};
+  if(nxt==="") delete ov.rights[rk]; else ov.rights[rk]={state:nxt, detail:((p.features||{})[rk]||{}).detail||""};
+  if(!Object.keys(ov.rights).length && ov.name===p.fare_brand &&
+     (ov.price===(p.price_usd??p.price))) delete ED_OVER[key][pk];
+  if(!Object.keys(ED_OVER[key]).length) delete ED_OVER[key];
+  edPersist(); edApply(); renderAll();
+  fxOpen(key); fxRenderLog(); edStatusLine();
+}
+function fxSetField(pkIdx, fld, val){
+  const key=FX.sel; if(!key) return;
+  const p=FX._pkgs[pkIdx]; if(!p) return;
+  const pk=edPkgKey(p.fare_brand);
+  ED_OVER[key]=ED_OVER[key]||{};
+  const ov=ED_OVER[key][pk]=ED_OVER[key][pk]||{name:p.fare_brand, price:p.price_usd??p.price, order:p.package_order, rights:{}};
+  if(fld==="name"){ const v=String(val).trim(); if(!v) return; ov.name=v; }
+  else { const n=parseFloat(String(val).replace(",",".")); if(isNaN(n)) return; ov.price=n; }
+  edPersist(); edApply(); renderAll(); fxOpen(key); fxRenderLog(); edStatusLine();
+}
+function fxAddPkg(){
+  const key=FX.sel; if(!key) return;
+  const name=prompt("Yeni paket adı:"); if(!name||!name.trim()) return;
+  const price=parseFloat(String(prompt("Fiyat (USD):")||"").replace(",","."));
+  if(isNaN(price)){ alert("Fiyat gerekli."); return; }
+  ED_OVER[key]=ED_OVER[key]||{};
+  ED_OVER[key][edPkgKey(name)]={name:name.trim(), price:price,
+    order:(FX._pkgs.length+1), rights:{}};
+  edPersist(); edApply(); renderAll(); fxBuild(); fxOpen(key); fxRenderLog(); edStatusLine();
+}
+function fxUndoUnit(){
+  const key=FX.sel; if(!key||!ED_OVER[key]) return;
+  if(!confirm("Bu birimdeki tüm elle değişiklikler geri alınacak. Emin misin?")) return;
+  delete ED_OVER[key];
+  edPersist(); edApply(); renderAll(); fxBuild(); fxOpen(key); fxRenderLog(); edStatusLine();
+}
+function fxRenderLog(){
+  const rows=[];
+  Object.entries(ED_OVER).forEach(([k,pkgs])=>{
+    const [car,o,d,cab,sea]=k.split("|");
+    Object.entries(pkgs||{}).forEach(([pk,ov])=>{
+      const bits=[];
+      if(ov.__removed) bits.push("silindi");
+      else{
+        if(ov.rights&&Object.keys(ov.rights).length) bits.push(`${Object.keys(ov.rights).length} hak`);
+        bits.push(`${ov.name} · ${ov.price??"—"} USD`);
+      }
+      rows.push(`<div class="row">
+        <span><span class="k">${escap(car)} ${escap(o)}-${escap(d)} ${escap(cab)} ${escap(sea)}</span> — ${escap(bits.join(" · "))}</span>
+        <button class="undo" data-uk="${escap(k)}" data-upk="${escap(pk)}">geri al</button></div>`);
+    });
+  });
+  $("#fxLogTitle").textContent = `Değişiklik günlüğü (${rows.length})`;
+  $("#fxLog").innerHTML = rows.join("") ||
+    `<div style="color:var(--faint);padding:6px 0">Henüz değişiklik yok. Orijinal veri olduğu gibi duruyor.</div>`;
+}
+
+function fxBind(){
+  $("#fxFilters").addEventListener("click",e=>{
+    const b=e.target.closest("[data-f]"); if(!b) return;
+    const f=b.dataset.f; FX.filt.has(f)?FX.filt.delete(f):FX.filt.add(f);
+    fxRenderFilters(); fxRenderList();
+  });
+  $("#fxSearch").addEventListener("input",e=>{ FX.q=e.target.value; fxRenderList(); });
+  $("#fxItems").addEventListener("click",e=>{
+    const it=e.target.closest("[data-k]"); if(!it) return; fxOpen(it.dataset.k);
+  });
+  $("#fxMatrix").addEventListener("click",e=>{
+    const c=e.target.closest(".fx-cell"); if(!c) return;
+    fxCycleCell(Number(c.dataset.pk), c.dataset.rk);
+  });
+  $("#fxMatrix").addEventListener("change",e=>{
+    const i=e.target.closest("input[data-pk]"); if(!i) return;
+    fxSetField(Number(i.dataset.pk), i.dataset.fld, i.value);
+  });
+  $("#fxAddPkg").addEventListener("click", fxAddPkg);
+  $("#fxUndoUnit").addEventListener("click", fxUndoUnit);
+  $("#fxLog").addEventListener("click",e=>{
+    const b=e.target.closest("[data-uk]"); if(!b) return;
+    const k=b.dataset.uk, pk=b.dataset.upk;
+    if(ED_OVER[k]){ delete ED_OVER[k][pk]; if(!Object.keys(ED_OVER[k]).length) delete ED_OVER[k]; }
+    edPersist(); edApply(); renderAll(); fxBuild();
+    if(FX.sel) fxOpen(FX.sel);
+    fxRenderLog(); edStatusLine();
+  });
+  $("#fxDlHtml").addEventListener("click", edExportHtml);
+  $("#fxDlJson").addEventListener("click", ()=>{
+    edDownloadBlob(`fpi_veri_${edStamp()}.json`, JSON.stringify(edPayload(DATA.fares)), "application/json"); });
+  $("#fxDlOrig").addEventListener("click", ()=>{
+    edDownloadBlob(`fpi_veri_ORIJINAL_${edStamp()}.json`, JSON.stringify(edPayload(ED_ORIG)), "application/json"); });
+  $("#fxDlCsv").addEventListener("click", edExportCsv);
+  $("#fxRevert").addEventListener("click", ()=>{ edRevertAll(); fxBuild(); fxRenderLog(); });
+}
+
 function edInit(){
   ED_ORIG = JSON.parse(JSON.stringify(DATA.fares));
   edLoad();
-  $("#edCard").hidden=false;
-  $("#adTokenCard").hidden=true;
-  $("#adEditCard").hidden=false;
-  $("#adPendCard").hidden=true;                 // bekleyen giriş kavramı burada yok
-  $("#adSectionTitle").textContent="Veri Düzenleme";
-  const tab=$("#adminTab"); if(tab){ tab.hidden=false; tab.textContent="Veri Düzenleme"; }
-  $("#edDlHtml").addEventListener("click", edExportHtml);
-  $("#edDlJson").addEventListener("click", ()=>{
-    edDownloadBlob(`fpi_veri_${edStamp()}.json`, JSON.stringify(edPayload(DATA.fares)), "application/json");
-    edSet(`veri indirildi · ${DATA.fares.length} satır`,"ok"); });
-  $("#edDlOrig").addEventListener("click", ()=>{
-    edDownloadBlob(`fpi_veri_ORIJINAL_${edStamp()}.json`, JSON.stringify(edPayload(ED_ORIG)), "application/json");
-    edSet(`orijinal yedek indirildi · ${ED_ORIG.length} satır`,"ok"); });
-  $("#edDlCsv").addEventListener("click", edExportCsv);
-  $("#edRevert").addEventListener("click", edRevertAll);
-  if(edCount()){ edApply(); renderAll(); }
-  edStatusLine();
-  adFillLists();
+  if(edCount()){ edApply(); renderAll(); }   // saklanmış düzeltmeleri geri yükle
+  const tab=$("#fixTab"); if(tab) tab.hidden=false;
+  fxBind(); fxBuild(); fxRenderLog();
+  switchTab("fix");                          // düzeltme sürümü buraya açılır
 }
 
 /* Anahtar kayıtlıysa Yönetim sekmesini aç. Anahtarı olmayan sekmeyi görmez —
